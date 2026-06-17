@@ -1179,22 +1179,48 @@
     <div class="login-logo">🎓 Campus Life</div>
     <div class="login-sub" id="loginSubText">Admin Panel — Authorised Access Only</div>
 
-    <label class="login-label" for="loginEmail">Email</label>
-    <input class="login-input" id="loginEmail" type="email" placeholder="your@email.com" />
-    <label class="login-label" for="loginPassword">Password</label>
-    <input class="login-input" id="loginPassword" type="password" placeholder="••••••••" />
-    <div id="signupPasswordRow" style="display:none;">
-      <label class="login-label" for="loginPasswordConfirm">Confirm Password</label>
-      <input class="login-input" id="loginPasswordConfirm" type="password" placeholder="••••••••" />
+    <!-- ── Sign In Form ── -->
+    <div id="signinForm">
+      <label class="login-label" for="loginEmail">Email</label>
+      <input class="login-input" id="loginEmail" type="email" placeholder="your@email.com"
+        onkeydown="if(event.key==='Enter') handleAuthAction()" />
+      <label class="login-label" for="loginPassword">Password</label>
+      <input class="login-input" id="loginPassword" type="password" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter') handleAuthAction()" />
+      <div id="signupPasswordRow" style="display:none;">
+        <label class="login-label" for="loginPasswordConfirm">Confirm Password</label>
+        <input class="login-input" id="loginPasswordConfirm" type="password" placeholder="••••••••" />
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="handleAuthAction()">Sign In</button>
+      <div class="login-msg" id="loginMsg"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="#" onclick="showForgotPassword(event)"
+          style="font-size:12px;color:var(--muted);text-decoration:none;">
+          Forgot your password?
+        </a>
+      </div>
     </div>
 
-    <button class="login-btn" id="loginBtn" onclick="handleAuthAction()">Sign In</button>
-    <div class="login-msg" id="loginMsg"></div>
-
-    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
-      <span id="authToggleText">New admin? </span>
-      <a href="#" id="authToggleLink" onclick="toggleAuthMode(event)" style="color:var(--accent);font-weight:600;">Create Account</a>
+    <!-- ── Forgot Password Form ── -->
+    <div id="forgotForm" style="display:none;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+        Enter your email and we'll send you a link to reset your password.
+      </div>
+      <label class="login-label" for="forgotEmail">Email</label>
+      <input class="login-input" id="forgotEmail" type="email" placeholder="your@email.com"
+        onkeydown="if(event.key==='Enter') sendAdminResetEmail()" />
+      <button class="login-btn" id="forgotBtn" onclick="sendAdminResetEmail()">
+        Send Reset Link
+      </button>
+      <div class="login-msg" id="forgotMsg"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="#" onclick="hideForgotPassword(event)"
+          style="font-size:12px;color:var(--muted);text-decoration:none;">
+          ← Back to Sign In
+        </a>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -7861,6 +7887,86 @@ function togglePwdVisibility(inputId, btn){
   const show = input.type === "password";
   input.type = show ? "text" : "password";
   btn.textContent = show ? "\uD83D\uDE48" : "\uD83D\uDC41";
+}
+
+function showForgotPassword(e){
+  e && e.preventDefault();
+  document.getElementById("signinForm").style.display  = "none";
+  document.getElementById("forgotForm").style.display  = "block";
+  document.getElementById("forgotEmail").value         = document.getElementById("loginEmail").value || "";
+  document.getElementById("forgotMsg").innerHTML        = "";
+  document.getElementById("forgotEmail").focus();
+}
+function hideForgotPassword(e){
+  e && e.preventDefault();
+  document.getElementById("forgotForm").style.display  = "none";
+  document.getElementById("signinForm").style.display  = "block";
+}
+async function sendAdminResetEmail(){
+  const email = document.getElementById("forgotEmail").value.trim();
+  const msgEl = document.getElementById("forgotMsg");
+  const btn   = document.getElementById("forgotBtn");
+  if(!email){ msgEl.innerHTML = '<span style="color:var(--danger)">Enter your email address.</span>'; return; }
+  btn.disabled = true; btn.textContent = "Sending…";
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://lifeoncampus.net/auth-callback.html?next=admin"
+  });
+  btn.disabled = false; btn.textContent = "Send Reset Link";
+  if(error){
+    msgEl.innerHTML = `<span style="color:var(--danger)">❌ ${error.message}</span>`;
+  } else {
+    msgEl.innerHTML = `
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:8px;font-size:12px;color:#15803d;line-height:1.6;">
+        ✅ <strong>Email sent!</strong><br>
+        Check your inbox for a reset link. It expires in 1 hour.<br>
+        <span style="color:var(--muted)">Check your spam folder if you don't see it.</span>
+      </div>`;
+  }
+}
+
+// Handle auth redirects — checks both URL hash (direct) and sessionStorage (via auth-callback.html)
+async function handleAuthRedirect(){
+  // ── Path 1: Direct token in URL hash (no Cloudflare in the way) ──
+  const hash   = window.location.hash;
+  const params = new URLSearchParams(hash.replace("#",""));
+  const type   = params.get("type");
+  const at     = params.get("access_token");
+  const rt     = params.get("refresh_token") || "";
+
+  if((type === "invite" || type === "recovery") && at){
+    const { error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+    history.replaceState(null, "", window.location.pathname);
+    if(!error){
+      await checkSession();
+      setTimeout(() => {
+        showForceChangePassword();
+        showToast(type === "invite"
+          ? "👋 Welcome! Please set your password to continue."
+          : "🔑 Enter your new password to continue.", "success");
+      }, 600);
+      return;
+    }
+  }
+
+  // ── Path 2: Token processed by auth-callback.html, session already set ──
+  const cbType = sessionStorage.getItem("auth_callback_type");
+  if(cbType === "invite" || cbType === "recovery"){
+    sessionStorage.removeItem("auth_callback_type");
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){
+      await checkSession();
+      setTimeout(() => {
+        showForceChangePassword();
+        showToast(cbType === "invite"
+          ? "👋 Welcome! Please set your password to continue."
+          : "🔑 Enter your new password to continue.", "success");
+      }, 600);
+      return;
+    }
+  }
+
+  // ── Path 3: Normal page load ──
+  await checkSession();
 }
 
 function showForceChangePassword(){
