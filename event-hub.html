@@ -2818,11 +2818,17 @@ document.addEventListener("click", e => {
 /* ── Init ── */
 async function init(){
   // Coming back from auth-callback.html after password reset
-  const cbType = sessionStorage.getItem("auth_callback_type");
+  const stored = sessionStorage.getItem("aku_auth_callback");
+  const cbType = stored ? JSON.parse(stored).type : null;
   if(cbType === "recovery"){
-    sessionStorage.removeItem("auth_callback_type");
+    sessionStorage.removeItem("aku_auth_callback");
     const { data: { session } } = await sb.auth.getSession();
-    if(session){ showSetPasswordScreen(); return; }
+    const { at, rt } = stored ? JSON.parse(stored) : {};
+    if(at){
+      await sb.auth.setSession({ access_token: at, refresh_token: rt || "" });
+    }
+    const { data: { session: s2 } } = await sb.auth.getSession();
+    if(s2){ showSetPasswordScreen(); return; }
   }
 
   const { data: { session } } = await sb.auth.getSession();
