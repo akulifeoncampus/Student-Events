@@ -6529,10 +6529,6 @@ async function approveClub(id, clubName, email){
   loadClubApprovals();
 }
 
-function generateTempPassword(){
-  return Math.random().toString(36).slice(-8) + "Aku@2026";
-}
-
 function openRejectClub(id, name){
   document.getElementById("rejectClubId").value = id;
   document.getElementById("rejectClubName").textContent = `Rejecting access for: ${name}`;
