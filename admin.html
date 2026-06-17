@@ -1199,6 +1199,9 @@
           Forgot your password?
         </a>
       </div>
+      <!-- Hidden elements kept for JS compatibility -->
+      <span id="authToggleText" style="display:none;"></span>
+      <a href="#" id="authToggleLink" style="display:none;"></a>
     </div>
 
     <!-- ── Forgot Password Form ── -->
@@ -7924,45 +7927,48 @@ async function sendAdminResetEmail(){
   }
 }
 
-// Handle auth redirects — checks both URL hash (direct) and sessionStorage (via auth-callback.html)
+// Handle auth redirects — 3 paths covered
 async function handleAuthRedirect(){
+
   // ── Path 1: Direct token in URL hash (no Cloudflare in the way) ──
   const hash   = window.location.hash;
-  const params = new URLSearchParams(hash.replace("#",""));
-  const type   = params.get("type");
-  const at     = params.get("access_token");
-  const rt     = params.get("refresh_token") || "";
+  const hpar   = new URLSearchParams(hash.replace("#",""));
+  const hType  = hpar.get("type");
+  const hAt    = hpar.get("access_token");
+  const hRt    = hpar.get("refresh_token") || "";
 
-  if((type === "invite" || type === "recovery") && at){
-    const { error } = await sb.auth.setSession({ access_token: at, refresh_token: rt });
+  if((hType === "invite" || hType === "recovery") && hAt){
+    const { error } = await sb.auth.setSession({ access_token: hAt, refresh_token: hRt });
     history.replaceState(null, "", window.location.pathname);
     if(!error){
       await checkSession();
       setTimeout(() => {
         showForceChangePassword();
-        showToast(type === "invite"
-          ? "👋 Welcome! Please set your password to continue."
-          : "🔑 Enter your new password to continue.", "success");
+        showToast(hType === "invite" ? "👋 Welcome! Please set your password." : "🔑 Enter your new password.", "success");
       }, 600);
       return;
     }
   }
 
-  // ── Path 2: Token processed by auth-callback.html, session already set ──
-  const cbType = sessionStorage.getItem("auth_callback_type");
-  if(cbType === "invite" || cbType === "recovery"){
-    sessionStorage.removeItem("auth_callback_type");
-    const { data: { session } } = await sb.auth.getSession();
-    if(session){
-      await checkSession();
-      setTimeout(() => {
-        showForceChangePassword();
-        showToast(cbType === "invite"
-          ? "👋 Welcome! Please set your password to continue."
-          : "🔑 Enter your new password to continue.", "success");
-      }, 600);
-      return;
-    }
+  // ── Path 2: Tokens stored by auth-callback.html in sessionStorage ──
+  const stored = sessionStorage.getItem("aku_auth_callback");
+  if(stored){
+    try {
+      const { at, rt, type: cbType } = JSON.parse(stored);
+      sessionStorage.removeItem("aku_auth_callback");
+      if(at){
+        // Use THIS page's Supabase client (correct storageKey: "aku-admin-session")
+        const { error } = await sb.auth.setSession({ access_token: at, refresh_token: rt || "" });
+        if(!error){
+          await checkSession();
+          setTimeout(() => {
+            showForceChangePassword();
+            showToast(cbType === "invite" ? "👋 Welcome! Please set your password." : "🔑 Enter your new password.", "success");
+          }, 600);
+          return;
+        }
+      }
+    } catch(e){ console.error("Auth callback parse error:", e); }
   }
 
   // ── Path 3: Normal page load ──
