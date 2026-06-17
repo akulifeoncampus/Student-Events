@@ -2738,6 +2738,40 @@ async function markAllRead(){
 
 /* ── Notif panel toggle ── */
 /* ── Password Reset ── */
+function showSetPasswordScreen(){
+  // Show a simple set-new-password screen for clubs arriving via reset link
+  document.getElementById("loginScreen").style.display = "flex";
+  document.querySelector("#loginScreen .login-card").innerHTML = `
+    <div class="login-icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">🔑</div>
+    <div class="login-title">Set New Password</div>
+    <div class="login-sub" style="margin-bottom:20px;">Enter your new password below.</div>
+    <div style="margin-bottom:12px;">
+      <label class="login-label">New Password</label>
+      <input class="login-input" id="hubNewPw" type="password" placeholder="Min. 8 characters" />
+    </div>
+    <div style="margin-bottom:16px;">
+      <label class="login-label">Confirm New Password</label>
+      <input class="login-input" id="hubConfirmPw" type="password" placeholder="Repeat password" />
+    </div>
+    <div id="hubPwError" style="font-size:12px;color:#dc2626;min-height:16px;margin-bottom:8px;"></div>
+    <button class="login-btn" id="hubSetPwBtn" onclick="submitHubNewPassword()">Set Password</button>`;
+}
+
+async function submitHubNewPassword(){
+  const pw    = document.getElementById("hubNewPw").value;
+  const conf  = document.getElementById("hubConfirmPw").value;
+  const errEl = document.getElementById("hubPwError");
+  const btn   = document.getElementById("hubSetPwBtn");
+  errEl.textContent = "";
+  if(!pw || pw.length < 8){ errEl.textContent = "Password must be at least 8 characters."; return; }
+  if(pw !== conf){ errEl.textContent = "Passwords do not match."; return; }
+  btn.disabled = true; btn.textContent = "Saving…";
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if(error){ errEl.textContent = "❌ " + error.message; btn.disabled = false; btn.textContent = "Set Password"; return; }
+  // Password set — now load the portal
+  await init();
+}
+
 function showForgotPassword(e){
   e.preventDefault();
   const row = document.getElementById("forgotPasswordRow");
@@ -2752,16 +2786,24 @@ async function sendPasswordReset(){
   const email = document.getElementById("resetEmail").value.trim();
   if(!email){ showMsg("Please enter your club email.", "error"); return; }
 
-  const { data: clubRow } = await sb.from("club_accounts").select("status").eq("email", email).single();
+  const { data: clubRow } = await sb.from("club_accounts").select("status").eq("email", email).maybeSingle();
   if(!clubRow){ showMsg("❌ This email is not registered in our system.", "error"); return; }
   if(clubRow.status !== "approved"){ showMsg("❌ Your account is not yet approved. Contact the OSE team.", "error"); return; }
 
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
+    redirectTo: "https://lifeoncampus.net/auth-callback.html?next=hub"
   });
   if(error){ showMsg("❌ " + error.message, "error"); return; }
-  showMsg("✅ Password reset link sent! Check your email inbox.", "success");
-  document.getElementById("forgotPasswordRow").style.display = "none";
+
+  document.getElementById("forgotPasswordRow").innerHTML = `
+    <div style="text-align:center;padding:8px 0;">
+      <div style="font-size:28px;margin-bottom:8px;">📧</div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;">Reset link sent!</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+        Check your inbox for a password reset link.<br>
+        It expires in 1 hour. Check your spam folder too.
+      </div>
+    </div>`;
 }
 
 document.getElementById("notifBtn").addEventListener("click", () => {
@@ -2775,6 +2817,14 @@ document.addEventListener("click", e => {
 
 /* ── Init ── */
 async function init(){
+  // Coming back from auth-callback.html after password reset
+  const cbType = sessionStorage.getItem("auth_callback_type");
+  if(cbType === "recovery"){
+    sessionStorage.removeItem("auth_callback_type");
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){ showSetPasswordScreen(); return; }
+  }
+
   const { data: { session } } = await sb.auth.getSession();
   if(session){
     const { data: clubRow } = await sb.from("club_accounts")
