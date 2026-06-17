@@ -1649,10 +1649,10 @@
               <option>Dar es Salaam</option>
             </select>
           </div>
-          <button class="btn btn-primary" onclick="addAdmin()" style="grid-column:span 1;align-self:flex-end;height:38px;">✉️ Send Invite</button>
+          <button class="btn btn-primary" onclick="addAdmin()" style="grid-column:span 1;align-self:flex-end;height:38px;">Add Admin</button>
         </div>
         <p style="font-size:12px;color:var(--muted);margin-top:10px;" id="addAdminNote">
-          ℹ️ An invitation email will be sent to the new member. They click the link to set their own password and access the portal.
+          ℹ️ A temporary password will be generated and emailed to the new admin. They will be asked to set a new password on first sign in.
         </p>
       </div>
 
@@ -4673,18 +4673,93 @@ async function savePermissions(){
   loadAdmins();
 }
 
+// Generate a secure temporary password
+function generateTempPassword(){
+  const upper = "ABCDEFGHJKMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const nums  = "23456789";
+  const all   = upper + lower + nums;
+  let pass = upper[Math.floor(Math.random() * upper.length)];
+  pass    += lower[Math.floor(Math.random() * lower.length)];
+  pass    += nums [Math.floor(Math.random() * nums.length)];
+  for(let i = 0; i < 7; i++) pass += all[Math.floor(Math.random() * all.length)];
+  return pass.split("").sort(() => Math.random() - .5).join("");
+}
+
 async function addAdmin(){
   if(currentRole !== "super_admin"){ showToast("Only Super Admins can add new admins.", "error"); return; }
+
   const email  = document.getElementById("newAdminEmail").value.trim().toLowerCase();
   const role   = document.getElementById("newAdminRole").value;
   const campus = document.getElementById("newAdminCampus").value;
 
-  if(!email){ showToast("Enter an email address", "error"); return; }
-  if(!email.includes("@")){ showToast("Enter a valid email address", "error"); return; }
+  if(!email){ showToast("Enter an email address.", "error"); return; }
+  if(!email.includes("@")){ showToast("Enter a valid email address.", "error"); return; }
 
   const btn = document.querySelector("#addAdminForm .btn-primary");
-  if(btn){ btn.disabled = true; btn.textContent = "Sending invite…"; }
-  const resetBtn = () => { if(btn){ btn.disabled = false; btn.textContent = "✉️ Send Invite"; } };
+  if(btn){ btn.disabled = true; btn.textContent = "Creating…"; }
+  const resetBtn = () => { if(btn){ btn.disabled = false; btn.textContent = "Add Admin"; } };
+
+  // Generate temp password
+  const tempPw = generateTempPassword();
+
+  // Step 1 — Add to admins table first
+  const defaultPerms = { ...ROLE_DEFAULTS[role] || ROLE_DEFAULTS.admin, campus: [campus] };
+  const { error: insertErr } = await sb.from("admins").upsert({
+    email, role, campus,
+    permissions: defaultPerms,
+    must_change_password: true,
+  }, { onConflict: "email" });
+
+  if(insertErr){
+    showToast("Failed to add admin: " + insertErr.message, "error");
+    resetBtn(); return;
+  }
+
+  // Step 2 — Create Supabase Auth account + send email with temp password
+  const res    = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
+    body: JSON.stringify({ type: "invite_admin", user_email: email, temp_password: tempPw, role, campus }),
+  });
+  const result = await res.json();
+
+  const roleLabel = role === "super_admin" ? "Super Admin" : role === "event_lead" ? "Event Lead" : "Admin";
+
+  if(!res.ok || result.error){
+    showToast(`✅ ${roleLabel} added to system but email failed. Share temp password manually.`, "error");
+  } else {
+    showToast(`✅ ${roleLabel} added! Email sent to ${email}`);
+  }
+
+  resetBtn();
+
+  // Show temp password in UI with copy button (in case email fails or as backup)
+  document.getElementById("addAdminNote").innerHTML = `
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-top:10px;">
+      <div style="font-weight:700;color:#15803d;margin-bottom:8px;">✅ Account created & email sent!</div>
+      <div style="font-size:12px;color:#374151;line-height:1.9;">
+        <strong>Email:</strong> ${esc(email)}<br>
+        <strong>Role:</strong> ${roleLabel}<br>
+        <strong>Campus:</strong> ${esc(campus)}<br>
+        <strong>Temp Password:</strong>
+        <span style="font-family:monospace;font-size:14px;font-weight:700;color:#000060;background:#eff6ff;padding:2px 8px;border-radius:4px;letter-spacing:1px;">${esc(tempPw)}</span>
+        <button onclick="navigator.clipboard.writeText('${esc(tempPw)}');this.textContent='✅ Copied!';setTimeout(()=>this.textContent='📋 Copy',1500);"
+          style="margin-left:8px;padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;border-radius:4px;background:white;cursor:pointer;font-family:'Poppins',sans-serif;">
+          📋 Copy
+        </button>
+      </div>
+      <div style="font-size:11px;color:#64748b;margin-top:8px;">
+        ℹ️ The new admin will be prompted to change this password on first sign in.
+      </div>
+    </div>`;
+
+  document.getElementById("newAdminEmail").value  = "";
+  document.getElementById("newAdminRole").value   = "event_lead";
+  document.getElementById("newAdminCampus").value = "All";
+  loadAdmins();
+  loadDashboard();
+}
 
   // Step 1 — Add to admins table first
   const defaultPerms = { ...ROLE_DEFAULTS[role] || ROLE_DEFAULTS.admin, campus: [campus] };
