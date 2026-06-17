@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Life — Please wait…</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *{ box-sizing:border-box; margin:0; padding:0; }
+    body{
+      font-family:'Poppins',sans-serif;
+      background:#f8fafc;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+      color:#0f172a;
+    }
+    .card{
+      background:white;
+      border-radius:16px;
+      padding:40px 32px;
+      text-align:center;
+      box-shadow:0 4px 24px rgba(0,0,0,.08);
+      max-width:360px;
+      width:90%;
+    }
+    .logo{
+      width:56px; height:56px;
+      background:#000060;
+      border-radius:14px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:28px;
+      margin:0 auto 20px;
+    }
+    h1{ font-size:18px; font-weight:600; margin-bottom:8px; }
+    p{ font-size:13px; color:#64748b; line-height:1.6; }
+    .spinner{
+      width:32px; height:32px;
+      border:3px solid #e2e8f0;
+      border-top-color:#000060;
+      border-radius:50%;
+      animation:spin .8s linear infinite;
+      margin:20px auto 0;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+    .error-box{
+      display:none;
+      background:#fef2f2;
+      border:1px solid #fecaca;
+      border-radius:10px;
+      padding:14px;
+      margin-top:16px;
+      font-size:13px;
+      color:#dc2626;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">🎓</div>
+  <h1>Authenticating…</h1>
+  <p id="statusMsg">Please wait while we verify your identity.</p>
+  <div class="spinner" id="spinner"></div>
+  <div class="error-box" id="errorBox"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = "https://dgzuqvffnbfybngoadse.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function showError(msg){
+    document.getElementById("spinner").style.display = "none";
+    const box = document.getElementById("errorBox");
+    box.textContent = msg;
+    box.style.display = "block";
+    document.getElementById("statusMsg").textContent = "Something went wrong.";
+  }
+
+  async function handleCallback(){
+    // Read hash fragment — this page is NOT behind Cloudflare so hash is preserved
+    const hash   = window.location.hash;
+    const params = new URLSearchParams(hash.replace("#",""));
+    const accessToken  = params.get("access_token");
+    const refreshToken = params.get("refresh_token") || "";
+    const type         = params.get("type"); // invite | recovery | signup
+
+    // Read where to send the user after auth
+    const search     = new URLSearchParams(window.location.search);
+    const next       = search.get("next") || "admin"; // admin | hub
+
+    const destAdmin  = "/admin.html";
+    const destHub    = "/event-hub.html";
+    const dest       = next === "hub" ? destHub : destAdmin;
+
+    if(!accessToken){
+      // No token — just redirect to the destination
+      window.location.replace(dest);
+      return;
+    }
+
+    // Set the Supabase session using the token from the email link
+    const { data, error } = await sb.auth.setSession({
+      access_token:  accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if(error){
+      showError("Your link has expired or is invalid. Please request a new one.");
+      return;
+    }
+
+    // Tell the destination page what type of auth this was
+    // so it can show the right UI (e.g. "set your password" screen)
+    sessionStorage.setItem("auth_callback_type", type || "recovery");
+
+    document.getElementById("statusMsg").textContent = "Verified! Redirecting…";
+
+    // Small delay so the user sees the success state
+    setTimeout(() => window.location.replace(dest), 800);
+  }
+
+  handleCallback();
+</script>
+</body>
+</html>
