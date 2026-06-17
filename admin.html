@@ -6566,6 +6566,23 @@ function handleCSVUpload(input){
         return;
 
       } else if(csvImportTarget === "clubs"){
+        // Normalize campus values — handles typos and case variations
+        function normalizeCampus(val){
+          if(!val) return null;
+          const map = {
+            'karachi':        'Karachi',
+            'nairobi':        'Nairobi',
+            'kampala':        'Kampala',
+            'kampla':         'Kampala',  // common typo
+            'dar es salaam':  'Dar es Salaam',
+            'dares salaam':   'Dar es Salaam',
+            'dar-es-salaam':  'Dar es Salaam',
+            'daressalaam':    'Dar es Salaam',
+            'dar':            'Dar es Salaam',
+          };
+          return map[val.toLowerCase().trim()] || val.trim();
+        }
+
         rows = res.data.map(r => ({
           name:        (r["Society Name"]       || r["Club Name"]       || "").trim(),
           email:       (r["Email"]              || "").trim(),
@@ -6576,7 +6593,7 @@ function handleCSVUpload(input){
           secretary:   (r["General Secretary"]  || r["Secretary"]      || "").trim(),
           treasurer:   (r["Treasurer"]          || "").trim(),
           logo_url:    (r["Logo"]               || r["Logo URL"]        || "").trim(),
-          campus:      (r["Campus"]             || "").trim() || null,
+          campus:      normalizeCampus(r["Campus"] || ""),
           category:    (r["Category of the Club"] || r["Category"] || r["Club Category"] || r["Type"] || "").trim() || null,
         })).filter(r => r.name);
       } else {
