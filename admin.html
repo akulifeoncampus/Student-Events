@@ -4761,69 +4761,6 @@ async function addAdmin(){
   loadDashboard();
 }
 
-  // Step 1 — Add to admins table first
-  const defaultPerms = { ...ROLE_DEFAULTS[role] || ROLE_DEFAULTS.admin, campus: [campus] };
-  const { error: insertErr } = await sb.from("admins").upsert({
-    email, role, campus,
-    permissions: defaultPerms,
-    must_change_password: false,
-  }, { onConflict: "email" });
-
-  if(insertErr){
-    showToast("Failed: " + insertErr.message, "error");
-    resetBtn(); return;
-  }
-
-  // Step 2 — Send invite email via Edge Function
-  const invRes = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
-    body: JSON.stringify({ type: "invite_user", user_email: email }),
-  });
-  const invResult = await invRes.json();
-  console.log("[Invite] Status:", invRes.status, "Response:", JSON.stringify(invResult));
-  const alreadyExists = invResult.error?.toLowerCase().includes("already");
-
-  // If user already exists in Auth — send password reset instead
-  if(alreadyExists){
-    const resetRes = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
-      body: JSON.stringify({ type: "reset_password_link", user_email: email }),
-    });
-    const resetResult = await resetRes.json();
-    console.log("[Reset] Status:", resetRes.status, "Response:", JSON.stringify(resetResult));
-  }
-
-  const inviteErr = !invRes.ok && !alreadyExists ? invResult.error : null;
-
-  const roleLabel = role === "super_admin" ? "Super Admin" : role === "event_lead" ? "Event Lead" : "Admin";
-  const emailAction = alreadyExists ? "Password reset email sent" : "Invite email sent";
-
-  if(inviteErr){
-    showToast(`✅ ${roleLabel} added. Email failed — ask them to use Forgot Password.`, "error");
-  } else {
-    showToast(`✅ ${roleLabel} added! ${emailAction} to ${email}`);
-  }
-
-  resetBtn();
-  document.getElementById("addAdminNote").innerHTML = `
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;margin-top:8px;">
-      <div style="font-weight:700;color:#15803d;margin-bottom:6px;">✅ ${emailAction}!</div>
-      <div style="font-size:12px;color:#374151;line-height:1.8;">
-        <strong>Email:</strong> ${esc(email)}<br>
-        <strong>Role:</strong> ${roleLabel}<br>
-        <strong>Campus:</strong> ${esc(campus)}<br>
-        <strong>Next step:</strong> ${esc(email)} will receive an email to ${alreadyExists ? "reset their password and access the portal" : "set their password and access the portal"}.
-      </div>
-    </div>`;
-
-  document.getElementById("newAdminEmail").value  = "";
-  document.getElementById("newAdminRole").value   = "event_lead";
-  document.getElementById("newAdminCampus").value = "All";
-  loadAdmins();
-  loadDashboard();
-}
 
 /* ══ DELETE / CONFIRM ══ */
 function confirmDelete(type, id, name){
