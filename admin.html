@@ -6567,17 +6567,17 @@ function handleCSVUpload(input){
 
       } else if(csvImportTarget === "clubs"){
         rows = res.data.map(r => ({
-          name:        (r["Society Name"]       || "").trim(),
+          name:        (r["Society Name"]       || r["Club Name"]       || "").trim(),
           email:       (r["Email"]              || "").trim(),
           description: (r["Description"]        || "").trim(),
-          events:      (r["Signature Events"]   || "").trim(),
-          convenor:    (r["Convenor"]           || "").trim(),
-          co_convenor: (r["Co-Convenor"]        || "").trim(),
-          secretary:   (r["General Secretary"]  || "").trim(),
+          events:      (r["Signature Events"]   || r["Signature Event"] || "").trim(),
+          convenor:    (r["Convenor"]           || r["President"]       || "").trim(),
+          co_convenor: (r["Co-Convenor"]        || r["Co-convenor"]    || r["Vice President"] || "").trim(),
+          secretary:   (r["General Secretary"]  || r["Secretary"]      || "").trim(),
           treasurer:   (r["Treasurer"]          || "").trim(),
-          logo_url:    (r["Logo"]               || "").trim(),
+          logo_url:    (r["Logo"]               || r["Logo URL"]        || "").trim(),
           campus:      (r["Campus"]             || "").trim() || null,
-          category:    (r["Category"]           || r["Club Category"] || r["Type"] || "").trim() || null,
+          category:    (r["Category of the Club"] || r["Category"] || r["Club Category"] || r["Type"] || "").trim() || null,
         })).filter(r => r.name);
       } else {
         rows = res.data.map(r => ({
