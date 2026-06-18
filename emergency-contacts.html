@@ -4,42 +4,64 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#000060" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="Campus Life" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Life on Campus" />
   <link rel="apple-touch-icon" href="https://studentexperience.github.io/icon-192.png" />
-  <title>Campus Life · Emergency Contacts</title>
+  <title>Life on Campus · Emergency Contacts</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root { --ink:#111827; --muted:#6b7280; --border:#e5e7eb; --bg:#f3f4f6; --panel:#ffffff; --shadow:0 6px 14px rgba(0,0,0,.10); --accent:#2563eb; }
+    :root {
+      --ink:    #111827;
+      --muted:  #6b7280;
+      --border: #e5e7eb;
+      --bg:     #f3f4f6;
+      --panel:  #ffffff;
+      --shadow: 0 6px 14px rgba(0,0,0,.10);
+      --accent: #2563eb;
+    }
     * { box-sizing:border-box; margin:0; padding:0; }
     html, body { max-width:100%; overflow-x:hidden; }
     body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; }
 
-    .topbar { height:56px; background:linear-gradient(135deg,#1e40af 0%,#2563eb 60%,#3b82f6 100%); box-shadow:0 2px 12px rgba(37,99,235,.25); display:flex; align-items:center; padding:0 18px; gap:12px; position:sticky; top:0; z-index:100; }
+    /* Poppins for all form elements — browsers don't inherit font by default */
+    input, select, button, textarea { font-family:inherit; }
+
+    /* ── Topbar ── */
+    .topbar {
+      height:56px;
+      background:linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
+      box-shadow:0 2px 12px rgba(37,99,235,.25);
+      display:flex; align-items:center; padding:0 18px; gap:12px;
+      position:sticky; top:0; z-index:100;
+    }
     .brand { color:white; font-size:17px; font-weight:700; letter-spacing:.3px; }
     .nav-toggle { display:none; background:none; border:none; cursor:pointer; padding:4px 6px; font-size:22px; color:white; }
 
+    /* ── Shell ── */
     .shell { display:grid; grid-template-columns:160px 1fr; min-height:calc(100vh - 56px); width:100%; max-width:100%; }
+
+    /* ── Sidebar nav ── */
     .nav { background:var(--panel); border-right:1px solid var(--border); padding:16px 8px; width:160px; }
     .nav a { display:flex; align-items:center; gap:8px; padding:9px 12px; margin:2px 0; border-radius:10px; color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; }
     .nav a:hover:not(.active) { background:#f9fafb; }
-    .nav a.active { background:#eff6ff; color:#1d4ed8; font-weight:700; border-left:3px solid #2563eb; padding-left:9px; }
+    .nav a.active { background:#eff6ff; color:#1d4ed8; font-weight:700; border-left:3px solid #2563eb; padding-left:9px; border-radius:0; }
 
+    /* ── Content ── */
     .content { padding:22px; min-width:0; max-width:100%; overflow-x:hidden; }
     .page-title { font-size:28px; font-weight:700; margin:6px 0 4px; }
     .page-subtitle { font-size:14px; color:var(--muted); margin:0 0 20px; }
 
-    /* Emergency banner */
-    /* Emergency banner — stacks vertically on mobile */
+    /* ── Emergency banner ── */
     .emergency-banner {
       background:linear-gradient(135deg,#991b1b,#dc2626,#ef4444);
       color:white; padding:18px 16px; border-radius:12px; margin-bottom:18px;
-      display:flex; flex-direction:column; align-items:center;
-      gap:10px; text-align:center;
+      display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;
     }
     .emergency-banner-icon { font-size:30px; }
     .emergency-banner-text h2 { font-size:16px; font-weight:800; margin-bottom:3px; }
@@ -52,21 +74,25 @@
       width:100%; max-width:320px; box-sizing:border-box;
     }
 
-    /* Search */
-    #contactSearch { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:10px; font-family:'Poppins',sans-serif; font-size:14px; background:white; box-shadow:var(--shadow); outline:none; box-sizing:border-box; }
+    /* ── Search ── */
+    #contactSearch {
+      width:100%; padding:10px 14px; border:1px solid var(--border);
+      border-radius:10px; font-size:14px; background:white;
+      box-shadow:var(--shadow); outline:none;
+    }
 
-    /* Filter chips — horizontal scroll on mobile */
+    /* ── Filter chips ── */
     .filter-bar { display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
     .filter-bar::-webkit-scrollbar { display:none; }
-    .filter-chip { padding:6px 14px; border-radius:999px; border:2px solid var(--border); background:white; font-family:'Poppins',sans-serif; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; color:var(--muted); white-space:nowrap; flex-shrink:0; }
+    .filter-chip { padding:6px 14px; border-radius:999px; border:2px solid var(--border); background:white; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; color:var(--muted); white-space:nowrap; flex-shrink:0; }
     .filter-chip.active { background:var(--accent); border-color:var(--accent); color:white; }
 
-    /* Category */
+    /* ── Category sections ── */
     .category-section { margin-bottom:22px; }
     .category-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
     .category-label::after { content:""; flex:1; height:1px; background:var(--border); }
 
-    /* Contact grid — 1 col always on mobile, 2+ on wider screens */
+    /* ── Contact grid ── */
     .contacts-grid { display:grid; grid-template-columns:1fr; gap:10px; }
     @media(min-width:500px){ .contacts-grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); } }
 
@@ -84,43 +110,43 @@
     .contact-action:not(:last-child) { border-right:1px solid #f3f4f6; }
     .empty { text-align:center; padding:40px 20px; color:var(--muted); }
 
-    /* Bottom nav */
+    /* ── Bottom nav ── */
     .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid var(--border); box-shadow:0 -4px 12px rgba(0,0,0,.08); z-index:100; padding-bottom:env(safe-area-inset-bottom); }
     .bottom-nav-inner { display:flex; }
     .bottom-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; padding:7px 2px; font-size:9px; font-weight:600; color:var(--muted); text-decoration:none; gap:2px; }
     .bottom-nav-item span:first-child { font-size:18px; }
     .bottom-nav-item.active { color:var(--accent); }
 
+    /* ── Mobile ── */
     @media(max-width:768px){
       .shell { display:block; width:100%; }
-      .content { width:100%; max-width:100%; }
+      .content { width:100%; max-width:100%; padding:12px 12px 80px; }
       .nav { display:none; position:fixed; top:56px; left:0; width:200px; height:calc(100vh - 56px); z-index:99; box-shadow:4px 0 20px rgba(0,0,0,.1); background:white; }
       .nav.open { display:block; }
       .nav-toggle { display:block; }
       .bottom-nav { display:block; }
-      .content { padding:12px 12px 80px; }
       .page-title { font-size:20px; }
       .page-subtitle { font-size:12px; margin-bottom:12px; }
     }
   </style>
 </head>
 <body>
+
 <header class="topbar">
   <button class="nav-toggle" onclick="document.getElementById('sideNav').classList.toggle('open')">&#9776;</button>
-  <div class="brand">Campus Life</div>
+  <div class="brand">Life on Campus</div>
 </header>
 
 <div class="shell">
-      <nav class="nav" id="sideNav">
-      <a href="index.html">Home</a>
-      <a href="index.html">Events</a>
-      <a href="clubs.html">Clubs</a>
-      <a href="acc.html">ACC</a>
-      <a href="news.html">News</a>
-      <a href="resources.html">Resources</a>
-      <a href="emergency-contacts.html" class="active">Emergency</a>
-      <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
-    </nav>
+  <nav class="nav" id="sideNav">
+    <a href="index.html">📅 Events</a>
+    <a href="clubs.html">🎭 Clubs</a>
+    <a href="acc.html">🎨 ACC</a>
+    <a href="news.html">📰 News</a>
+    <a href="resources.html">🔗 Resources</a>
+    <a href="emergency-contacts.html" class="active">🚨 Emergency</a>
+    <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
+  </nav>
 
   <main class="content">
     <div class="page-title">🚨 Emergency Contacts</div>
@@ -138,11 +164,7 @@
 
     <!-- Search -->
     <div style="margin-bottom:16px;">
-      <input type="text" id="contactSearch" placeholder="🔍 Search contacts, departments…"
-        oninput="searchContacts(this.value)"
-        style="width:100%;padding:10px 16px;border:1px solid var(--border);border-radius:10px;
-        font-family:'Poppins',sans-serif;font-size:14px;background:white;
-        box-shadow:var(--shadow);outline:none;" />
+      <input type="text" id="contactSearch" placeholder="🔍 Search contacts, departments…" oninput="searchContacts(this.value)" />
     </div>
 
     <!-- Campus Filter -->
@@ -194,7 +216,6 @@ function searchContacts(q){
 }
 
 async function init(){
-  // Load emergency number from settings
   const { data: settings } = await sb.from("site_settings").select("value").eq("key","emergency_number").single();
   const num = settings?.value || "";
   const link = document.getElementById("emergencyNumberLink");
