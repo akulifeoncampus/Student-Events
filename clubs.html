@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#000060" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Campus Life" />
+  <meta name="apple-mobile-web-app-title" content="Life on Campus" />
   <link rel="apple-touch-icon" href="https://studentexperience.github.io/icon-192.png" />
-  <title>Campus Life · Clubs & Societies</title>
+  <title>Life on Campus · Clubs &amp; Societies</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,9 +36,9 @@
       --b6:#F5F5F5; --a6:#E1E1E1;
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    input, select, button, textarea { font-family: inherit; }
     body {
-      margin: 0;
       font-family: 'Poppins', sans-serif;
       background: var(--bg);
       color: var(--ink);
@@ -47,7 +47,7 @@
     /* ── Topbar ── */
     .topbar {
       height: 56px;
-      background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
+      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
       border-bottom: none; box-shadow: 0 2px 12px rgba(37,99,235,.25);
       display: flex;
       align-items: center;
@@ -65,14 +65,13 @@
       cursor: pointer;
       padding: 4px 6px;
       font-size: 22px;
-      line-height: 1;
-      color: var(--ink);
+      color: white;
     }
 
     /* ── Shell ── */
     .shell {
       display: grid;
-      grid-template-columns: 180px 1fr;
+      grid-template-columns: 160px 1fr;
       min-height: calc(100vh - 56px);
     }
 
@@ -80,22 +79,28 @@
     .nav {
       background: var(--panel);
       border-right: 1px solid var(--border);
-      padding: 14px 10px;
+      padding: 16px 8px;
     }
     .nav a {
-      display: block;
-      padding: 10px 12px;
-      margin: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      margin: 2px 0;
       border-radius: 10px;
-      color: #111;
+      color: var(--ink);
       text-decoration: none;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
     }
-    .nav a:hover { background: #f3f4f6; }
+    .nav a:hover:not(.active) { background: #f9fafb; }
     .nav a.active {
-      background: #eef2ff;
-      color: #1f2a64;
-      font-weight: 600;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 700;
+      border-left: 3px solid #2563eb;
+      padding-left: 9px;
+      border-radius: 0;
     }
 
     /* ── Content ── */
@@ -124,7 +129,6 @@
       padding: 10px 14px;
       border-radius: 10px;
       border: 1px solid var(--border);
-      font-family: 'Poppins', sans-serif;
       font-size: 14px;
       background: var(--panel);
       box-shadow: var(--shadow);
@@ -136,7 +140,6 @@
       border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--panel);
-      font-family: 'Poppins', sans-serif;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
@@ -443,81 +446,29 @@
       width: fit-content;
     }
 
-    /* ── Responsive ── */
-    @media (max-width: 1280px) {
-      .cards { grid-template-columns: repeat(3, 1fr); }
-    }
-    @media (max-width: 1024px) {
-      .shell { grid-template-columns: 1fr; }
-      .nav {
-        display: none;
-        position: fixed;
-        top: 56px; left: 0;
-        width: 200px;
-        height: calc(100vh - 56px);
-        z-index: 200;
-        box-shadow: 4px 0 16px rgba(0,0,0,.12);
-        overflow-y: auto;
-      }
+    /* ── Responsive — card grid ── */
+    @media (max-width: 1280px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 1024px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ── Responsive — mobile standard ── */
+    @media (max-width: 768px) {
+      .shell { display: block; }
+      .nav { display: none; position: fixed; top: 56px; left: 0; width: 200px; height: calc(100vh - 56px); z-index: 99; box-shadow: 4px 0 20px rgba(0,0,0,.1); background: white; }
       .nav.open { display: block; }
       .nav-toggle { display: block; }
-      .content { padding: 18px; }
-      .cards { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 600px) {
-      .content { padding: 12px; }
-      .page-title { font-size: 22px; }
+      .bottom-nav { display: block; }
+      .content { padding: 12px 12px 80px; }
+      .page-title { font-size: 20px; }
+      .page-subtitle { font-size: 12px; margin-bottom: 12px; }
       .cards { grid-template-columns: 1fr; gap: 12px; }
+      .search-row input, .search-row select { min-width: 0; width: 100%; }
       .modal-leadership { grid-template-columns: 1fr; }
       .modal-content { padding: 18px 18px 22px; }
-      .search-row input, .search-row select { min-width: 0; width: 100%; }
-    }
-    @media (max-width: 380px) {
-      .cards { grid-template-columns: 1fr; }
     }
     @media (max-width: 360px) {
       .topbar { padding: 0 12px; }
       .brand { font-size: 14px; }
     }
-
-    /* ── CAMPUS LIFE BRAND TOPBAR ── */
-    .topbar {
-      background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
-      border-bottom: none;
-      box-shadow: 0 2px 12px rgba(37,99,235,.25);
-    }
-    .brand {
-      color: white;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: .3px;
-    }
-    .brand span { opacity: .75; font-weight: 400; }
-    .nav-toggle { color: white !important; }
-
-    /* ── CONSISTENT NAV ── */
-    @media (min-width: 1025px) {
-      .shell { grid-template-columns: 160px 1fr; }
-    }
-    .nav { padding: 16px 8px !important; width: 160px; }
-    .nav a {
-      font-size: 13px !important;
-      padding: 9px 12px !important;
-      margin: 2px 0 !important;
-      border-radius: 10px !important;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .nav a.active {
-      background: #eff6ff !important;
-      color: #1d4ed8 !important;
-      font-weight: 700 !important;
-      border-left: 3px solid #2563eb;
-      padding-left: 9px !important;
-    }
-    .nav a:hover:not(.active) { background: #f9fafb !important; }
 
     /* ── SKELETON LOADER ── */
     @keyframes shimmer {
@@ -575,19 +526,17 @@
 <body>
   <header class="topbar">
     <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
-    <div class="brand">Campus Life</div>
+    <div class="brand">Life on Campus</div>
   </header>
 
   <div class="shell">
     <nav class="nav" id="sideNav">
-      <a href="index.html">Home</a>
-      <a href="index.html">Events</a>
-      <a href="clubs.html" class="active">Clubs</a>
-      <a href="acc.html">ACC</a>
-      <a href="news.html">News</a>
-      <a href="resources.html">Resources</a>
-      <a href="emergency-contacts.html">Emergency</a>
-    
+      <a href="index.html">📅 Events</a>
+      <a href="clubs.html" class="active">🎭 Clubs</a>
+      <a href="acc.html">🎨 ACC</a>
+      <a href="news.html">📰 News</a>
+      <a href="resources.html">🔗 Resources</a>
+      <a href="emergency-contacts.html">🚨 Emergency</a>
       <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
     </nav>
 
