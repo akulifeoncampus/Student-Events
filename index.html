@@ -465,14 +465,16 @@
       flex: 1; min-width: 120px;
       padding: 10px 14px;
       border-radius: 12px;
-      font-family: 'Poppins', sans-serif;
       font-size: 12px; font-weight: 700;
-      cursor: pointer; border: none;
+      cursor: pointer; border: 1.5px solid transparent;
       display: flex; align-items: center;
       justify-content: center; gap: 6px;
       transition: opacity .15s;
     }
     .event-modal-actions button:hover { opacity: .85; }
+    .modal-action-cal { background: #fef9c3; color: #b45309; border-color: #fde68a !important; }
+    .modal-action-bell { background: #f0f9ff; color: #0369a1; border-color: #bae6fd !important; }
+    .modal-action-bell.active { background: #dbeafe; color: #1d4ed8; border-color: #3b82f6 !important; }
 
     .chip{
       margin-top:10px;
@@ -551,57 +553,60 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 14px;
+      padding: 9px 14px;
       border-top: 1px solid #f1f5f9;
+      background: #fafafa;
       gap: 8px;
     }
     .interested-btn {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 7px;
       background: none;
       border: none;
       cursor: pointer;
-      font-family: 'Poppins', sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      color: #64748b;
       padding: 0;
     }
-    .interested-btn .heart-icon { font-size: 14px; }
-    .interested-btn.active { color: #e11d48; }
-    .card-actions { display:flex; gap:6px; }
-    .add-to-cal-btn, .notify-btn {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
-      border: 1.5px solid #e2e8f0;
-      background: white;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background .15s, border-color .15s;
-      font-family: 'Poppins', sans-serif;
-    }
-    .add-to-cal-btn:hover { background:#fef9c3; border-color:#fbbf24; }
-    .notify-btn:hover { background:#eff6ff; border-color:#93c5fd; }
-    .notify-btn.active { background:#eff6ff; border-color:#93c5fd; }
-    .fomo-avatars { display:flex; }
+    .interested-btn.active .interested-count { color: #dc2626; }
+    .fomo-avatars { display: flex; }
     .fomo-av {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      background: #e2e8f0;
-      border: 1.5px solid white;
-      margin-left: -5px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
+      border: 2px solid white;
+      margin-left: -7px;
+      flex-shrink: 0;
     }
     .fomo-av:first-child { margin-left: 0; }
+    .interested-count { font-size: 12px; font-weight: 700; color: #111827; transition: color .2s; }
+    .interested-label { font-size: 11px; color: #9ca3af; }
+    .card-actions { display: flex; gap: 6px; }
+    .add-to-cal-btn {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 1.5px solid #fde68a;
+      background: #fef9c3;
+      color: #b45309;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+      flex-shrink: 0; padding: 0;
+    }
+    .add-to-cal-btn:hover { background: #fde68a; border-color: #fbbf24; }
+    .notify-btn {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 1.5px solid #bae6fd;
+      background: #f0f9ff;
+      color: #0369a1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+      flex-shrink: 0; padding: 0;
+    }
+    .notify-btn:hover { background: #dbeafe; border-color: #93c5fd; }
+    .notify-btn.active { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
+    .fomo-icon { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* Mobile filter toggle button */
     .filter-toggle{
@@ -675,57 +680,21 @@
       .body{ padding:12px 14px 14px; }
     }
 
-    /* Notify Me button */
-    .notify-btn {
-      flex-shrink: 0;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 1.5px solid #e5e7eb;
-      background: white;
-      font-size: 13px;
+    /* ── Calendar detail icon buttons ── */
+    .cal-icon-btn {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      border: 1.5px solid transparent;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all .18s;
-      padding: 0;
-    }
-    .notify-btn:hover { border-color: #7c3aed; background: #f5f3ff; }
-    .notify-btn.active { border-color: #7c3aed; background: #f5f3ff; }
-
-    /* Add to Calendar button */
-    .add-to-cal-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 6px 8px;
-      background: #f0fdf4;
-      color: #16a34a;
-      border: 1.5px solid #bbf7d0;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: 'Poppins', sans-serif;
+      display: flex; align-items: center; justify-content: center;
       transition: all .15s;
-      white-space: nowrap;
-      flex-shrink: 0;
+      flex-shrink: 0; padding: 0;
     }
-    .add-to-cal-btn:hover {
-      background: #16a34a;
-      color: white;
-      border-color: #16a34a;
-    }
-
-    /* Calendar detail add-to-cal row */
-    .cal-detail-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
+    .cal-icon-btn.cal { background: #fef9c3; border-color: #fde68a; color: #b45309; }
+    .cal-icon-btn.cal:hover { background: #fde68a; border-color: #fbbf24; }
+    .cal-icon-btn.bell { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+    .cal-icon-btn.bell:hover { background: #dbeafe; border-color: #93c5fd; }
+    .cal-icon-btn.bell.active { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
 
     /* ── CALENDAR VIEW ── */
     .view-switch {
@@ -1107,20 +1076,17 @@
     .cal-detail-events { display: grid; gap: 10px; }
     .cal-detail-event {
       background: white;
-      border-radius: 16px;
-      padding: 14px 16px;
+      border-radius: 14px;
+      padding: 12px 14px;
       display: flex;
       gap: 12px;
       align-items: flex-start;
-      transition: all .2s cubic-bezier(.34,1.56,.64,1);
-      box-shadow: 0 2px 8px rgba(102,126,234,.08);
-      border: 1px solid #f0e6ff;
+      transition: box-shadow .18s;
+      box-shadow: 0 2px 8px rgba(102,126,234,.07);
+      border: 1px solid #ede9fe;
+      cursor: pointer;
     }
-    .cal-detail-event:hover {
-      transform: translateY(-3px) scale(1.01);
-      box-shadow: 0 8px 24px rgba(102,126,234,.18);
-      border-color: #c4a8ff;
-    }
+    .cal-detail-event:hover { box-shadow: 0 6px 20px rgba(102,126,234,.14); }
     .cal-detail-color {
       width: 4px;
       align-self: stretch;
@@ -1129,52 +1095,43 @@
     }
     .cal-detail-body { flex: 1; min-width: 0; }
     .cal-detail-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #1f2937;
       margin-bottom: 5px;
     }
-    .cal-detail-meta {
-      font-size: 11.5px;
-      color: #6b7280;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-    .cal-detail-meta span { display: inline-flex; align-items: center; gap: 3px; }
-    .cal-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    /* Add to Cal button */
-    .add-to-cal-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 6px 14px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      border: none;
-      border-radius: 999px;
-      font-size: 11.5px;
+    .cal-detail-meta1 {
+      font-size: 12px;
       font-weight: 600;
-      cursor: pointer;
-      font-family: 'Poppins', sans-serif;
-      transition: all .2s cubic-bezier(.34,1.56,.64,1);
-      box-shadow: 0 3px 10px rgba(118,75,162,.3);
+      color: #374151;
+      margin-bottom: 3px;
     }
-    .add-to-cal-btn:hover {
-      transform: scale(1.06);
-      box-shadow: 0 6px 18px rgba(118,75,162,.45);
+    .cal-detail-meta2 {
+      font-size: 11px;
+      color: #9ca3af;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
     }
-
-    /* Calendar detail add-to-cal row */
-    .cal-detail-actions {
+    .cal-detail-footer {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
-      margin-top: 8px;
-      flex-wrap: wrap;
     }
+    .cal-view-club {
+      font-size: 11px;
+      font-weight: 700;
+      color: #000060;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
+    }
+    .cal-view-club:hover { text-decoration: underline; }
+    .cal-detail-btns { display: flex; gap: 5px; flex-shrink: 0; }
 
     /* ── Responsive tablet ── */
     @media (max-width: 860px) {
@@ -1742,16 +1699,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   onclick="toggleInterested(event, '${e.id}')"
                   title="${isInterested ? "You're interested!" : "Mark as interested"}">
             <div class="fomo-avatars">
-              <div class="fomo-av">👤</div>
-              <div class="fomo-av">👤</div>
-              <div class="fomo-av">👤</div>
+              <div class="fomo-av" style="background:#0f766e;"></div>
+              <div class="fomo-av" style="background:#7e22ce;"></div>
+              <div class="fomo-av" style="background:#0369a1;"></div>
             </div>
             <span class="interested-count" id="count-${e.id}">${e.interested || 0}</span>
-            <span>interested</span>
+            <span class="interested-label">interested</span>
           </button>
           <div class="card-actions">
-            ${e.id && e.date ? `<button class="add-to-cal-btn" onclick="downloadICS('${e.id}')" title="Save to calendar">🔖</button>` : ""}
-            ${e.id ? `<button class="notify-btn ${isNotified ? 'active' : ''}" id="notify-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotified ? 'Stop reminders' : 'Remind me'}">${isNotified ? '🔔' : '🔕'}</button>` : ""}
+            ${e.id && e.date ? `<button class="add-to-cal-btn" onclick="downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : ""}
+            ${e.id ? `<button class="notify-btn ${isNotified ? 'active' : ''}" id="notify-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotified ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : ""}
           </div>
         </div>` : "";
 
@@ -1904,20 +1861,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const isNotified   = isSubscribedToEvent(e.id);
     document.getElementById("eventModalActions").innerHTML = `
       <button class="${isInterested ? "interested-btn active" : "interested-btn"}"
-        style="background:${isInterested?"#fee2e2":"#f9fafb"};color:${isInterested?"#b91c1c":"#374151"};"
         onclick="toggleInterested(event,'${e.id}')">
         <span class="heart-icon">${isInterested?"❤️":"🤍"}</span>
         <span id="count-modal-${e.id}">${e.interested||0}</span>
         <span>${(e.interested||0) === 1 ? "person interested" : "people interested"}</span>
       </button>
-      ${e.date ? `<button onclick="downloadICS('${e.id}')"
-        style="background:#eff6ff;color:#000060;">
-        🔖 Save to Calendar
+      ${e.date ? `<button class="modal-action-cal" onclick="downloadICS('${e.id}')">
+        <svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+        Save to Calendar
       </button>` : ""}
-      <button class="${isNotified?"notify-btn active":"notify-btn"}"
-        style="background:${isNotified?"#f5f3ff":"#f9fafb"};color:${isNotified?"#7c3aed":"#374151"};"
+      <button class="${isNotified?"modal-action-bell active":"modal-action-bell"}"
         onclick="toggleEventNotification('${e.id}',this)">
-        ${isNotified?"🔔 Notified":"🔕 Remind Me"}
+        <svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notify-label">${isNotified?"Notified":"Remind Me"}</span>
       </button>`;
 
     document.getElementById("eventDetailModal").classList.add("open");
@@ -1992,9 +1948,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const already = isSubscribedToEvent(eventId);
     if(already){
       removeNotifEvent(eventId);
-      btn.textContent = "🔕";
       btn.classList.remove("active");
       btn.title = "Notify me before this event";
+      const labelEl = btn.querySelector(".notify-label");
+      if(labelEl) labelEl.textContent = "Remind Me";
       const reg = await navigator.serviceWorker?.ready;
       const sub = await reg?.pushManager?.getSubscription();
       if(sub) await sb.from("push_subscriptions").update({ event_ids: getNotifEvents() }).eq("endpoint", sub.endpoint);
@@ -2004,9 +1961,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if(!sub) return;
       saveNotifEvent(eventId);
       await sb.from("push_subscriptions").update({ event_ids: getNotifEvents() }).eq("endpoint", sub.endpoint);
-      btn.textContent = "🔔";
       btn.classList.add("active");
       btn.title = "Stop notifications";
+      const labelEl = btn.querySelector(".notify-label");
+      if(labelEl) labelEl.textContent = "Notified";
       showCardToast("🔔 You'll get reminders 24hrs and 1hr before this event!");
     }
   };
@@ -2058,9 +2016,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if(heartEl) heartEl.textContent = isAdding ? "❤️" : "🤍";
     btn.classList.toggle("active", isAdding);
-    // Update button colours
-    btn.style.background = isAdding ? "#fee2e2" : "#f9fafb";
-    btn.style.color      = isAdding ? "#b91c1c" : "#374151";
 
     btn.disabled = true;
 
@@ -2091,8 +2046,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if(modalCountEl) modalCountEl.textContent = currentCount;
       if(heartEl) heartEl.textContent = isAdding ? "🤍" : "❤️";
       btn.classList.toggle("active", !isAdding);
-      btn.style.background = isAdding ? "#f9fafb" : "#fee2e2";
-      btn.style.color      = isAdding ? "#374151" : "#b91c1c";
       console.error("Failed to update interest:", err);
     } finally {
       btn.disabled = false;
@@ -2483,21 +2436,27 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="cal-detail-events">
           ${evts.map((e, i) => {
-            const color = colorForEvent(e, i);
-            const tm    = e.time  ? `<span>⏰ ${escapeHtml(e.time)}</span>`  : "";
-            const vn    = `<span>📍 ${escapeHtml(e.venue || "Venue TBC")}</span>`;
-            const au    = e.audience ? `<span>👥 ${escapeHtml(e.audience)}</span>` : "";
-            const og    = e.organiser ? `<span>🎭 ${escapeHtml(e.organiser)}</span>` : "";
-            const cm    = e.campus ? `<span>🏫 ${escapeHtml(e.campus)}</span>` : "";
+            const color    = colorForEvent(e, i);
+            const isNotif  = e.id ? isSubscribedToEvent(e.id) : false;
+            const tm       = e.time  ? `⏰ ${escapeHtml(e.time)}` : "";
+            const vn       = `📍 ${escapeHtml(e.venue || "Venue TBC")}`;
+            const meta1    = [tm, vn].filter(Boolean).join(" · ");
+            const au       = e.audience ? escapeHtml(e.audience) : "";
+            const cm       = e.campus   ? escapeHtml(e.campus)   : "";
             const clubHref = e.organiser ? `href="clubs.html?club=${encodeURIComponent(e.organiser)}"` : "";
-            const icsBtn = e.id ? `<button class="add-to-cal-btn" onclick="event.preventDefault();event.stopPropagation();downloadICS('${e.id}')">📆 Save to Calendar</button>` : "";
+            const calBtn   = e.id && e.date ? `<button class="cal-icon-btn cal" onclick="event.stopPropagation();downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : "";
+            const bellBtn  = e.id ? `<button class="cal-icon-btn bell ${isNotif ? 'active' : ''}" id="notify-cal-${e.id}" onclick="event.stopPropagation();toggleEventNotification('${e.id}', this)" title="${isNotif ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : "";
             return `
-              <div class="cal-detail-event">
+              <div class="cal-detail-event" onclick="window._openEventModal('${e.id}')">
                 <div class="cal-detail-color" style="background:${color};"></div>
                 <div class="cal-detail-body">
-                  <div class="cal-detail-name">${e.organiser ? `<a ${clubHref} style="color:inherit;text-decoration:none;" onclick="event.stopPropagation()">${escapeHtml(e.name)}</a>` : escapeHtml(e.name)}</div>
-                  <div class="cal-detail-meta">${tm}${vn}${au}${og}${cm}</div>
-                  <div class="cal-detail-actions">${icsBtn}</div>
+                  <div class="cal-detail-name">${escapeHtml(e.name)}</div>
+                  ${meta1 ? `<div class="cal-detail-meta1">${meta1}</div>` : ""}
+                  ${(au || cm) ? `<div class="cal-detail-meta2">${au ? `<span>👥 ${au}</span>` : ""}${cm ? `<span>🏫 ${cm}</span>` : ""}</div>` : ""}
+                  <div class="cal-detail-footer">
+                    ${e.organiser ? `<a class="cal-view-club" ${clubHref} onclick="event.stopPropagation()">🎭 ${escapeHtml(e.organiser)} →</a>` : `<span></span>`}
+                    <div class="cal-detail-btns">${calBtn}${bellBtn}</div>
+                  </div>
                 </div>
               </div>`;
           }).join("")}
@@ -2532,22 +2491,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById("calMobileTitle").textContent = dateLabel;
     document.getElementById("calMobileEvents").innerHTML = evts.map((e, i) => {
-      const color  = colorForEvent(e, i);
-      const tm     = e.time  ? `<span>⏰ ${escapeHtml(e.time)}</span>`  : "";
-      const vn     = `<span>📍 ${escapeHtml(e.venue || "Venue TBC")}</span>`;
-      const au     = e.audience ? `<span>👥 ${escapeHtml(e.audience)}</span>` : "";
-      const og     = e.organiser ? `<span>🎭 ${escapeHtml(e.organiser)}</span>` : "";
-      const icsBtn = e.id ? `<button class="add-to-cal-btn" onclick="downloadICS('${e.id}')">📆 Add to Calendar</button>` : "";
+      const color    = colorForEvent(e, i);
+      const isNotif  = e.id ? isSubscribedToEvent(e.id) : false;
+      const tm       = e.time  ? `⏰ ${escapeHtml(e.time)}` : "";
+      const vn       = `📍 ${escapeHtml(e.venue || "Venue TBC")}`;
+      const meta1    = [tm, vn].filter(Boolean).join(" · ");
+      const au       = e.audience ? escapeHtml(e.audience) : "";
+      const calBtn   = e.id && e.date ? `<button class="cal-icon-btn cal" onclick="downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : "";
+      const bellBtn  = e.id ? `<button class="cal-icon-btn bell ${isNotif ? 'active' : ''}" id="notify-mob-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotif ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : "";
       const clubLink = e.organiser
-        ? `<a href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="color:#000060;font-size:12px;font-weight:600;text-decoration:none;">View Club →</a>`
+        ? `<a href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="font-size:11px;font-weight:700;color:#000060;text-decoration:none;">🎭 ${escapeHtml(e.organiser)} →</a>`
         : "";
       return `
         <div class="cal-mobile-event">
           <div class="cal-mobile-color" style="background:${color};"></div>
           <div style="flex:1;min-width:0;">
             <div class="cal-mobile-name">${escapeHtml(e.name)}</div>
-            <div class="cal-mobile-meta">${tm}${vn}${au}${og}</div>
-            <div class="cal-mobile-actions">${icsBtn}${clubLink}</div>
+            <div class="cal-mobile-meta">${meta1}${au ? ` · 👥 ${au}` : ""}</div>
+            <div class="cal-mobile-actions" style="justify-content:space-between;align-items:center;">
+              ${clubLink}
+              <div style="display:flex;gap:5px;">${calBtn}${bellBtn}</div>
+            </div>
           </div>
         </div>`;
     }).join("");
