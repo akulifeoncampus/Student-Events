@@ -38,6 +38,7 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     input, select, button, textarea { font-family: inherit; }
+    html, body { max-width: 100%; overflow-x: hidden; }
     body {
       font-family: 'Poppins', sans-serif;
       background: var(--bg);
@@ -504,16 +505,17 @@
       box-shadow: 0 -4px 12px rgba(0,0,0,.08);
       z-index: 9999;
     }
-    .bottom-nav-inner { display: flex; justify-content: space-around; align-items: center; }
+    .bottom-nav-inner { display: flex; align-items: center; }
     .bottom-nav-item {
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
       text-decoration: none; color: #9ca3af;
-      font-size: 10px; font-weight: 600;
-      padding: 4px 8px; border-radius: 8px;
-      min-width: 56px;
+      font-size: 9px; font-weight: 600;
+      padding: 6px 2px;
     }
     .bottom-nav-item.active { color: #2563eb; }
-    .bottom-nav-item span:first-child { font-size: 20px; }
+    .bottom-nav-item.hub { color: #7c3aed; }
+    .bottom-nav-item span:first-child { font-size: 18px; }
 
     @media (max-width: 1024px) {
       .bottom-nav { display: block; }
@@ -1017,12 +1019,13 @@ if("serviceWorker" in navigator){
 
 <nav class="bottom-nav">
   <div class="bottom-nav-inner">
-    <a href="index.html" class="bottom-nav-item "><span>📅</span><span>Events</span></a>
+    <a href="index.html" class="bottom-nav-item"><span>📅</span><span>Events</span></a>
     <a href="clubs.html" class="bottom-nav-item active"><span>🎭</span><span>Clubs</span></a>
-    <a href="acc.html" class="bottom-nav-item "><span>🎨</span><span>ACC</span></a>
-    <a href="news.html" class="bottom-nav-item "><span>📰</span><span>News</span></a>
-    <a href="resources.html" class="bottom-nav-item "><span>🔗</span><span>Resources</span></a>
-    <a href="emergency-contacts.html" class="bottom-nav-item "><span>🚨</span><span>Emergency</span></a>
+    <a href="acc.html" class="bottom-nav-item"><span>🎨</span><span>ACC</span></a>
+    <a href="news.html" class="bottom-nav-item"><span>📰</span><span>News</span></a>
+    <a href="resources.html" class="bottom-nav-item"><span>🔗</span><span>Resources</span></a>
+    <a href="emergency-contacts.html" class="bottom-nav-item"><span>🚨</span><span>Emergency</span></a>
+    <a href="event-hub.html" class="bottom-nav-item hub"><span>✦</span><span>Hub</span></a>
   </div>
 </nav>
 </body>
