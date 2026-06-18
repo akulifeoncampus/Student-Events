@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#000060" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -50,7 +50,7 @@
     /* ===== Top header ===== */
     .topbar{
       height:56px;
-      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
+      background: #000060;
       border-bottom: none; box-shadow: 0 2px 12px rgba(37,99,235,.25);
       display:flex;
       align-items:center;
@@ -457,18 +457,22 @@
     }
     .event-modal-actions {
       display: flex; gap: 8px;
-      flex-wrap: wrap; margin-top: 18px;
+      flex-wrap: nowrap;
+      margin-top: 18px;
+      align-items: center;
     }
     .event-modal-actions button {
-      flex: 1; min-width: 120px;
-      padding: 10px 14px;
+      flex: 1;
+      padding: 10px 8px;
       border-radius: 12px;
       font-family: 'Poppins', sans-serif;
-      font-size: 12px; font-weight: 700;
+      font-size: 11px; font-weight: 700;
       cursor: pointer; border: none;
       display: flex; align-items: center;
-      justify-content: center; gap: 6px;
+      justify-content: center; gap: 5px;
       transition: opacity .15s;
+      white-space: nowrap;
+      min-width: 0;
     }
     .event-modal-actions button:hover { opacity: .85; }
 
@@ -1333,7 +1337,7 @@
 
     /* ── CAMPUS LIFE BRAND TOPBAR ── */
     .topbar {
-      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
+      background: #000060;
       border-bottom: none;
       box-shadow: 0 2px 12px rgba(37,99,235,.25);
     }
@@ -1429,13 +1433,123 @@
       body { padding-bottom: 70px; }
     }
 
+  
+    /* ══ MODERN CAMPUS REDESIGN ══ */
+
+    /* Topbar */
+    .topbar{
+      background:#000060 !important;
+      box-shadow:0 2px 16px rgba(0,0,96,.25) !important;
+    }
+    .topbar-tabs{
+      display:flex; gap:2px;
+      background:rgba(255,255,255,.1);
+      border-radius:8px; padding:3px;
+      flex:1; justify-content:center; max-width:540px; margin:0 auto;
+    }
+    .topbar-tab{
+      color:rgba(255,255,255,.65);
+      font-size:11.5px; font-weight:500;
+      padding:6px 13px; border-radius:6px;
+      text-decoration:none; white-space:nowrap;
+      transition:all .15s; font-family:'Poppins',sans-serif;
+    }
+    .topbar-tab:hover{ color:white; background:rgba(255,255,255,.12); }
+    .topbar-tab.active{ background:white; color:#000060; font-weight:700; }
+
+    /* Hide sidebar — nav lives in topbar tabs on desktop */
+    .nav, .nav-toggle{ display:none !important; }
+    .shell{ display:block !important; grid-template-columns:unset !important; }
+
+    /* Content */
+    .content{ max-width:1280px; margin:0 auto; }
+
+    /* Page header row */
+    .mc-header{
+      display:flex; align-items:baseline; gap:10px; margin-bottom:14px;
+    }
+    .mc-page-title{
+      font-size:21px; font-weight:700; color:#0f172a; letter-spacing:-.3px;
+    }
+    .mc-page-count{
+      font-size:11px; color:#64748b; background:#f1f5f9;
+      padding:3px 10px; border-radius:20px; font-weight:500;
+    }
+
+    /* Campus filter row */
+    .campus-filter-row{
+      display:flex; align-items:center; gap:8px;
+      margin-bottom:10px; padding-bottom:10px;
+      border-bottom:1px solid #f1f5f9;
+      overflow-x:auto; scrollbar-width:none;
+    }
+    .campus-filter-row::-webkit-scrollbar{ display:none; }
+    .campus-filter-label{
+      font-size:11px; font-weight:700; color:#94a3b8;
+      text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; flex-shrink:0;
+    }
+    .campus-pill{
+      padding:5px 13px; border-radius:6px; border:1.5px solid #e2e8f0;
+      background:white; font-family:'Poppins',sans-serif;
+      font-size:11px; font-weight:600; color:#475569;
+      cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all .15s;
+    }
+    .campus-pill:hover{ border-color:#000060; color:#000060; }
+    .campus-pill.active{ background:#000060; color:white; border-color:#000060; }
+
+    /* Category filter */
+    .cat-filter-row{
+      display:flex; gap:6px; margin-bottom:16px;
+      overflow-x:auto; scrollbar-width:none; padding-bottom:2px;
+    }
+    .cat-filter-row::-webkit-scrollbar{ display:none; }
+    .cat-pill{
+      padding:5px 12px; border-radius:6px; border:1.5px solid #e2e8f0;
+      background:white; font-family:'Poppins',sans-serif;
+      font-size:11px; font-weight:600; color:#475569;
+      cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all .15s;
+    }
+    .cat-pill:hover{ border-color:#475569; }
+    .cat-pill.active{ background:#000060; color:white; border-color:#000060; }
+
+    /* Hide old sidebar filters (selects used by JS remain in DOM but invisible) */
+    .filters, aside.filters, .filter-bar, .filter-sidebar, .page-grid{ all:unset; display:block; }
+    .filters-inner, #filtersInner, .filter-toggle{ display:none !important; }
+
+    /* Bottom nav accent */
+    .bottom-nav-item.active{ color:#000060 !important; }
+
+    /* Mobile */
+    @media(max-width:1024px){
+      .topbar-tabs{ display:none; }
+      .content{ padding-left:12px !important; padding-right:12px !important; }
+      .mc-page-title{ font-size:18px; }
+    }
+
   </style>
 </head>
 
 <body>
-  <header class="topbar">
-    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
-    <div class="brand">Campus Life</div>
+  <header class="mc-topbar" role="banner">
+  <div class="mc-brand">Campus Life</div>
+  <nav class="mc-tabs" aria-label="Site navigation">
+    <a href="index.html" class="mc-tab active">Events</a>
+    <a href="clubs.html" class="mc-tab">Clubs</a>
+    <a href="acc.html" class="mc-tab">ACC</a>
+    <a href="news.html" class="mc-tab">News</a>
+    <a href="resources.html" class="mc-tab">Resources</a>
+    <a href="emergency-contacts.html" class="mc-tab">Emergency</a>
+  </nav>
+</header>
+    <nav class="topbar-tabs" aria-label="Main navigation">
+      <a href="index.html" class="topbar-tab active">Events</a>
+      <a href="clubs.html" class="topbar-tab">Clubs</a>
+      <a href="acc.html" class="topbar-tab">ACC</a>
+      <a href="news.html" class="topbar-tab">News</a>
+      <a href="resources.html" class="topbar-tab">Resources</a>
+      <a href="emergency-contacts.html" class="topbar-tab">Emergency</a>
+    </nav>
+    <div style="flex-shrink:0;width:80px;"></div>
   </header>
 
   <div class="shell">
@@ -1454,7 +1568,33 @@
 
     <!-- Main content -->
     <main class="content">
-      <div class="page-title">Events</div>
+      <div class="mc-header">
+        <div class="mc-page-title">Events</div>
+        <span class="mc-page-count" id="eventCount"></span>
+      </div>
+
+      <!-- Campus filter pills (synced to hidden #campusFilter select) -->
+      <div class="campus-filter-row" id="campusPillRow">
+        <span class="campus-filter-label">Campus</span>
+        <button class="campus-pill active" data-campus="" onclick="setCampusPill(this,'campusFilter')">All</button>
+        <button class="campus-pill" data-campus="Karachi" onclick="setCampusPill(this,'campusFilter')">Karachi</button>
+        <button class="campus-pill" data-campus="Nairobi" onclick="setCampusPill(this,'campusFilter')">Nairobi</button>
+        <button class="campus-pill" data-campus="Kampala" onclick="setCampusPill(this,'campusFilter')">Kampala</button>
+        <button class="campus-pill" data-campus="Dar es Salaam" onclick="setCampusPill(this,'campusFilter')">Dar es Salaam</button>
+      </div>
+
+      <!-- Category filter pills (synced to hidden #catFilter select) -->
+      <div class="cat-filter-row" id="catPillRow">
+        <button class="cat-pill active" data-cat="" onclick="setCatPill(this)">All events</button>
+        <button class="cat-pill" data-cat="Sports" onclick="setCatPill(this)">Sports</button>
+        <button class="cat-pill" data-cat="Recreational/Social" onclick="setCatPill(this)">Social</button>
+        <button class="cat-pill" data-cat="Competition" onclick="setCatPill(this)">Competition</button>
+        <button class="cat-pill" data-cat="Workshop/Session" onclick="setCatPill(this)">Workshop</button>
+        <button class="cat-pill" data-cat="Orientation" onclick="setCatPill(this)">Orientation</button>
+        <button class="cat-pill" data-cat="Meeting" onclick="setCatPill(this)">Meeting</button>
+        <button class="cat-pill" data-cat="Welfare" onclick="setCatPill(this)">Welfare</button>
+      </div>
+      <div class="page-title" style="display:none;">Events</div>
 
       <!-- View switch -->
       <div class="view-switch">
@@ -1817,42 +1957,37 @@ document.addEventListener("DOMContentLoaded", () => {
     const e = allEvents.find(x => x.id === eventId);
     if(!e) return;
 
-    const cover      = document.getElementById("eventModalCover");
-    const coverWrap  = document.getElementById("eventModalCoverWrap");
-    const campusBar  = document.getElementById("eventModalCampusBar");
-    const coverBadges= document.getElementById("eventModalCoverBadges");
-    const barColors  = { "Karachi":"#0f766e","Nairobi":"#166534","Kampala":"#7e22ce","Dar es Salaam":"#0369a1" };
-    const campusColor= barColors[e.campus] || "#000060";
+    const cover       = document.getElementById("eventModalCover");
+    const coverWrap   = document.getElementById("eventModalCoverWrap");
+    const campusBar   = document.getElementById("eventModalCampusBar");
+    const coverBadges = document.getElementById("eventModalCoverBadges");
+    const placeholder = document.getElementById("eventModalPlaceholder");
+    const barColors   = { "Karachi":"#0f766e","Nairobi":"#166534","Kampala":"#7e22ce","Dar es Salaam":"#0369a1" };
+    const campusColor = barColors[e.campus] || "#000060";
 
-    // Campus bar — always shown
+    // Campus colour bar — always visible
     if(campusBar) campusBar.style.background = campusColor;
 
-    // Cover badges — campus + audience
+    // Cover badges — campus + audience overlaid
     if(coverBadges){
-      coverBadges.innerHTML = `
-        ${e.campus ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:${campusColor};color:white;">📍 ${escapeHtml(e.campus)}</div>` : '<div></div>'}
-        ${e.audience ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.55);color:white;backdrop-filter:blur(4px);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👥 ${escapeHtml(e.audience)}</div>` : ''}
-      `;
+      coverBadges.innerHTML =
+        `${e.campus ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:${campusColor};color:white;">📍 ${escapeHtml(e.campus)}</div>` : "<div></div>"}
+         ${e.audience ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.55);color:white;backdrop-filter:blur(4px);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👥 ${escapeHtml(e.audience)}</div>` : ""}`;
     }
 
+    // Cover: real image OR gradient placeholder — never destroy the img element
     if(e.image){
       cover.src = e.image;
       cover.style.display = "block";
-      if(coverWrap) coverWrap.style.cssText = "position:relative;";
+      if(placeholder) placeholder.style.display = "none";
     } else {
       cover.style.display = "none";
-      // Styled gradient placeholder using campus colour
-      if(coverWrap){
-        const emoji = {"Sports":"🏆","Cultural":"🎭","Academic":"🔬","Workshop/Session":"💡","Meeting":"📋"}[e.category] || "🎓";
-        coverWrap.innerHTML = `
-          <div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,${campusColor}dd,${campusColor});position:relative;">
-            <div style="font-size:52px;">${emoji}</div>
-            <div style="color:rgba(255,255,255,.85);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(e.category||"Event")}</div>
-            <div style="position:absolute;bottom:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-end;">
-              ${e.campus ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.3);color:white;">📍 ${escapeHtml(e.campus)}</div>` : '<div></div>'}
-              ${e.audience ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.3);color:white;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👥 ${escapeHtml(e.audience)}</div>` : ''}
-            </div>
-          </div>`;
+      if(placeholder){
+        const emoji = {"Sports":"🏆","Cultural":"🎭","Academic":"🔬","Workshop/Session":"💡","Meeting":"📋","Competition":"🥇","Orientation":"🎓"}[e.category] || "🎓";
+        placeholder.style.display = "flex";
+        placeholder.style.background = `linear-gradient(135deg,${campusColor}dd,${campusColor})`;
+        placeholder.querySelector(".modal-placeholder-emoji").textContent = emoji;
+        placeholder.querySelector(".modal-placeholder-label").textContent = e.category || "Event";
       }
     }
 
@@ -2580,6 +2715,29 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
+  // ── Campus & Category pill sync ──
+  function setCampusPill(btn, selectId){
+    document.querySelectorAll('#campusPillRow .campus-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sel = document.getElementById(selectId);
+    if(sel){ sel.value = btn.dataset.campus; render(); }
+  }
+  function setCatPill(btn){
+    document.querySelectorAll('#catPillRow .cat-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sel = document.getElementById('catFilter');
+    if(sel){ sel.value = btn.dataset.cat; render(); }
+  }
+  // Update event count badge
+  const origRender = render;
+  function render(){
+    origRender();
+    const visibleCards = document.querySelectorAll('#events .card').length;
+    const countEl = document.getElementById('eventCount');
+    if(countEl) countEl.textContent = visibleCards + ' event' + (visibleCards !== 1 ? 's' : '');
+  }
+
 </script>
 <script>
 if("serviceWorker" in navigator){
@@ -2595,13 +2753,17 @@ if("serviceWorker" in navigator){
 <div class="event-modal-backdrop" id="eventDetailModal" onclick="if(event.target===this)window._closeEventModal()">
   <div class="event-modal" id="eventModalInner">
     <div class="event-modal-pill"></div>
-    <!-- Campus colour bar -->
     <div id="eventModalCampusBar" style="height:3px;"></div>
-    <!-- Cover — real image or gradient placeholder -->
     <div id="eventModalCoverWrap" style="position:relative;">
+      <!-- Real cover image — shown when event has a photo -->
       <img id="eventModalCover" class="event-modal-cover" src="" alt="" style="display:none;" />
-      <!-- Badges overlaid on cover -->
-      <div id="eventModalCoverBadges" style="position:absolute;bottom:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-end;"></div>
+      <!-- Gradient placeholder — shown when no photo -->
+      <div id="eventModalPlaceholder" style="display:none;height:200px;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+        <div class="modal-placeholder-emoji" style="font-size:52px;"></div>
+        <div class="modal-placeholder-label" style="color:rgba(255,255,255,.85);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;"></div>
+      </div>
+      <!-- Badges always rendered over cover/placeholder -->
+      <div id="eventModalCoverBadges" style="position:absolute;bottom:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;"></div>
     </div>
     <div class="event-modal-body">
       <div class="event-modal-header">
@@ -2623,6 +2785,16 @@ if("serviceWorker" in navigator){
     <a href="news.html" class="bottom-nav-item "><span>📰</span><span>News</span></a>
     <a href="resources.html" class="bottom-nav-item "><span>🔗</span><span>Resources</span></a>
     <a href="emergency-contacts.html" class="bottom-nav-item "><span>🚨</span><span>Emergency</span></a>
+  </div>
+</nav>
+<nav class="mc-bottom-nav">
+  <div class="mc-bottom-nav-inner">
+    <a href="index.html" class="mc-nav-item active"><span class="mc-nav-icon">📅</span><span>Events</span></a>
+    <a href="clubs.html" class="mc-nav-item"><span class="mc-nav-icon">🎭</span><span>Clubs</span></a>
+    <a href="acc.html" class="mc-nav-item"><span class="mc-nav-icon">🎨</span><span>ACC</span></a>
+    <a href="news.html" class="mc-nav-item"><span class="mc-nav-icon">📰</span><span>News</span></a>
+    <a href="resources.html" class="mc-nav-item"><span class="mc-nav-icon">🔗</span><span>Resources</span></a>
+    <a href="emergency-contacts.html" class="mc-nav-item"><span class="mc-nav-icon">🚨</span><span>Emergency</span></a>
   </div>
 </nav>
 </body>
