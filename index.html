@@ -1437,44 +1437,70 @@
     /* ══ MODERN CAMPUS REDESIGN ══ */
 
     /* Topbar */
-    .topbar{
-      background:#000060 !important;
-      box-shadow:0 2px 16px rgba(0,0,96,.25) !important;
+    .mc-topbar{
+      background:#000060;
+      height:56px;
+      display:flex;
+      align-items:center;
+      padding:0 20px;
+      gap:16px;
+      position:sticky;
+      top:0;
+      z-index:100;
+      box-shadow:0 2px 8px rgba(0,0,96,.25);
     }
-    .topbar-tabs{
+    .mc-brand{
+      color:white; font-size:15px; font-weight:700;
+      letter-spacing:.2px; flex-shrink:0;
+    }
+    .mc-tabs{
       display:flex; gap:2px;
-      background:rgba(255,255,255,.1);
+      background:rgba(255,255,255,.12);
       border-radius:8px; padding:3px;
-      flex:1; justify-content:center; max-width:540px; margin:0 auto;
+      margin-left:auto;
     }
-    .topbar-tab{
+    .mc-tab{
       color:rgba(255,255,255,.65);
-      font-size:11.5px; font-weight:500;
-      padding:6px 13px; border-radius:6px;
+      font-size:12px; font-weight:500;
+      padding:5px 13px; border-radius:6px;
       text-decoration:none; white-space:nowrap;
       transition:all .15s; font-family:'Poppins',sans-serif;
     }
-    .topbar-tab:hover{ color:white; background:rgba(255,255,255,.12); }
-    .topbar-tab.active{ background:white; color:#000060; font-weight:700; }
+    .mc-tab:hover{ color:white; background:rgba(255,255,255,.1); }
+    .mc-tab.active{ background:white; color:#000060; font-weight:700; }
 
-    /* Hide sidebar — nav lives in topbar tabs on desktop */
-    .nav, .nav-toggle{ display:none !important; }
+    /* Hide sidebar */
+    .nav, .nav-toggle, #sideNav{ display:none !important; }
     .shell{ display:block !important; grid-template-columns:unset !important; }
+
+    /* Bottom nav */
+    .mc-bottom-nav{
+      display:none; position:fixed; bottom:0; left:0; right:0;
+      background:white; border-top:1px solid #e2e8f0;
+      padding:6px 0 env(safe-area-inset-bottom);
+      z-index:200; box-shadow:0 -2px 12px rgba(0,0,0,.06);
+    }
+    .mc-bottom-nav-inner{ display:flex; }
+    .mc-nav-item{
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; gap:2px; padding:4px 0;
+      text-decoration:none; font-size:10px; font-weight:600; color:#94a3b8;
+    }
+    .mc-nav-item.active{ color:#000060; }
+    .mc-nav-icon{ font-size:18px; line-height:1; }
+
+    @media(max-width:1024px){
+      .mc-tabs{ display:none !important; }
+      .mc-bottom-nav{ display:block !important; }
+      .content{ padding-left:12px !important; padding-right:12px !important; }
+      .mc-page-title{ font-size:18px; }
+    }
+    @media(min-width:1025px){
+      .mc-bottom-nav{ display:none !important; }
+    }
 
     /* Content */
     .content{ max-width:1280px; margin:0 auto; }
-
-    /* Page header row */
-    .mc-header{
-      display:flex; align-items:baseline; gap:10px; margin-bottom:14px;
-    }
-    .mc-page-title{
-      font-size:21px; font-weight:700; color:#0f172a; letter-spacing:-.3px;
-    }
-    .mc-page-count{
-      font-size:11px; color:#64748b; background:#f1f5f9;
-      padding:3px 10px; border-radius:20px; font-weight:500;
-    }
 
     /* Campus filter row */
     .campus-filter-row{
@@ -1515,16 +1541,6 @@
     /* Hide old sidebar filters (selects used by JS remain in DOM but invisible) */
     .filters, aside.filters, .filter-bar, .filter-sidebar, .page-grid{ all:unset; display:block; }
     .filters-inner, #filtersInner, .filter-toggle{ display:none !important; }
-
-    /* Bottom nav accent */
-    .bottom-nav-item.active{ color:#000060 !important; }
-
-    /* Mobile */
-    @media(max-width:1024px){
-      .topbar-tabs{ display:none; }
-      .content{ padding-left:12px !important; padding-right:12px !important; }
-      .mc-page-title{ font-size:18px; }
-    }
 
   </style>
 </head>
