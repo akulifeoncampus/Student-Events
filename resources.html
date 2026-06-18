@@ -66,9 +66,10 @@
     /* Bottom nav */
     .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; background:white; border-top:1px solid var(--border); box-shadow:0 -4px 12px rgba(0,0,0,.08); z-index:100; padding-bottom:env(safe-area-inset-bottom); }
     .bottom-nav-inner { display:flex; }
-    .bottom-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; padding:8px 4px; font-size:10px; font-weight:600; color:var(--muted); text-decoration:none; gap:2px; }
+    .bottom-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; padding:6px 2px; font-size:9px; font-weight:600; color:var(--muted); text-decoration:none; gap:2px; }
     .bottom-nav-item span:first-child { font-size:18px; }
     .bottom-nav-item.active { color:var(--accent); }
+    .bottom-nav-item.hub { color:#7c3aed; }
 
     @media(max-width:768px){
       .shell { display:block; width:100%; }
@@ -128,6 +129,7 @@
     <a href="news.html" class="bottom-nav-item"><span>📰</span><span>News</span></a>
     <a href="resources.html" class="bottom-nav-item active"><span>🔗</span><span>Resources</span></a>
     <a href="emergency-contacts.html" class="bottom-nav-item"><span>🚨</span><span>Emergency</span></a>
+    <a href="event-hub.html" class="bottom-nav-item hub"><span>✦</span><span>Hub</span></a>
   </div>
 </nav>
 
