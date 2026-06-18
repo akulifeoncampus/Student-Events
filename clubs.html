@@ -556,9 +556,6 @@
         <select id="categoryFilter">
           <option value="">All Categories</option>
         </select>
-        <select id="filterSelect">
-          <option value="">All Clubs</option>
-        </select>
         <button class="btn-clear" id="clearBtn" type="button">Clear</button>
       </div>
 
@@ -674,7 +671,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchQ        = document.getElementById("searchQ");
   const campusFilter   = document.getElementById("campusFilter");
   const categoryFilter = document.getElementById("categoryFilter");
-  const filterSelect   = document.getElementById("filterSelect");
   const clearBtn       = document.getElementById("clearBtn");
   const clubsGrid      = document.getElementById("clubsGrid");
   const emptyMsg       = document.getElementById("emptyMsg");
@@ -765,12 +761,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function render(){
     const q   = searchQ.value.trim().toLowerCase();
-    const fv  = filterSelect.value;
     const cpv = campusFilter.value;
     const ctv = categoryFilter.value;
 
     let list = allClubs
-      .filter(c => !fv  || c.name     === fv)
       .filter(c => !cpv || c.campus   === cpv)
       .filter(c => !ctv || c.category === ctv)
       .filter(c => {
@@ -957,16 +951,6 @@ document.addEventListener("DOMContentLoaded", () => {
       logo:        driveUrl(r.logo_url || ""),
     })).filter(c => c.name);
 
-    // Populate filter dropdown
-    // Populate club filter dropdown
-    filterSelect.innerHTML = `<option value="">All Clubs</option>`;
-    allClubs.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c.name;
-      opt.textContent = c.name;
-      filterSelect.appendChild(opt);
-    });
-
     // Populate category filter dynamically from data
     const categories = [...new Set(allClubs.map(c => c.category).filter(Boolean))].sort();
     categoryFilter.innerHTML = `<option value="">All Categories</option>`;
@@ -983,12 +967,10 @@ document.addEventListener("DOMContentLoaded", () => {
     searchQ.addEventListener("input", render);
     campusFilter.addEventListener("change", render);
     categoryFilter.addEventListener("change", render);
-    filterSelect.addEventListener("change", render);
     clearBtn.addEventListener("click", () => {
       searchQ.value        = "";
       campusFilter.value   = "";
       categoryFilter.value = "";
-      filterSelect.value   = "";
       render();
     });
 
