@@ -1,13 +1,13 @@
 {
-  "name": "Campus Life",
-  "short_name": "Campus Life",
+  "name": "Life on Campus",
+  "short_name": "Life on Campus",
   "description": "AKU Student Events, Clubs, News and Resources",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#000060",
   "lang": "en",
   "categories": ["education", "lifestyle"],
   "icons": [
