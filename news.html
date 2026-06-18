@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#000060" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Campus Life" />
+  <meta name="apple-mobile-web-app-title" content="Life on Campus" />
   <link rel="apple-touch-icon" href="https://studentexperience.github.io/icon-192.png" />
-  <title>Campus Life · News</title>
+  <title>Life on Campus · News</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,6 +30,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    input, select, button, textarea { font-family: inherit; }
     body {
       font-family: 'Poppins', sans-serif;
       background: var(--bg);
@@ -39,7 +40,7 @@
     /* ── Topbar ── */
     .topbar {
       height: 56px;
-      background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
+      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
       border-bottom: none; box-shadow: 0 2px 12px rgba(37,99,235,.25);
       display: flex;
       align-items: center;
@@ -57,12 +58,13 @@
       cursor: pointer;
       font-size: 22px;
       color: white;
+      padding: 4px 6px;
     }
 
     /* ── Shell ── */
     .shell {
       display: grid;
-      grid-template-columns: 180px 1fr;
+      grid-template-columns: 160px 1fr;
       min-height: calc(100vh - 56px);
     }
 
@@ -70,26 +72,32 @@
     .nav {
       background: var(--panel);
       border-right: 1px solid var(--border);
-      padding: 14px 10px;
+      padding: 16px 8px;
     }
     .nav a {
-      display: block;
-      padding: 10px 12px;
-      margin: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      margin: 2px 0;
       border-radius: 10px;
-      color: #111;
+      color: var(--ink);
       text-decoration: none;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
     }
-    .nav a:hover { background: #f3f4f6; }
+    .nav a:hover:not(.active) { background: #f9fafb; }
     .nav a.active {
-      background: #eef2ff;
-      color: #1f2a64;
-      font-weight: 600;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 700;
+      border-left: 3px solid #2563eb;
+      padding-left: 9px;
+      border-radius: 0;
     }
 
     /* ── Content ── */
-    .content { padding: 28px; }
+    .content { padding: 22px; }
 
     /* ── Page header ── */
     .page-header {
@@ -100,7 +108,7 @@
       font-weight: 700;
       margin-bottom: 4px;
     }
-    .page-sub {
+    .page-subtitle {
       font-size: 14px;
       color: var(--muted);
     }
@@ -119,7 +127,6 @@
       padding: 9px 14px;
       border: 1px solid var(--border);
       border-radius: 10px;
-      font-family: 'Poppins', sans-serif;
       font-size: 14px;
       background: var(--panel);
       box-shadow: var(--shadow);
@@ -130,7 +137,6 @@
       padding: 9px 14px;
       border: 1px solid var(--border);
       border-radius: 10px;
-      font-family: 'Poppins', sans-serif;
       font-size: 14px;
       background: var(--panel);
       box-shadow: var(--shadow);
@@ -155,7 +161,6 @@
       background: var(--panel);
       color: var(--muted);
       transition: all .15s;
-      font-family: 'Poppins', sans-serif;
     }
     .cat-pill:hover { border-color: var(--accent); color: var(--accent); }
     .cat-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -580,26 +585,24 @@
 
 <header class="topbar">
   <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
-  <div class="brand">Campus Life</div>
+  <div class="brand">Life on Campus</div>
 </header>
 
 <div class="shell">
   <nav class="nav" id="sideNav">
-    <a href="index.html">Home</a>
-    <a href="index.html">Events</a>
-    <a href="clubs.html">Clubs</a>
-    <a href="acc.html">ACC</a>
-    <a href="news.html" class="active">News</a>
-    <a href="resources.html">Resources</a>
-    <a href="emergency-contacts.html">Emergency</a>
-    
-      <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
-    </nav>
+    <a href="index.html">📅 Events</a>
+    <a href="clubs.html">🎭 Clubs</a>
+    <a href="acc.html">🎨 ACC</a>
+    <a href="news.html" class="active">📰 News</a>
+    <a href="resources.html">🔗 Resources</a>
+    <a href="emergency-contacts.html">🚨 Emergency</a>
+    <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
+  </nav>
 
   <main class="content">
     <div class="page-header">
       <div class="page-title">News &amp; Updates</div>
-      <div class="page-sub" id="newsSub">Latest stories, achievements and announcements from AKU campuses</div>
+      <div class="page-subtitle" id="newsSub">Latest stories, achievements and announcements from AKU campuses</div>
     </div>
 
     <!-- Filter bar -->
