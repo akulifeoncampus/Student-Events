@@ -1447,7 +1447,7 @@
       <div class="form-section-title">📋 Disclaimer *</div>
       <div style="border:1.5px solid #e9d5ff;border-radius:12px;overflow:hidden;margin-bottom:4px;">
         <div style="background:#f5f3ff;padding:14px 16px;border-bottom:1px solid #e9d5ff;">
-          <p style="font-size:12px;color:#4c1d95;font-weight:600;margin-bottom:8px;">We (Club/Society/Forum/Committee Convener and Co-Convener) agree and accept that we will:</p>
+          <p style="font-size:12px;color:#4c1d95;font-weight:600;margin-bottom:8px;">We (Club/Society/Forum/Committee Convener and Co-Convener) agree and accept that:</p>
           <ul style="padding-left:16px;display:flex;flex-direction:column;gap:6px;">
             <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Inspect and confirm equipment is in good condition upon receipt</li>
             <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Handle it responsibly and use it only for approved club or society events</li>
@@ -1524,26 +1524,26 @@ function timeAgo(str){
 
 /* ── Status helpers ── */
 const STATUS_CONFIG = {
-  submitted:    { label:"Event Proposal Received",            emoji:"📥", cls:"status-submitted" },
-  under_review: { label:"In Review",           emoji:"🔍", cls:"status-under_review" },
-  needs_info:   { label:"Pending Information", emoji:"💬", cls:"status-needs_info" },
-  approved:     { label:"Approved",            emoji:"✅", cls:"status-approved" },
-  assigned:     { label:"OSE Member Assigned", emoji:"📌", cls:"status-assigned" },
-  declined:     { label:"Not Approved",        emoji:"❌", cls:"status-declined" },
-  postponed:    { label:"Rescheduled",         emoji:"⏸️", cls:"status-postponed" },
-  cancelled:    { label:"Cancelled",           emoji:"🚫", cls:"status-cancelled" },
+  submitted:    { label:"Received",              emoji:"📥", cls:"status-submitted" },
+  under_review: { label:"In Review",             emoji:"🔍", cls:"status-under_review" },
+  needs_info:   { label:"Needs Info",            emoji:"💬", cls:"status-needs_info" },
+  approved:     { label:"Approved",              emoji:"✅", cls:"status-approved" },
+  assigned:     { label:"Coordinator Assigned",  emoji:"📌", cls:"status-assigned" },
+  declined:     { label:"Not Approved",          emoji:"❌", cls:"status-declined" },
+  postponed:    { label:"Rescheduled",           emoji:"⏸️", cls:"status-postponed" },
+  cancelled:    { label:"Cancelled",             emoji:"🚫", cls:"status-cancelled" },
 };
 
 /* ── Two-phase timeline config ── */
 const PHASE1_STEPS = [
-  { key:"submitted",    label:"Event Proposal Received",            emoji:"📥" },
-  { key:"under_review", label:"In Review",           emoji:"🔍" },
-  { key:"needs_info",   label:"Pending Information", emoji:"💬" },
-  { key:"approved",     label:"Approved",            emoji:"✅" },
+  { key:"submitted",    label:"Received",   emoji:"📥" },
+  { key:"under_review", label:"In Review",  emoji:"🔍" },
+  { key:"needs_info",   label:"Needs Info", emoji:"💬" },
+  { key:"approved",     label:"Approved",   emoji:"✅" },
 ];
 
 const PHASE2_STEPS = [
-  { key:"assigned",         label:"OSE Member Assigned",  emoji:"📌" },
+  { key:"assigned",         label:"Coordinator Assigned", emoji:"📌" },
   { key:"in_progress",      label:"Preparation Underway", emoji:"▶️" },
   { key:"completed",        label:"Event Held",           emoji:"🎉" },
   { key:"report_submitted", label:"Event Closed",         emoji:"🔒" },
@@ -2242,8 +2242,8 @@ function subscribeToProposalUpdates(){
       const statusLabels = {
         needs_info:   "💬 Your proposal needs more information — please check messages",
         approved:     "🎉 Your event has been Approved!",
-        declined:     "❌ Your proposal was Not Approved",
-        assigned:     "📌 An OSE Member has been assigned to your event",
+        declined:     "❌ Your proposal was not approved — check the feedback below",
+        assigned:     "📌 A coordinator has been assigned to your event",
         postponed:    "⏸️ Your event has been Rescheduled",
         cancelled:    "🚫 Your event was Cancelled",
         under_review: "🔍 Your proposal is now In Review",
@@ -2440,7 +2440,7 @@ function showPendingReportWarning(proposal){
   const execStatus = proposal.execution_status || "pending";
   const statusLabel = execStatus === "completed" ? "Event Held — awaiting closure" : "not yet closed";
   document.getElementById("pendingReportMsg").textContent =
-    `Your event "${proposal.event_name}" (${eventDate}) has a status of "${statusLabel}". Please ask your OSE Member to mark the event as Closed before you can submit a new proposal.`;
+    `Your event "${proposal.event_name}" (${eventDate}) has a status of "${statusLabel}". Please ask your Coordinator to mark the event as Closed before you can submit a new proposal.`;
   document.getElementById("pendingReportModal").classList.add("open");
 }
 
