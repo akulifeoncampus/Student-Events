@@ -1323,28 +1323,57 @@
 
       <!-- Section 3: Target Audience -->
       <div class="form-section-title">👥 Target Audience *</div>
-      <div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:16px;background:white;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;" id="audienceCheckboxes">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="All Students" style="width:14px;height:14px;accent-color:#7c3aed;" /> All Students</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="ASDH" style="width:14px;height:14px;accent-color:#7c3aed;" /> ASDH</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BScN" style="width:14px;height:14px;accent-color:#7c3aed;" /> BScN</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="Post RN" style="width:14px;height:14px;accent-color:#7c3aed;" /> Post RN</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBBS" style="width:14px;height:14px;accent-color:#7c3aed;" /> MBBS</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BS-FAS" style="width:14px;height:14px;accent-color:#7c3aed;" /> BS-FAS</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="B. Ed" style="width:14px;height:14px;accent-color:#7c3aed;" /> B. Ed</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MScN" style="width:14px;height:14px;accent-color:#7c3aed;" /> MScN</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil Education" style="width:14px;height:14px;accent-color:#7c3aed;" /> MPhil Education</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPE" style="width:14px;height:14px;accent-color:#7c3aed;" /> MHPE</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPM" style="width:14px;height:14px;accent-color:#7c3aed;" /> MHPM</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MS Epi and Bio" style="width:14px;height:14px;accent-color:#7c3aed;" /> MS Epi and Bio</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBE" style="width:14px;height:14px;accent-color:#7c3aed;" /> MBE</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSPH" style="width:14px;height:14px;accent-color:#7c3aed;" /> MSPH</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil BBS" style="width:14px;height:14px;accent-color:#7c3aed;" /> MPhil BBS</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSHM" style="width:14px;height:14px;accent-color:#7c3aed;" /> MSHM</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Health Sciences" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Health Sciences</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Nursing" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Nursing</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Education" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Education</label>
+      <div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:16px;background:white;">
+
+        <!-- Select All -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;margin-bottom:8px;">
+          <input type="checkbox" name="audience" id="audAllStudents" value="All Students"
+            onchange="toggleAllAudience(this.checked)"
+            style="width:15px;height:15px;accent-color:#7c3aed;flex-shrink:0;" />
+          <span style="font-size:13px;font-weight:700;color:#7c3aed;">All Students</span>
+          <span style="font-size:11px;color:#9ca3af;">— selects all programmes below</span>
+        </label>
+        <div style="border-top:1px solid #f3f4f6;margin-bottom:12px;"></div>
+
+        <!-- Undergraduate -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">Undergraduate</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="ASDH" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> ASDH</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BScN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> BScN</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="Post RN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> Post RN</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBBS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MBBS</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BS-FAS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> BS-FAS</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="B. Ed" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> B. Ed</label>
+          </div>
         </div>
+
+        <!-- Postgraduate -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">Postgraduate</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MScN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MScN</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil Education" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MPhil Education</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPE" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MHPE</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPM" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MHPM</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MS Epi and Bio" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MS Epi and Bio</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBE" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MBE</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSPH" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MSPH</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil BBS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MPhil BBS</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSHM" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MSHM</label>
+          </div>
+        </div>
+
+        <!-- Doctoral -->
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">Doctoral</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Health Sciences" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Health Sciences</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Nursing" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Nursing</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Education" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Education</label>
+          </div>
+        </div>
+
       </div>
 
       <!-- Section 4: Description -->
@@ -1853,6 +1882,19 @@ function initFabScroll(){
     if(!heroBtn){ fab.classList.add("visible"); return; }
     fab.classList.toggle("visible", heroBtn.getBoundingClientRect().bottom < 0);
   }, { passive: true });
+}
+
+/* ── Audience checkbox helpers ── */
+function toggleAllAudience(checked){
+  document.querySelectorAll('input[name="audience"]:not(#audAllStudents)').forEach(cb => {
+    cb.checked = checked;
+  });
+}
+
+function syncAllAudience(){
+  const programmes  = [...document.querySelectorAll('input[name="audience"]:not(#audAllStudents)')];
+  const allStudents = document.getElementById("audAllStudents");
+  if(allStudents) allStudents.checked = programmes.every(cb => cb.checked);
 }
 
 /* ── Proposals ── */
@@ -2495,6 +2537,7 @@ function openProposalModal(id = null){
       if(p.audience){
         const sel = p.audience.split(",").map(s => s.trim());
         document.querySelectorAll('input[name="audience"]').forEach(cb => { cb.checked = sel.includes(cb.value); });
+        if(sel.includes("All Students")) toggleAllAudience(true);
       }
       if(p.support_required){
         const sup = typeof p.support_required === "string" ? JSON.parse(p.support_required) : (p.support_required || {});
@@ -2675,8 +2718,11 @@ async function submitProposal(){
     : null;
   const transport     = document.getElementById("transportYes").checked;
 
-  // Collect audience checkboxes
-  const selectedAudience = [...document.querySelectorAll('input[name="audience"]:checked')].map(cb => cb.value);
+  // Collect audience — if "All Students" is ticked, store just that
+  const allStudentsChecked = document.getElementById("audAllStudents")?.checked;
+  const selectedAudience = allStudentsChecked
+    ? ["All Students"]
+    : [...document.querySelectorAll('input[name="audience"]:not(#audAllStudents):checked')].map(cb => cb.value);
   // Collect support checkboxes
   const supportObj = {};
   document.querySelectorAll('input[name="support"]:checked').forEach(cb => { supportObj[cb.value] = true; });
