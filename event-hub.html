@@ -419,6 +419,20 @@
       gap: 8px;
     }
 
+    /* ── Proposal filter tabs ── */
+    .proposal-filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+    .filter-tab {
+      padding:6px 14px; border-radius:999px;
+      border:1.5px solid var(--brd);
+      background:white; font-family:'Poppins',sans-serif;
+      font-size:12px; font-weight:600; color:#6b7280;
+      cursor:pointer; transition:all .15s;
+    }
+    .filter-tab:hover:not(.active) { border-color:#7c3aed; color:#7c3aed; }
+    .filter-tab.active { background:#7c3aed; border-color:#7c3aed; color:white; }
+    .filter-tab.attention { border-color:#f59e0b; color:#92400e; background:#fef3c7; }
+    .filter-tab.attention:hover:not(.active) { background:#fde68a; }
+
     /* ── Proposal cards ── */
     .proposals-list { display: grid; gap: 14px; }
     .proposal-card {
@@ -1126,6 +1140,13 @@
 
     <!-- Proposals list -->
     <div class="section-title">📋 Your Proposals</div>
+    <div class="proposal-filters" id="proposalFilters">
+      <button class="filter-tab active" data-filter="all"        data-label="All"        onclick="setFilter('all',this)">All</button>
+      <button class="filter-tab"        data-filter="active"     data-label="Active"     onclick="setFilter('active',this)">Active</button>
+      <button class="filter-tab"        data-filter="needs_info" data-label="Needs Info" onclick="setFilter('needs_info',this)">Needs Info</button>
+      <button class="filter-tab"        data-filter="approved"   data-label="Approved"   onclick="setFilter('approved',this)">Approved</button>
+      <button class="filter-tab"        data-filter="declined"   data-label="Declined"   onclick="setFilter('declined',this)">Declined</button>
+    </div>
     <div id="proposalsList">
       <div class="empty-state">
         <div class="empty-emoji">💡</div>
@@ -1414,6 +1435,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let currentClub    = null; // { email, club_name, campus }
 let currentSession = null;
 let allProposals   = [];
+let activeFilter   = "all";
 let authMode       = "login";
 
 /* ── Helpers ── */
@@ -1814,6 +1836,25 @@ function updateStats(){
   document.getElementById("statPending").textContent  = allProposals.filter(p => ["submitted","under_review","needs_info"].includes(p.status)).length;
   document.getElementById("statApproved").textContent = allProposals.filter(p => ["approved","assigned"].includes(p.status)).length;
   document.getElementById("statDeclined").textContent = allProposals.filter(p => p.status === "declined").length;
+
+  // Update filter tab counts
+  const counts = {
+    all:        allProposals.length,
+    active:     allProposals.filter(p => ["submitted","under_review","assigned","in_progress"].includes(p.status)).length,
+    needs_info: allProposals.filter(p => p.status === "needs_info").length,
+    approved:   allProposals.filter(p => ["approved","completed","report_submitted"].includes(p.status)).length,
+    declined:   allProposals.filter(p => ["declined","cancelled","postponed"].includes(p.status)).length,
+  };
+  document.querySelectorAll(".filter-tab[data-filter]").forEach(tab => {
+    const key   = tab.dataset.filter;
+    const count = counts[key] || 0;
+    const label = tab.dataset.label;
+    tab.textContent = count > 0 ? `${label} (${count})` : label;
+    if(key === "needs_info"){
+      if(count > 0 && !tab.classList.contains("active")) tab.classList.add("attention");
+      else tab.classList.remove("attention");
+    }
+  });
 }
 
 function renderProposals(){
@@ -1829,7 +1870,37 @@ function renderProposals(){
     return;
   }
 
-  el.innerHTML = `<div class="proposals-list">${allProposals.map(p => proposalCardHTML(p)).join("")}</div>`;
+  const filtered = allProposals.filter(p => {
+    if(activeFilter === "all")        return true;
+    if(activeFilter === "active")     return ["submitted","under_review","assigned","in_progress"].includes(p.status);
+    if(activeFilter === "needs_info") return p.status === "needs_info";
+    if(activeFilter === "approved")   return ["approved","completed","report_submitted"].includes(p.status);
+    if(activeFilter === "declined")   return ["declined","cancelled","postponed"].includes(p.status);
+    return true;
+  });
+
+  if(!filtered.length){
+    el.innerHTML = `
+      <div class="empty-state" style="padding:32px 20px;">
+        <div class="empty-emoji" style="font-size:36px;">🔍</div>
+        <div class="empty-title" style="font-size:16px;">No proposals here</div>
+        <div class="empty-sub">You don't have any proposals in this category yet.</div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="proposals-list">${filtered.map(p => proposalCardHTML(p)).join("")}</div>`;
+}
+
+function setFilter(key, btn){
+  activeFilter = key;
+  document.querySelectorAll(".filter-tab").forEach(t => {
+    t.classList.remove("active");
+    if(t.dataset.filter !== "needs_info") t.classList.remove("attention");
+  });
+  if(btn) btn.classList.add("active");
+  if(btn) btn.classList.remove("attention");
+  renderProposals();
 }
 
 function proposalCardHTML(p){
