@@ -1097,7 +1097,7 @@
     <div class="portal-hero">
       <div>
         <div class="portal-hero-title" id="heroTitle">Welcome back! 🎉</div>
-        <div class="portal-hero-sub">Submit and track your event proposals from here.</div>
+        <div class="portal-hero-sub" id="heroSub">Submit and track your event proposals from here.</div>
       </div>
       <button class="new-proposal-btn" onclick="openProposalModal()">
         ✦ New Event Proposal
@@ -1787,7 +1787,8 @@ function showPortal(){
   const name = currentClub?.club_name || currentClub?.email || "";
   document.getElementById("topbarAvatar").textContent = name.charAt(0).toUpperCase();
   document.getElementById("topbarClubName").textContent = name;
-  document.getElementById("heroTitle").textContent = `Welcome, ${name}! 🎉`;
+  document.getElementById("heroTitle").textContent = `Welcome back, ${name}! 🎉`;
+  document.getElementById("heroSub").textContent = "Ready to plan your next event? Let's go 🚀";
 
   loadProposals();
   loadNotifications();
