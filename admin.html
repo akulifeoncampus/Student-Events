@@ -7926,7 +7926,7 @@ async function sendAdminChatMessage(){
   hideMentionDropdown();
   pendingMentions = [];
 
-  // Optimistic
+  const senderName = getDisplayName(currentUser.email);
   const tempId = "temp_" + Date.now();
   adminChatMessages.push({
     id: tempId, sender_type:"admin",
