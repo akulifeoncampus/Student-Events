@@ -1194,11 +1194,52 @@
     }
     .editor-saved-msg.show { opacity: 1; }
 
+    /* ── Mobile nav toggle button ── */
+    .admin-nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* ── Sidebar overlay ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 150;
+    }
+    .sidebar-overlay.open { display: block; }
+
     @media (max-width: 768px) {
-      .sidebar { display: none; }
+      .admin-nav-toggle { display: block; }
+      .sidebar {
+        display: block;
+        position: fixed;
+        top: 56px;
+        left: -240px;
+        width: 220px;
+        height: calc(100vh - 56px);
+        z-index: 200;
+        box-shadow: none;
+        overflow-y: auto;
+        transition: left .25s ease, box-shadow .25s ease;
+      }
+      .sidebar.open {
+        left: 0;
+        box-shadow: 4px 0 20px rgba(0,0,0,.15);
+      }
       .main { padding: 16px; }
       .form-grid { grid-template-columns: 1fr; }
       .pages-grid { grid-template-columns: 1fr; }
+      #userEmail { display: none; }
+      #changePasswordBtn { display: none; }
     }
   </style>
 </head>
@@ -1263,19 +1304,22 @@
 
   <!-- Topbar -->
   <div class="topbar">
+    <button class="admin-nav-toggle" onclick="toggleAdminSidebar()" aria-label="Toggle navigation">&#9776;</button>
     <div class="topbar-brand">Life on Campus</div>
     <div class="topbar-badge" id="topbarBadge">ADMIN</div>
     <div class="topbar-user">
       <span id="userEmail"></span>
-      <!-- Notification Bell -->
       <button class="notif-bell-btn" id="adminNotifBtn" title="Notifications" onclick="toggleNotifPanel()">
         🔔
         <span class="notif-bell-badge" id="adminNotifBadge"></span>
       </button>
-      <button class="logout-btn" style="color:var(--ink);border-color:var(--border);" onclick="openChangePassword(false)">🔑 Change Password</button>
+      <button class="logout-btn" id="changePasswordBtn" style="color:var(--ink);border-color:var(--border);" onclick="openChangePassword(false)">🔑 Change Password</button>
       <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
     </div>
   </div>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleAdminSidebar()"></div>
 
   <!-- Notification Panel -->
   <div class="notif-panel" id="adminNotifPanel">
@@ -1290,7 +1334,7 @@
 
   <div class="admin-body">
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="adminSidebar">
       <div class="sidebar-label">Overview</div>
       <button class="nav-item active" data-section="section-dashboard" onclick="showSection('dashboard', this)">
         <span class="nav-icon">📊</span> Dashboard
@@ -3280,7 +3324,20 @@ function applyActionPermission(permKey, selectors){
 }
 
 /* ══ NAVIGATION ══ */
+function toggleAdminSidebar(){
+  const sidebar = document.getElementById("adminSidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const isOpen  = sidebar.classList.contains("open");
+  sidebar.classList.toggle("open", !isOpen);
+  overlay.classList.toggle("open", !isOpen);
+}
+
 function showSection(name, btn){
+  // Close mobile sidebar when navigating
+  if(window.innerWidth <= 768){
+    document.getElementById("adminSidebar")?.classList.remove("open");
+    document.getElementById("sidebarOverlay")?.classList.remove("open");
+  }
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
   document.getElementById(`section-${name}`).classList.add("active");
