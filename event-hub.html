@@ -2151,6 +2151,21 @@ async function sendChatMessage(){
   input.value = "";
   input.style.height = "auto";
 
+  // Optimistic: show immediately
+  const tempId = "temp_" + Date.now();
+  chatMessages.push({
+    id:           tempId,
+    sender_type:  "club",
+    sender_email: currentClub.email,
+    sender_name:  currentClub.club_name || currentClub.email,
+    message_text: text,
+    created_at:   new Date().toISOString(),
+    club_email:   currentClub.email,
+    campus:       currentClub.campus || "",
+  });
+  renderChatMessages();
+  scrollChatToBottom();
+
   const { error } = await sb.from("chat_messages").insert({
     club_email:   currentClub.email,
     campus:       currentClub.campus || "",
@@ -2159,7 +2174,18 @@ async function sendChatMessage(){
     sender_name:  currentClub.club_name || currentClub.email,
     message_text: text,
   });
-  if(error) showToast("❌ Could not send message", "error");
+
+  if(error){
+    // Roll back and show error
+    chatMessages = chatMessages.filter(m => m.id !== tempId);
+    renderChatMessages();
+    showToast("❌ " + error.message, "error");
+    return;
+  }
+
+  // Replace temp with real server data
+  chatMessages = chatMessages.filter(m => m.id !== tempId);
+  await loadChatMessages();
 }
 
 function handleChatKey(e){
@@ -2202,15 +2228,22 @@ function initChatRealtime(){
       table:  "chat_messages",
       filter: `club_email=eq.${currentClub.email}`,
     }, payload => {
-      chatMessages.push(payload.new);
+      const msg = payload.new;
+      // Own club messages are handled by loadChatMessages() after send — skip here
+      if(msg.sender_type === "club" && msg.sender_email === currentClub?.email) return;
+      // Avoid duplicates from any other source
+      if(chatMessages.some(m => m.id === msg.id)) return;
+
+      chatMessages.push(msg);
       renderChatMessages();
       scrollChatToBottom();
+
       const panel = document.getElementById("chatPanel");
       if(panel.classList.contains("open")){
         markChatRead();
-      } else if(payload.new.sender_type === "admin"){
+      } else {
         updateChatBadge();
-        showToast(`💬 ${payload.new.sender_name}: ${payload.new.message_text.substring(0,60)}`, "success");
+        showToast(`💬 ${msg.sender_name}: ${msg.message_text.substring(0,60)}`, "success");
       }
     })
     .subscribe();
