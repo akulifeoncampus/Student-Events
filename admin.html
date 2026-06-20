@@ -3290,6 +3290,7 @@ async function handleLogin(){
 
 async function handleLogout(){
   if(adminChatChannel){ sb.removeChannel(adminChatChannel); adminChatChannel = null; }
+  stopAdminChatPolling();
   await sb.auth.signOut();
   currentUser = null;
   document.getElementById("adminShell").classList.remove("visible");
@@ -7580,12 +7581,40 @@ async function markAllAdminNotifsRead(){
 }
 
 /* ── ADMIN CHAT ──────────────────────────────────────────────────── */
-let adminChatConversations = []; // [{club_email, club_name, campus, last_msg, last_time, unread}]
-let adminChatMessages      = []; // messages for active thread
+let adminChatConversations = [];
+let adminChatMessages      = [];
 let adminChatActiveClub    = null;
 let adminChatChannel       = null;
 let adminChatTabFilter     = "all";
 let adminChatSearchQuery   = "";
+let adminChatPollInterval  = null;
+
+function startAdminChatPolling(){
+  stopAdminChatPolling();
+  adminChatPollInterval = setInterval(async () => {
+    if(!currentAdminCampus) return;
+    if(adminChatActiveClub){
+      // Thread is open — poll for new messages
+      const { data } = await sb.from("chat_messages")
+        .select("*")
+        .eq("club_email", adminChatActiveClub)
+        .order("created_at", { ascending: true });
+      if(data && data.length > adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
+        adminChatMessages = data;
+        renderAdminThread();
+        const el = document.getElementById("adminChatMsgList");
+        if(el) el.scrollTop = el.scrollHeight;
+        markAdminChatRead(adminChatActiveClub);
+      }
+    } else {
+      // No thread open — refresh conversation list for unread badges
+      await loadAdminConversations();
+    }
+  }, 4000);
+}
+function stopAdminChatPolling(){
+  if(adminChatPollInterval){ clearInterval(adminChatPollInterval); adminChatPollInterval = null; }
+}
 
 function toggleAdminChatPanel(){
   const panel = document.getElementById("adminChatPanel");
@@ -7829,6 +7858,8 @@ function initAdminChatRealtime(){
   if(adminChatChannel) sb.removeChannel(adminChatChannel);
   if(!currentAdminCampus) return;
 
+  startAdminChatPolling(); // reliable 4-second fallback
+
   adminChatChannel = sb.channel("admin_chat_" + currentAdminCampus)
     .on("postgres_changes", {
       event:  "INSERT",
@@ -7871,12 +7902,18 @@ function toggleNotifPanel(){
   document.getElementById("adminNotifPanel").classList.toggle("open");
 }
 
-// Close panel when clicking outside
+// Close panels when clicking outside
 document.addEventListener("click", e => {
-  const panel = document.getElementById("adminNotifPanel");
-  const btn   = document.getElementById("adminNotifBtn");
-  if(panel && btn && !panel.contains(e.target) && !btn.contains(e.target)){
-    panel.classList.remove("open");
+  const notifPanel = document.getElementById("adminNotifPanel");
+  const notifBtn   = document.getElementById("adminNotifBtn");
+  if(notifPanel && notifBtn && !notifPanel.contains(e.target) && !notifBtn.contains(e.target)){
+    notifPanel.classList.remove("open");
+  }
+
+  const chatPanel = document.getElementById("adminChatPanel");
+  const chatBtn   = document.getElementById("adminChatBtn");
+  if(chatPanel && chatBtn && !chatPanel.contains(e.target) && !chatBtn.contains(e.target)){
+    chatPanel.classList.remove("open");
   }
 });
 
