@@ -1037,7 +1037,7 @@
 
     <div id="forgotPasswordRow" style="display:none;margin-top:14px;padding:16px;background:#f5f3ff;border-radius:12px;border:1px solid #e9d5ff;">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--accent);">Reset Password</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Enter your club email and we'll send you a temporary password.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Enter your club email and we'll send you a reset link.</div>
       <input class="login-input" id="resetEmail" type="email" placeholder="yourclub@aku.edu" style="margin-bottom:8px;" />
       <button class="login-btn" onclick="sendPasswordReset()" style="font-size:13px;padding:10px;">Send Temporary Password</button>
     </div>
@@ -1531,6 +1531,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 /* ── State ── */
 let currentClub    = null; // { email, club_name, campus }
 let currentSession = null;
+let isRecoverySession = false;
 let allProposals   = [];
 let activeFilter   = "all";
 let authMode       = "login";
@@ -2991,10 +2992,12 @@ async function sendPasswordReset(){
   if(btn){ btn.disabled = true; btn.textContent = "Sending…"; }
 
   try {
-    const { error: fnErr } = await sb.functions.invoke("bright-processor", {
-      body: { type: "club_reset_password", user_email: email },
+    const res = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "club_reset_password", user_email: email }),
     });
-    if(fnErr) throw fnErr;
+    if(!res.ok) throw new Error("Failed");
   } catch(e){
     showMsg("❌ Could not send reset email. Please contact the OSE team.", "error");
     if(btn){ btn.disabled = false; btn.textContent = "Send Temporary Password"; }
@@ -3125,6 +3128,7 @@ if("serviceWorker" in navigator){
       .catch(err => console.warn("[PWA] Service worker failed:", err));
   });
 }
+
 </script>
 </body>
 </html>
