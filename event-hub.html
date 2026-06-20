@@ -2991,12 +2991,10 @@ async function sendPasswordReset(){
   if(btn){ btn.disabled = true; btn.textContent = "Sending…"; }
 
   try {
-    const res = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8` },
-      body: JSON.stringify({ type: "club_reset_password", user_email: email }),
+    const { error: fnErr } = await sb.functions.invoke("bright-processor", {
+      body: { type: "club_reset_password", user_email: email },
     });
-    if(!res.ok) throw new Error("Failed");
+    if(fnErr) throw fnErr;
   } catch(e){
     showMsg("❌ Could not send reset email. Please contact the OSE team.", "error");
     if(btn){ btn.disabled = false; btn.textContent = "Send Temporary Password"; }
