@@ -919,11 +919,48 @@
       🔔
       <span class="notif-badge" id="notifBadge"></span>
     </button>
+    <button class="sign-out-btn" id="changePassBtn" style="display:none;" onclick="openChangePasswordHub()">🔑 Change Password</button>
     <button class="sign-out-btn" id="signOutBtn" style="display:none;" onclick="signOut()">Sign Out</button>
   </div>
 </header>
 
-<!-- ── Notification Panel ── -->
+<!-- ── Change Password Modal ── -->
+<div class="modal-backdrop" id="changePassModal" role="dialog" aria-modal="true" aria-label="Change Password">
+  <div class="modal" style="max-width:420px;text-align:left;">
+    <div style="font-size:36px;margin-bottom:8px;">🔑</div>
+    <div class="modal-title" style="margin-bottom:6px;">Change Password</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">Choose a strong new password for your Event Hub account.</p>
+
+    <label style="font-size:12px;font-weight:600;color:var(--ink);display:block;margin-bottom:5px;">New Password</label>
+    <div style="position:relative;margin-bottom:14px;">
+      <input class="login-input" type="password" id="hubNewPassword"
+        placeholder="At least 8 characters"
+        style="margin-bottom:0;padding-right:44px;"
+        oninput="checkHubPassStrength()" />
+      <button type="button" onclick="toggleHubPwd('hubNewPassword',this)"
+        style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);">👁</button>
+    </div>
+    <div id="hubPassStrength" style="font-size:11px;margin:-8px 0 14px;"></div>
+
+    <label style="font-size:12px;font-weight:600;color:var(--ink);display:block;margin-bottom:5px;">Confirm New Password</label>
+    <div style="position:relative;margin-bottom:20px;">
+      <input class="login-input" type="password" id="hubConfirmPassword"
+        placeholder="Repeat your new password"
+        style="margin-bottom:0;padding-right:44px;" />
+      <button type="button" onclick="toggleHubPwd('hubConfirmPassword',this)"
+        style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);">👁</button>
+    </div>
+
+    <div id="hubPwError" style="font-size:12px;color:#dc2626;min-height:16px;margin-bottom:12px;"></div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" onclick="closeChangePasswordHub()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitHubPasswordChange()">Save New Password</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="notif-panel" id="notifPanel">
   <div class="notif-panel-header">
     <div class="notif-panel-title">Notifications</div>
@@ -999,10 +1036,10 @@
     </div>
 
     <div id="forgotPasswordRow" style="display:none;margin-top:14px;padding:16px;background:#f5f3ff;border-radius:12px;border:1px solid #e9d5ff;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--accent);">Reset Password</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Enter your club email and we'll send you a reset link.</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--accent);">Reset Password</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Enter your club email and we'll send you a temporary password.</div>
       <input class="login-input" id="resetEmail" type="email" placeholder="yourclub@aku.edu" style="margin-bottom:8px;" />
-      <button class="login-btn" onclick="sendPasswordReset()" style="font-size:13px;padding:10px;">Send Reset Link</button>
+      <button class="login-btn" onclick="sendPasswordReset()" style="font-size:13px;padding:10px;">Send Temporary Password</button>
     </div>
 
     <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
@@ -1856,6 +1893,7 @@ async function signOut(){
   document.getElementById("topbarUser").classList.remove("visible");
   document.getElementById("notifBtn").style.display = "none";
   document.getElementById("signOutBtn").style.display = "none";
+  document.getElementById("changePassBtn").style.display = "none";
 }
 
 /* ── Show portal ── */
@@ -1865,6 +1903,7 @@ function showPortal(){
   document.getElementById("topbarUser").classList.add("visible");
   document.getElementById("notifBtn").style.display = "flex";
   document.getElementById("signOutBtn").style.display = "block";
+  document.getElementById("changePassBtn").style.display = "block";
 
   const name = currentClub?.club_name || currentClub?.email || "";
   document.getElementById("topbarAvatar").textContent = name.charAt(0).toUpperCase();
@@ -2948,20 +2987,85 @@ async function sendPasswordReset(){
   if(!clubRow){ showMsg("❌ This email is not registered in our system.", "error"); return; }
   if(clubRow.status !== "approved"){ showMsg("❌ Your account is not yet approved. Contact the OSE team.", "error"); return; }
 
-  const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://lifeoncampus.net/auth-callback.html?next=hub"
-  });
-  if(error){ showMsg("❌ " + error.message, "error"); return; }
+  const btn = document.querySelector("#forgotPasswordRow .login-btn");
+  if(btn){ btn.disabled = true; btn.textContent = "Sending…"; }
+
+  try {
+    const res = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8` },
+      body: JSON.stringify({ type: "club_reset_password", user_email: email }),
+    });
+    if(!res.ok) throw new Error("Failed");
+  } catch(e){
+    showMsg("❌ Could not send reset email. Please contact the OSE team.", "error");
+    if(btn){ btn.disabled = false; btn.textContent = "Send Temporary Password"; }
+    return;
+  }
 
   document.getElementById("forgotPasswordRow").innerHTML = `
     <div style="text-align:center;padding:8px 0;">
       <div style="font-size:28px;margin-bottom:8px;">📧</div>
-      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;">Reset link sent!</div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;">Check your inbox!</div>
       <div style="font-size:12px;color:var(--muted);line-height:1.6;">
-        Check your inbox for a password reset link.<br>
-        It expires in 1 hour. Check your spam folder too.
+        We've sent a <strong>temporary password</strong> to your email.<br>
+        Log in with it, then use <strong>Change Password</strong> to set a permanent one.
       </div>
     </div>`;
+}
+
+/* ── Change Password (Event Hub) ── */
+function openChangePasswordHub(){
+  document.getElementById("hubNewPassword").value = "";
+  document.getElementById("hubConfirmPassword").value = "";
+  document.getElementById("hubPwError").textContent = "";
+  document.getElementById("hubPassStrength").textContent = "";
+  document.getElementById("changePassModal").classList.add("open");
+}
+
+function closeChangePasswordHub(){
+  document.getElementById("changePassModal").classList.remove("open");
+}
+
+function toggleHubPwd(id, btn){
+  const inp = document.getElementById(id);
+  inp.type = inp.type === "password" ? "text" : "password";
+  btn.textContent = inp.type === "password" ? "👁" : "🙈";
+}
+
+function checkHubPassStrength(){
+  const pw  = document.getElementById("hubNewPassword").value;
+  const el  = document.getElementById("hubPassStrength");
+  if(!pw){ el.textContent = ""; return; }
+  const strong = pw.length >= 10 && /[A-Z]/.test(pw) && /[0-9]/.test(pw);
+  const ok     = pw.length >= 8;
+  el.textContent = strong ? "✅ Strong password" : ok ? "⚠️ Acceptable — try adding numbers or capitals" : "❌ Too short — minimum 8 characters";
+  el.style.color = strong ? "#15803d" : ok ? "#92400e" : "#dc2626";
+}
+
+async function submitHubPasswordChange(){
+  const newPw  = document.getElementById("hubNewPassword").value;
+  const confPw = document.getElementById("hubConfirmPassword").value;
+  const errEl  = document.getElementById("hubPwError");
+
+  errEl.textContent = "";
+  if(newPw.length < 8){ errEl.textContent = "Password must be at least 8 characters."; return; }
+  if(newPw !== confPw){ errEl.textContent = "Passwords do not match."; return; }
+
+  const btn = document.querySelector("#changePassModal .btn-primary");
+  btn.disabled = true; btn.textContent = "Saving…";
+
+  const { error } = await sb.auth.updateUser({ password: newPw });
+
+  btn.disabled = false; btn.textContent = "Save New Password";
+
+  if(error){
+    errEl.textContent = "❌ " + error.message;
+    return;
+  }
+
+  closeChangePasswordHub();
+  showToast("✅ Password changed successfully!", "success");
 }
 
 document.getElementById("notifBtn").addEventListener("click", () => {
