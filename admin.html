@@ -835,6 +835,75 @@
     .notif-item-time  { font-size:10px; color:#c4b5d4; margin-top:3px; }
     .notif-empty { text-align:center; padding:32px 20px; color:var(--muted); font-size:13px; }
 
+    /* ── Admin Chat Panel ── */
+    .admin-chat-panel {
+      display: none;
+      flex-direction: column;
+      position: fixed;
+      top: 66px; right: 16px;
+      width: 360px; height: 520px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.18);
+      z-index: 400;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .admin-chat-panel.open { display: flex; }
+    .admin-chat-ph {
+      padding: 13px 16px;
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg,#000060 0%,#2563eb 60%,#3b82f6 100%);
+      flex-shrink: 0;
+    }
+    .admin-chat-ph-title { font-size:14px; font-weight:700; color:white; flex:1; }
+    .admin-chat-ph-close {
+      background:none; border:none; color:rgba(255,255,255,.8);
+      cursor:pointer; font-size:18px; padding:2px; line-height:1;
+    }
+    .admin-chat-search {
+      width:100%; box-sizing:border-box;
+      border:1.5px solid var(--border); border-radius:10px;
+      padding:8px 12px; font-family:'Poppins',sans-serif; font-size:12px;
+      outline:none;
+    }
+    .admin-chat-search:focus { border-color:var(--accent); }
+    .admin-chat-tabs { display:flex; gap:6px; margin-top:8px; }
+    .admin-chat-tab {
+      padding:5px 14px; border-radius:999px; border:1.5px solid var(--border);
+      background:white; font-family:'Poppins',sans-serif; font-size:11px;
+      font-weight:600; cursor:pointer; color:var(--muted); transition:all .12s;
+    }
+    .admin-chat-tab.active { background:var(--accent); border-color:var(--accent); color:white; }
+    .admin-convo-list { overflow-y:auto; flex:1; }
+    .admin-convo-item {
+      display:flex; align-items:center; gap:10px;
+      padding:11px 14px; cursor:pointer; border-bottom:1px solid #f9fafb;
+      transition:background .12s;
+    }
+    .admin-convo-item:hover { background:#f9fafb; }
+    .admin-convo-avatar {
+      width:40px; height:40px; border-radius:50%;
+      background:var(--accent-light); color:var(--accent);
+      font-size:13px; font-weight:800; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .admin-convo-name  { font-size:13px; font-weight:700; color:var(--ink); }
+    .admin-convo-preview { font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .admin-convo-time { font-size:10px; color:var(--muted); white-space:nowrap; }
+    .admin-convo-badge {
+      min-width:18px; height:18px; border-radius:999px;
+      background:var(--danger); color:white;
+      font-size:9px; font-weight:700; padding:0 4px;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .admin-chat-thread { display:none; flex-direction:column; height:100%; }
+    .admin-chat-thread.open { display:flex; }
+    .admin-thread-back {
+      background:none; border:none; color:rgba(255,255,255,.85);
+      cursor:pointer; font-size:20px; padding:2px; line-height:1;
+    }
+
     /* ── TEAM OVERVIEW ── */
     .lead-card {
       background: white;
@@ -1309,6 +1378,10 @@
     <div class="topbar-badge" id="topbarBadge">ADMIN</div>
     <div class="topbar-user">
       <span id="userEmail"></span>
+      <button class="notif-bell-btn" id="adminChatBtn" title="Messages" onclick="toggleAdminChatPanel()" style="display:none;">
+        💬
+        <span class="notif-bell-badge" id="adminChatBadge"></span>
+      </button>
       <button class="notif-bell-btn" id="adminNotifBtn" title="Notifications" onclick="toggleNotifPanel()">
         🔔
         <span class="notif-bell-badge" id="adminNotifBadge"></span>
@@ -1320,6 +1393,53 @@
 
   <!-- Sidebar overlay (mobile) -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleAdminSidebar()"></div>
+
+  <!-- Admin Chat Panel -->
+  <div class="admin-chat-panel" id="adminChatPanel">
+
+    <!-- Conversation List View -->
+    <div id="adminChatListView" style="display:flex;flex-direction:column;height:100%;">
+      <div class="admin-chat-ph">
+        <span class="admin-chat-ph-title">💬 Messages</span>
+        <button class="admin-chat-ph-close" onclick="toggleAdminChatPanel()" aria-label="Close">✕</button>
+      </div>
+      <div style="padding:10px 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
+        <input class="admin-chat-search" type="text" id="adminChatSearch"
+          placeholder="🔍 Search clubs…" oninput="filterAdminConversations(this.value)"/>
+        <div class="admin-chat-tabs">
+          <button class="admin-chat-tab active" data-tab="all"    onclick="switchAdminChatTab('all',this)">All</button>
+          <button class="admin-chat-tab"         data-tab="unread" onclick="switchAdminChatTab('unread',this)">Unread</button>
+        </div>
+      </div>
+      <div class="admin-convo-list" id="adminConvoList">
+        <div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;">
+          <div style="font-size:36px;margin-bottom:8px;">💬</div>
+          No conversations yet
+        </div>
+      </div>
+    </div>
+
+    <!-- Thread View -->
+    <div class="admin-chat-thread" id="adminChatThread">
+      <div class="admin-chat-ph">
+        <button class="admin-thread-back" onclick="showAdminChatList()" aria-label="Back">←</button>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="adminThreadClubName">Club</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.7);" id="adminThreadCampus"></div>
+        </div>
+        <button class="admin-chat-ph-close" onclick="toggleAdminChatPanel()" aria-label="Close">✕</button>
+      </div>
+      <div class="chat-msg-list" id="adminChatMsgList"></div>
+      <div class="chat-input-row">
+        <textarea class="chat-textarea" id="adminChatInput" rows="1"
+          placeholder="Reply as ${getDisplayName ? getDisplayName(currentUser?.email||'') : 'Admin'}…"
+          onkeydown="handleAdminChatKey(event)"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+        <button class="chat-send-btn" onclick="sendAdminChatMessage()" aria-label="Send">➤</button>
+      </div>
+    </div>
+
+  </div>
 
   <!-- Notification Panel -->
   <div class="notif-panel" id="adminNotifPanel">
@@ -3013,6 +3133,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 let currentUser        = null;
 let currentRole        = null;
+let currentAdminCampus = "";
 let currentPermissions = {
   campus: "All",
   manage_events: true, manage_clubs: true, manage_news: true,
@@ -3098,7 +3219,7 @@ async function handleLogin(){
   }
 
   const { data: adminRow } = await sb.from("admins")
-    .select("email, role, permissions, must_change_password")
+    .select("email, role, permissions, must_change_password, campus")
     .eq("email", email).single();
   if(!adminRow){
     await sb.auth.signOut();
@@ -3111,6 +3232,7 @@ async function handleLogin(){
 
   currentUser        = data.user;
   currentRole        = adminRow.role || "admin";
+  currentAdminCampus = adminRow.campus || "";
   currentPermissions = buildPermissions(adminRow.role, adminRow.permissions);
   showAdminPanel();
   if(adminRow.must_change_password){
@@ -3119,6 +3241,7 @@ async function handleLogin(){
 }
 
 async function handleLogout(){
+  if(adminChatChannel){ sb.removeChannel(adminChatChannel); adminChatChannel = null; }
   await sb.auth.signOut();
   currentUser = null;
   document.getElementById("adminShell").classList.remove("visible");
@@ -3130,11 +3253,12 @@ async function checkSession(){
   const { data: { session } } = await sb.auth.getSession();
   if(session){
     const { data: adminRow } = await sb.from("admins")
-      .select("email, role, permissions, must_change_password")
+      .select("email, role, permissions, must_change_password, campus")
       .eq("email", session.user.email).single();
     if(adminRow){
       currentUser        = session.user;
       currentRole        = adminRow.role || "admin";
+      currentAdminCampus = adminRow.campus || "";
       currentPermissions = buildPermissions(adminRow.role, adminRow.permissions);
       showAdminPanel();
       if(adminRow.must_change_password){
@@ -3224,6 +3348,13 @@ function showAdminPanel(){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("adminShell").classList.add("visible");
   document.getElementById("userEmail").textContent = getDisplayName(currentUser.email);
+
+  // Show chat button for admin and event_lead only (not super_admin)
+  if(currentRole !== "super_admin"){
+    document.getElementById("adminChatBtn").style.display = "flex";
+    loadAdminConversations();
+    initAdminChatRealtime();
+  }
 
   // Topbar badge — show correct role label
   const badge = document.getElementById("topbarBadge");
@@ -7399,6 +7530,294 @@ async function markAllAdminNotifsRead(){
   await sb.from("notifications").update({ is_read:true }).eq("recipient", currentUser.email);
   loadAdminNotifications();
 }
+
+/* ── ADMIN CHAT ──────────────────────────────────────────────────── */
+let adminChatConversations = []; // [{club_email, club_name, campus, last_msg, last_time, unread}]
+let adminChatMessages      = []; // messages for active thread
+let adminChatActiveClub    = null;
+let adminChatChannel       = null;
+let adminChatTabFilter     = "all";
+let adminChatSearchQuery   = "";
+
+function toggleAdminChatPanel(){
+  const panel = document.getElementById("adminChatPanel");
+  const isOpen = panel.classList.toggle("open");
+  if(isOpen){
+    document.getElementById("adminNotifPanel").classList.remove("open");
+    showAdminChatList();
+    loadAdminConversations();
+  }
+}
+
+function showAdminChatList(){
+  document.getElementById("adminChatListView").style.display = "flex";
+  document.getElementById("adminChatThread").classList.remove("open");
+  adminChatActiveClub = null;
+}
+
+async function loadAdminConversations(){
+  if(!currentAdminCampus) return;
+
+  // Get latest message per club for this campus
+  const { data } = await sb.from("chat_messages")
+    .select("*")
+    .eq("campus", currentAdminCampus)
+    .order("created_at", { ascending: false });
+
+  if(!data) return;
+
+  // Group by club_email — keep only the most recent message per club
+  const seen = {};
+  data.forEach(m => { if(!seen[m.club_email]) seen[m.club_email] = m; });
+  adminChatConversations = Object.values(seen);
+
+  // Count unread per conversation
+  const { data: reads } = await sb.from("chat_reads")
+    .select("club_email, last_read_at")
+    .eq("user_email", currentUser.email);
+  const readMap = {};
+  (reads || []).forEach(r => { readMap[r.club_email] = r.last_read_at; });
+
+  // Attach unread counts
+  const allMsgs = data;
+  adminChatConversations = adminChatConversations.map(conv => {
+    const lastRead = readMap[conv.club_email] || "2000-01-01";
+    const unread   = allMsgs.filter(m =>
+      m.club_email === conv.club_email &&
+      m.sender_type === "club" &&
+      m.created_at > lastRead
+    ).length;
+    return { ...conv, unread };
+  });
+
+  // Sort by most recent
+  adminChatConversations.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  renderAdminConversations();
+  updateAdminChatBadge();
+}
+
+function renderAdminConversations(){
+  const list = document.getElementById("adminConvoList");
+  let convos  = adminChatConversations;
+
+  if(adminChatTabFilter === "unread") convos = convos.filter(c => c.unread > 0);
+  if(adminChatSearchQuery) convos = convos.filter(c =>
+    (c.club_email || "").toLowerCase().includes(adminChatSearchQuery) ||
+    (c.sender_name || "").toLowerCase().includes(adminChatSearchQuery)
+  );
+
+  if(!convos.length){
+    list.innerHTML = `<div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;">
+      <div style="font-size:32px;margin-bottom:8px;">💬</div>
+      ${adminChatTabFilter === "unread" ? "No unread messages" : "No conversations yet"}
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = convos.map(c => {
+    const name     = c.club_email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+    const initials = name.split(" ").map(w=>w[0]||"").join("").substring(0,2).toUpperCase();
+    const preview  = (c.sender_type === "admin" ? "You: " : "") + (c.message_text || "").substring(0,45);
+    const time     = formatChatTime(c.created_at);
+    return `<div class="admin-convo-item" onclick="openAdminThread('${esc(c.club_email)}','${esc(name)}','${esc(c.campus||"")}')">
+      <div class="admin-convo-avatar">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span class="admin-convo-name">${esc(name)}</span>
+          <span class="admin-convo-time">${time}</span>
+        </div>
+        <div class="admin-convo-preview">${esc(preview)}</div>
+      </div>
+      ${c.unread > 0 ? `<div class="admin-convo-badge">${c.unread}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function filterAdminConversations(q){
+  adminChatSearchQuery = q.toLowerCase();
+  renderAdminConversations();
+}
+
+function switchAdminChatTab(tab, btn){
+  adminChatTabFilter = tab;
+  document.querySelectorAll(".admin-chat-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderAdminConversations();
+}
+
+async function openAdminThread(clubEmail, clubName, campus){
+  adminChatActiveClub = clubEmail;
+  document.getElementById("adminChatListView").style.display = "none";
+  document.getElementById("adminChatThread").classList.add("open");
+  document.getElementById("adminThreadClubName").textContent = clubName;
+  document.getElementById("adminThreadCampus").textContent   = campus;
+
+  // Update placeholder with admin name
+  const name = getDisplayName(currentUser.email);
+  document.getElementById("adminChatInput").placeholder = `Reply as ${name}…`;
+
+  await loadAdminThread(clubEmail);
+  await markAdminChatRead(clubEmail);
+}
+
+async function loadAdminThread(clubEmail){
+  const { data } = await sb.from("chat_messages")
+    .select("*")
+    .eq("club_email", clubEmail)
+    .order("created_at", { ascending: true });
+  adminChatMessages = data || [];
+  renderAdminThread();
+  setTimeout(() => {
+    const el = document.getElementById("adminChatMsgList");
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+function renderAdminThread(){
+  const container = document.getElementById("adminChatMsgList");
+  if(!adminChatMessages.length){
+    container.innerHTML = `<div class="chat-empty">
+      <div style="font-size:32px;margin-bottom:8px;">💬</div>
+      <div>No messages yet. Say hello!</div>
+    </div>`;
+    return;
+  }
+
+  let html = "";
+  let lastDate = "";
+  adminChatMessages.forEach(m => {
+    const isAdmin = m.sender_type === "admin";
+    const dt      = new Date(m.created_at);
+    const dateStr = dt.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+    const timeStr = dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+    const initials = (m.sender_name||"?").split(" ").map(w=>w[0]||"").join("").substring(0,2).toUpperCase();
+
+    if(dateStr !== lastDate){
+      html += `<div style="text-align:center;font-size:10px;color:var(--muted);margin:4px 0;">${dateStr}</div>`;
+      lastDate = dateStr;
+    }
+
+    html += `<div class="chat-msg ${isAdmin ? "from-club" : "from-admin"}">
+      ${!isAdmin ? `<div class="chat-sender-row">
+        <div class="chat-sender-avatar">${initials}</div>
+        <span class="chat-sender-name">${esc(m.sender_name)}</span>
+      </div>` : `<div style="font-size:10px;color:rgba(255,255,255,.7);margin-bottom:2px;text-align:right;">${esc(m.sender_name)}</div>`}
+      <div class="chat-bubble">${esc(m.message_text)}</div>
+      <div class="chat-time">${timeStr}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+async function sendAdminChatMessage(){
+  const input = document.getElementById("adminChatInput");
+  const text  = (input.value || "").trim();
+  if(!text || !adminChatActiveClub || !currentUser) return;
+
+  input.value = "";
+  input.style.height = "auto";
+
+  const senderName = getDisplayName(currentUser.email);
+
+  // Optimistic
+  const tempId = "temp_" + Date.now();
+  adminChatMessages.push({
+    id: tempId, sender_type:"admin",
+    sender_email: currentUser.email, sender_name: senderName,
+    message_text: text, created_at: new Date().toISOString(),
+    club_email: adminChatActiveClub,
+  });
+  renderAdminThread();
+  const el = document.getElementById("adminChatMsgList");
+  if(el) el.scrollTop = el.scrollHeight;
+
+  const { error } = await sb.from("chat_messages").insert({
+    club_email:   adminChatActiveClub,
+    campus:       currentAdminCampus,
+    sender_type:  "admin",
+    sender_email: currentUser.email,
+    sender_name:  senderName,
+    message_text: text,
+  });
+
+  if(error){
+    adminChatMessages = adminChatMessages.filter(m => m.id !== tempId);
+    renderAdminThread();
+    showToast("❌ " + error.message, "error");
+    return;
+  }
+
+  adminChatMessages = adminChatMessages.filter(m => m.id !== tempId);
+  await loadAdminThread(adminChatActiveClub);
+  await loadAdminConversations();
+}
+
+function handleAdminChatKey(e){
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendAdminChatMessage(); }
+}
+
+async function markAdminChatRead(clubEmail){
+  if(!currentUser) return;
+  await sb.from("chat_reads").upsert({
+    user_email:   currentUser.email,
+    club_email:   clubEmail,
+    last_read_at: new Date().toISOString(),
+  }, { onConflict: "user_email,club_email" });
+  // Update local unread count
+  const conv = adminChatConversations.find(c => c.club_email === clubEmail);
+  if(conv) conv.unread = 0;
+  renderAdminConversations();
+  updateAdminChatBadge();
+}
+
+function updateAdminChatBadge(){
+  const total  = adminChatConversations.reduce((s,c) => s + (c.unread||0), 0);
+  const badge  = document.getElementById("adminChatBadge");
+  if(total > 0){ badge.textContent = total > 9 ? "9+" : total; badge.classList.add("visible"); }
+  else { badge.classList.remove("visible"); }
+}
+
+function initAdminChatRealtime(){
+  if(adminChatChannel) sb.removeChannel(adminChatChannel);
+  if(!currentAdminCampus) return;
+
+  adminChatChannel = sb.channel("admin_chat_" + currentAdminCampus)
+    .on("postgres_changes", {
+      event:  "INSERT",
+      schema: "public",
+      table:  "chat_messages",
+      filter: `campus=eq.${currentAdminCampus}`,
+    }, payload => {
+      const msg = payload.new;
+
+      // If thread is open for this club, append the message
+      if(adminChatActiveClub === msg.club_email && msg.sender_type !== "admin"){
+        if(!adminChatMessages.some(m => m.id === msg.id)){
+          adminChatMessages.push(msg);
+          renderAdminThread();
+          const el = document.getElementById("adminChatMsgList");
+          if(el) el.scrollTop = el.scrollHeight;
+          markAdminChatRead(msg.club_email);
+        }
+      } else if(msg.sender_type === "club"){
+        // New message from a different club — update badge and conversations
+        loadAdminConversations();
+        showToast(`💬 ${msg.sender_name}: ${msg.message_text.substring(0,60)}`, "success");
+      }
+    })
+    .subscribe();
+}
+
+function formatChatTime(iso){
+  const dt  = new Date(iso);
+  const now = new Date();
+  const diff= now - dt;
+  if(diff < 60000)      return "just now";
+  if(diff < 3600000)    return Math.floor(diff/60000) + "m ago";
+  if(diff < 86400000)   return Math.floor(diff/3600000) + "h ago";
+  return dt.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+}
+/* ── END ADMIN CHAT ──────────────────────────────────────────────── */
 
 function toggleNotifPanel(){
   document.getElementById("adminNotifPanel").classList.toggle("open");
