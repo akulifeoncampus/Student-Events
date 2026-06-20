@@ -822,6 +822,94 @@
       border: 1px solid #f0e6ff;
     }
     .notif-panel.open { display: block; }
+
+    /* ── Chat Panel ── */
+    .chat-panel {
+      display: none;
+      flex-direction: column;
+      position: fixed;
+      top: 68px;
+      right: 16px;
+      width: 340px;
+      height: 480px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 16px 48px rgba(102,126,234,.22);
+      z-index: 300;
+      overflow: hidden;
+      border: 1px solid #f0e6ff;
+    }
+    .chat-panel.open { display: flex; }
+    .chat-panel-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px;
+      background: var(--grad);
+      flex-shrink: 0;
+    }
+    .chat-header-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.25); color: white;
+      font-size: 14px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .chat-header-info { flex: 1; min-width: 0; }
+    .chat-header-name  { font-size: 13px; font-weight: 700; color: white; }
+    .chat-header-sub   { font-size: 10px; color: rgba(255,255,255,.75); }
+    .chat-header-close {
+      background: none; border: none; color: rgba(255,255,255,.8);
+      cursor: pointer; font-size: 18px; padding: 2px; line-height: 1;
+    }
+    .chat-msg-list {
+      flex: 1; overflow-y: auto; padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .chat-msg { display: flex; flex-direction: column; }
+    .chat-msg.from-club  { align-items: flex-end; }
+    .chat-msg.from-admin { align-items: flex-start; }
+    .chat-sender-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .chat-sender-avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--grad); color: white;
+      font-size: 9px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .chat-sender-name { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .chat-bubble {
+      max-width: 78%; padding: 9px 13px; border-radius: 18px;
+      font-size: 13px; line-height: 1.55; word-break: break-word;
+    }
+    .from-club  .chat-bubble { background: var(--grad); color: white; border-bottom-right-radius: 4px; }
+    .from-admin .chat-bubble { background: #f3f4f6; color: #111827; border-bottom-left-radius: 4px; }
+    .chat-time { font-size: 10px; color: var(--muted); margin-top: 3px; }
+    .chat-empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; color: var(--muted); font-size: 13px; padding: 24px;
+    }
+    .chat-input-row {
+      display: flex; gap: 8px; padding: 10px 12px;
+      border-top: 1px solid #f3f4f6; align-items: flex-end;
+      flex-shrink: 0;
+    }
+    .chat-textarea {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 18px;
+      padding: 8px 12px; font-family: 'Poppins', sans-serif; font-size: 13px;
+      outline: none; resize: none; max-height: 80px; overflow-y: auto; line-height: 1.4;
+      transition: border-color .15s;
+    }
+    .chat-textarea:focus { border-color: var(--accent); }
+    .chat-send-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--grad); border: none; color: white;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; font-size: 16px;
+      transition: opacity .15s;
+    }
+    .chat-send-btn:hover { opacity: .85; }
+    @media (max-width: 400px) {
+      .chat-panel { right: 8px; left: 8px; width: auto; }
+    }
     .notif-panel-header {
       padding: 16px 18px;
       border-bottom: 1px solid #f0e6ff;
@@ -935,6 +1023,10 @@
       <div class="topbar-avatar" id="topbarAvatar">C</div>
       <span id="topbarClubName" style="font-size:13px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
     </div>
+    <button class="notif-btn" id="chatBtn" style="display:none;" onclick="toggleChatPanel()" aria-label="Messages">
+      💬
+      <span class="notif-badge" id="chatBadge"></span>
+    </button>
     <button class="notif-btn" id="notifBtn" style="display:none;">
       🔔
       <span class="notif-badge" id="notifBadge"></span>
@@ -997,6 +1089,31 @@
   </div>
 </div>
 
+
+<!-- ── Chat Panel ── -->
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-panel-header">
+    <div class="chat-header-avatar">OS</div>
+    <div class="chat-header-info">
+      <div class="chat-header-name">OSEP Support Team</div>
+      <div class="chat-header-sub">We typically reply within a few hours</div>
+    </div>
+    <button class="chat-header-close" onclick="toggleChatPanel()" aria-label="Close chat">✕</button>
+  </div>
+  <div class="chat-msg-list" id="chatMsgList">
+    <div class="chat-empty">
+      <div style="font-size:36px;margin-bottom:10px;">💬</div>
+      <div>Send a message to the OSEP team.<br>We're here to help!</div>
+    </div>
+  </div>
+  <div class="chat-input-row">
+    <textarea class="chat-textarea" id="chatInput" rows="1"
+      placeholder="Type a message…"
+      onkeydown="handleChatKey(event)"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+    <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send">➤</button>
+  </div>
+</div>
 
 <div class="notif-panel" id="notifPanel">
   <div class="notif-panel-header">
@@ -1925,13 +2042,16 @@ function showOTPMsg(msg, type){
 
 async function signOut(){
   await sb.auth.signOut();
+  if(chatChannel){ sb.removeChannel(chatChannel); chatChannel = null; }
   currentClub = null; currentSession = null;
   document.getElementById("portal").classList.remove("visible");
   document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("topbarUser").classList.remove("visible");
   document.getElementById("notifBtn").style.display = "none";
+  document.getElementById("chatBtn").style.display  = "none";
   document.getElementById("signOutBtn").style.display = "none";
   document.getElementById("changePassBtn").style.display = "none";
+  document.getElementById("chatPanel").classList.remove("open");
 }
 
 /* ── Show portal ── */
@@ -1940,6 +2060,7 @@ function showPortal(){
   document.getElementById("portal").classList.add("visible");
   document.getElementById("topbarUser").classList.add("visible");
   document.getElementById("notifBtn").style.display = "flex";
+  document.getElementById("chatBtn").style.display  = "flex";
   document.getElementById("signOutBtn").style.display = "block";
   document.getElementById("changePassBtn").style.display = "block";
 
@@ -1951,8 +2072,150 @@ function showPortal(){
 
   loadProposals();
   loadNotifications();
+  loadChatMessages();
+  initChatRealtime();
   initFabScroll();
 }
+
+/* ── LIVE CHAT ───────────────────────────────────────────────────── */
+let chatMessages  = [];
+let chatChannel   = null;
+
+function toggleChatPanel(){
+  const panel  = document.getElementById("chatPanel");
+  const isOpen = panel.classList.toggle("open");
+  // Close notification panel if open
+  if(isOpen) document.getElementById("notifPanel").classList.remove("open");
+  if(isOpen){ markChatRead(); setTimeout(scrollChatToBottom, 50); }
+}
+
+async function loadChatMessages(){
+  if(!currentClub) return;
+  const { data } = await sb.from("chat_messages")
+    .select("*")
+    .eq("club_email", currentClub.email)
+    .order("created_at", { ascending: true });
+  chatMessages = data || [];
+  renderChatMessages();
+  setTimeout(scrollChatToBottom, 50);
+  updateChatBadge();
+}
+
+function renderChatMessages(){
+  const container = document.getElementById("chatMsgList");
+  if(!chatMessages.length){
+    container.innerHTML = `<div class="chat-empty">
+      <div style="font-size:36px;margin-bottom:10px;">💬</div>
+      <div>Send a message to the OSEP team.<br>We're here to help!</div>
+    </div>`;
+    return;
+  }
+
+  let html = "";
+  let lastDate = "";
+  chatMessages.forEach(m => {
+    const isClub = m.sender_type === "club";
+    const dt     = new Date(m.created_at);
+    const dateStr= dt.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+    const timeStr= dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+    const initials = (m.sender_name||"?").split(" ").map(w => w[0]||"").join("").substring(0,2).toUpperCase();
+
+    // Date separator
+    if(dateStr !== lastDate){
+      html += `<div style="text-align:center;font-size:10px;color:var(--muted);margin:4px 0;">${dateStr}</div>`;
+      lastDate = dateStr;
+    }
+
+    html += `<div class="chat-msg ${isClub ? "from-club" : "from-admin"}">
+      ${!isClub ? `<div class="chat-sender-row">
+        <div class="chat-sender-avatar">${initials}</div>
+        <span class="chat-sender-name">${esc(m.sender_name)}</span>
+      </div>` : ""}
+      <div class="chat-bubble">${esc(m.message_text)}</div>
+      <div class="chat-time">${timeStr}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function scrollChatToBottom(){
+  const el = document.getElementById("chatMsgList");
+  if(el) el.scrollTop = el.scrollHeight;
+}
+
+async function sendChatMessage(){
+  const input = document.getElementById("chatInput");
+  const text  = (input.value || "").trim();
+  if(!text || !currentClub) return;
+
+  input.value = "";
+  input.style.height = "auto";
+
+  const { error } = await sb.from("chat_messages").insert({
+    club_email:   currentClub.email,
+    campus:       currentClub.campus || "",
+    sender_type:  "club",
+    sender_email: currentClub.email,
+    sender_name:  currentClub.club_name || currentClub.email,
+    message_text: text,
+  });
+  if(error) showToast("❌ Could not send message", "error");
+}
+
+function handleChatKey(e){
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+async function updateChatBadge(){
+  if(!currentClub) return;
+  const { data: readRow } = await sb.from("chat_reads")
+    .select("last_read_at")
+    .eq("user_email", currentClub.email)
+    .eq("club_email", currentClub.email)
+    .maybeSingle();
+  const lastRead = readRow?.last_read_at || "2000-01-01";
+  const unread   = chatMessages.filter(m => m.sender_type === "admin" && m.created_at > lastRead).length;
+  const badge    = document.getElementById("chatBadge");
+  if(unread > 0){ badge.textContent = unread > 9 ? "9+" : unread; badge.classList.add("visible"); }
+  else { badge.classList.remove("visible"); }
+}
+
+async function markChatRead(){
+  if(!currentClub) return;
+  await sb.from("chat_reads").upsert({
+    user_email:   currentClub.email,
+    club_email:   currentClub.email,
+    last_read_at: new Date().toISOString(),
+  }, { onConflict: "user_email,club_email" });
+  document.getElementById("chatBadge").classList.remove("visible");
+}
+
+function initChatRealtime(){
+  if(chatChannel) sb.removeChannel(chatChannel);
+  chatChannel = sb.channel("club_chat_" + currentClub.email)
+    .on("postgres_changes", {
+      event:  "INSERT",
+      schema: "public",
+      table:  "chat_messages",
+      filter: `club_email=eq.${currentClub.email}`,
+    }, payload => {
+      chatMessages.push(payload.new);
+      renderChatMessages();
+      scrollChatToBottom();
+      const panel = document.getElementById("chatPanel");
+      if(panel.classList.contains("open")){
+        markChatRead();
+      } else if(payload.new.sender_type === "admin"){
+        updateChatBadge();
+        showToast(`💬 ${payload.new.sender_name}: ${payload.new.message_text.substring(0,60)}`, "success");
+      }
+    })
+    .subscribe();
+}
+/* ── END LIVE CHAT ───────────────────────────────────────────────── */
 
 function initFabScroll(){
   const fab     = document.getElementById("fabProposal");
@@ -3143,6 +3406,7 @@ async function submitHubPasswordChange(){
 
 document.getElementById("notifBtn").addEventListener("click", () => {
   document.getElementById("notifPanel").classList.toggle("open");
+  document.getElementById("chatPanel").classList.remove("open");
 });
 document.addEventListener("click", e => {
   const panel = document.getElementById("notifPanel");
