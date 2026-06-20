@@ -111,7 +111,7 @@
 
     .topbar {
       height: 56px;
-      background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%);
+      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
       border-bottom: none;
       display: flex;
       align-items: center;
@@ -989,7 +989,7 @@
     }
     .pipeline-card-cover-placeholder {
       width: 100%;
-      height: 80px;
+      height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1022,9 +1022,9 @@
       flex-wrap: wrap;
     }
     .pipeline-exec-btn {
-      padding: 3px 8px;
+      padding: 5px 10px;
       border-radius: 6px;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid var(--border);
@@ -1176,7 +1176,7 @@
 <!-- ══ LOGIN SCREEN ══ -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">🎓 Campus Life</div>
+    <div class="login-logo">🎓 Life on Campus</div>
     <div class="login-sub" id="loginSubText">Admin Panel — Authorised Access Only</div>
 
     <!-- ── Sign In Form ── -->
@@ -1232,7 +1232,7 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <div class="topbar-brand">Campus Life</div>
+    <div class="topbar-brand">Life on Campus</div>
     <div class="topbar-badge" id="topbarBadge">ADMIN</div>
     <div class="topbar-user">
       <span id="userEmail"></span>
@@ -1277,9 +1277,6 @@
       </button>
       <button class="nav-item" data-section="section-news" onclick="showSection('news', this)">
         <span class="nav-icon">📰</span> News
-      </button>
-      <button class="nav-item" data-section="section-forms" onclick="showSection('forms', this)">
-        <span class="nav-icon">📋</span> Forms
       </button>
       <button class="nav-item" data-section="section-resources" onclick="showSection('resources', this)">
         <span class="nav-icon">🔗</span> Resources
@@ -1502,9 +1499,9 @@
                   <th>Club / Society</th>
                   <th>📥 Received</th>
                   <th>🔍 In Review</th>
-                  <th>💬 Pending Info</th>
+                  <th>💬 Needs Info</th>
                   <th>✅ Approved</th>
-                  <th>📌 OSE Assigned</th>
+                  <th>📌 Coordinator Assigned</th>
                   <th>▶️ Prep Underway</th>
                   <th>🎉 Event Held</th>
                   <th>🔒 Closed</th>
@@ -1931,12 +1928,12 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
           <select id="proposalStatusFilter" onchange="filterProposalTable()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;background:white;">
             <option value="">All Statuses</option>
-            <option value="submitted">Submitted</option>
+            <option value="submitted">Received</option>
             <option value="under_review">Under Review</option>
             <option value="needs_info">Needs Info</option>
             <option value="approved">Approved</option>
-            <option value="assigned">Assigned</option>
-            <option value="declined">Declined</option>
+            <option value="assigned">Coordinator Assigned</option>
+            <option value="declined">Not Approved</option>
             <option value="postponed">Postponed</option>
             <option value="cancelled">Cancelled</option>
           </select>
@@ -3380,7 +3377,7 @@ function downloadChart(canvasId, label){
     ctx.fillStyle  = "#6b7280";
     ctx.font       = `${subSize}px Arial, sans-serif`;
     const dateStr  = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
-    ctx.fillText(`AKU Campus Life  ·  ${dateStr}`, PAD, barH + Math.round(62 * SCALE));
+    ctx.fillText(`Life on Campus  ·  ${dateStr}`, PAD, barH + Math.round(62 * SCALE));
 
     // ── Top divider ──
     ctx.strokeStyle = "#e5e7eb";
@@ -3559,7 +3556,7 @@ function downloadPivotExcel(){
     clubs[club].total++;
   });
 
-  const headers = ["Club / Society","Campus","Received","In Review","Pending Info","Approved","OSE Assigned","Prep Underway","Event Held","Closed","Not Approved","Published","Total"];
+  const headers = ["Club / Society","Campus","Received","In Review","Needs Info","Approved","Coordinator Assigned","Prep Underway","Event Held","Closed","Not Approved","Published","Total"];
   const rows    = Object.entries(clubs)
     .sort((a,b) => b[1].total - a[1].total)
     .map(([name, s]) => [
@@ -5531,13 +5528,13 @@ async function openResourceBookingPanel(proposalId){
 }
 
 function pipelineCard(p, today, isMine = true){
-  // When status=assigned but execution hasn't started, show "OSE Member Assigned" not "Awaiting Assignment"
+  // When status=assigned but execution hasn't started, show "Coordinator Assigned" not "Awaiting Assignment"
   const execKey  = p.execution_status && p.execution_status !== "pending"
     ? p.execution_status
     : (p.status === "assigned" ? "assigned_ready" : "pending");
   const execSCMap = {
     ...EXECUTION_STATUS,
-    assigned_ready: { label:"OSE Member Assigned", emoji:"📌", bg:"#f5f3ff", color:"#7c3aed" }
+    assigned_ready: { label:"Coordinator Assigned", emoji:"📌", bg:"#f5f3ff", color:"#7c3aed" }
   };
   const execSC   = execSCMap[execKey] || EXECUTION_STATUS["pending"];
   const dateStr  = p.proposed_date ? new Date(p.proposed_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "—";
@@ -5578,7 +5575,7 @@ function pipelineCard(p, today, isMine = true){
 
   const needsInfoBanner = p.status === "needs_info" ? `
     <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#92400e;font-weight:600;">
-      💬 Pending Information — please check messages
+      💬 Needs Info — please check messages
     </div>` : "";
 
   const notesHtml = `
@@ -5753,14 +5750,14 @@ function assignedDetailCard(label, value){
 let allAdminProposals = [];
 
 const PROPOSAL_STATUS_CONFIG = {
-  submitted:    { label:"Event Proposal Received",            color:"#2563eb", bg:"#eff6ff" },
-  under_review: { label:"In Review",           color:"#854d0e", bg:"#fef9c3" },
-  needs_info:   { label:"Pending Information", color:"#c2410c", bg:"#fff7ed" },
-  approved:     { label:"Approved",            color:"#15803d", bg:"#f0fdf4" },
-  assigned:     { label:"OSE Member Assigned", color:"#7c3aed", bg:"#f5f3ff" },
-  declined:     { label:"Not Approved",        color:"#b91c1c", bg:"#fef2f2" },
-  postponed:    { label:"Rescheduled",         color:"#374151", bg:"#f3f4f6" },
-  cancelled:    { label:"Cancelled",           color:"#9f1239", bg:"#fef2f2" },
+  submitted:    { label:"Received",              color:"#2563eb", bg:"#eff6ff" },
+  under_review: { label:"In Review",             color:"#854d0e", bg:"#fef9c3" },
+  needs_info:   { label:"Needs Info",            color:"#c2410c", bg:"#fff7ed" },
+  approved:     { label:"Approved",              color:"#15803d", bg:"#f0fdf4" },
+  assigned:     { label:"Coordinator Assigned",  color:"#7c3aed", bg:"#f5f3ff" },
+  declined:     { label:"Not Approved",          color:"#b91c1c", bg:"#fef2f2" },
+  postponed:    { label:"Rescheduled",           color:"#374151", bg:"#f3f4f6" },
+  cancelled:    { label:"Cancelled",             color:"#9f1239", bg:"#fef2f2" },
 };
 
 async function loadProposals(){
@@ -6230,7 +6227,7 @@ async function updateProposalStatus(status){
   // Notify the club
   if(p){
     const msgs = {
-      approved:     { title:"🎉 Event Approved!", msg:`Your event "${p.event_name}" has been approved and will appear on the Campus Life website!` },
+      approved:     { title:"🎉 Event Approved!", msg:`Your event "${p.event_name}" has been approved and will appear on the Life on Campus website!` },
       under_review: { title:"🔍 Event Under Review", msg:`Your event "${p.event_name}" is now being reviewed by the OSE team.` },
       needs_info:   { title:"💬 More Information Needed", msg:`The OSE team needs more information about "${p.event_name}". ${note ? "Message: " + note : ""}` },
       declined:     { title:"❌ Event Declined", msg:`Your event "${p.event_name}" was declined. ${note ? "Reason: " + note : "Contact the OSE team for details."}` },
@@ -6270,7 +6267,7 @@ async function updateProposalStatus(status){
     });
   }
 
-  const labels = { approved:"✅ Approved!", under_review:"🔍 Now In Review", needs_info:"💬 Pending Information", declined:"❌ Not Approved", postponed:"⏸️ Rescheduled", cancelled:"🚫 Cancelled" };
+  const labels = { approved:"✅ Approved!", under_review:"🔍 Now In Review", needs_info:"💬 Needs Info — club notified", declined:"❌ Not Approved", postponed:"⏸️ Rescheduled", cancelled:"🚫 Cancelled" };
   showToast(labels[status] || "Updated!");
   noteField.style.display = "none";
   document.getElementById("reviewNote").value = "";
@@ -7392,7 +7389,7 @@ async function loadTeamOverview(){
       const execKey2 = p.execution_status && p.execution_status !== "pending"
         ? p.execution_status
         : (p.status === "assigned" ? "assigned_ready" : "pending");
-      const EXEC_EXT = { ...EXEC, assigned_ready: { label:"OSE Member Assigned", emoji:"📌", bg:"#f5f3ff", color:"#7c3aed" } };
+      const EXEC_EXT = { ...EXEC, assigned_ready: { label:"Coordinator Assigned", emoji:"📌", bg:"#f5f3ff", color:"#7c3aed" } };
       const ex = EXEC_EXT[execKey2] || EXEC["pending"];
       const dt = p.proposed_date ? new Date(p.proposed_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "—";
       const isOverdue = !DONE.includes(p.execution_status||"pending") && p.proposed_date && new Date(p.proposed_date) < today;
