@@ -3212,10 +3212,18 @@ function hasPermission(key){
 }
 
 
+function getDisplayName(email){
+  const local = (email || "").split("@")[0];
+  return local
+    .split(".")
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
+
 function showAdminPanel(){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("adminShell").classList.add("visible");
-  document.getElementById("userEmail").textContent = currentUser.email;
+  document.getElementById("userEmail").textContent = getDisplayName(currentUser.email);
 
   // Topbar badge — show correct role label
   const badge = document.getElementById("topbarBadge");
