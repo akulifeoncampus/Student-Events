@@ -22,16 +22,15 @@
       --ink: #111827;
       --muted: #6b7280;
       --border: #e5e7eb;
-      --bg: #f5f3ff;
+      --bg: #f0f7ff;
       --panel: #ffffff;
       --shadow: 0 6px 24px rgba(102,126,234,.12);
-      --accent: #7c3aed;
-      --accent2: #ec4899;
+      --accent: #2563eb;
       --success: #16a34a;
       --warning: #d97706;
       --danger: #dc2626;
-      --grad: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-      --grad-text: linear-gradient(135deg, #667eea, #764ba2);
+      --grad: linear-gradient(135deg,#000060 0%,#2563eb 60%,#3b82f6 100%);
+      --grad-text: linear-gradient(135deg,#000060,#2563eb);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -64,9 +63,9 @@
       font-weight: 600;
       color: var(--muted);
       padding: 3px 10px;
-      background: #f5f3ff;
+      background: #eff6ff;
       border-radius: 999px;
-      border: 1px solid #e9d5ff;
+      border: 1px solid #bfdbfe;
     }
     .topbar-right {
       margin-left: auto;
@@ -108,7 +107,7 @@
       font-size: 17px;
       transition: all .2s ease;
     }
-    .notif-btn:hover { border-color: var(--accent); background: #f5f3ff; }
+    .notif-btn:hover { border-color: var(--accent); background: #eff6ff; }
     .notif-badge {
       position: absolute;
       top: -3px; right: -3px;
@@ -156,11 +155,11 @@
       min-height: calc(100vh - 60px);
       display: flex;
       align-items: stretch;
-      background: #f5f3ff;
+      background: #eff6ff;
     }
     .login-brand-panel {
       flex: 1;
-      background: linear-gradient(135deg, #1e40af 0%, #4c1d95 60%, #6d28d9 100%);
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 60%, #1d4ed8 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -214,7 +213,7 @@
     @media (max-width: 800px) {
       .login-brand-panel { display: none; }
       .login-form-panel { width: 100%; padding: 32px 24px; }
-      .login-screen { background: linear-gradient(135deg, #f5f3ff 0%, #fdf4ff 50%, #fce7f3 100%); }
+      .login-screen { background: linear-gradient(135deg,#eff6ff 0%,#f0f9ff 50%,#dbeafe 100%); }
       .login-card { max-width: 440px; background: white; border-radius: 28px; padding: 40px 32px; box-shadow: 0 20px 60px rgba(102,126,234,.18); }
     }
     .login-icon {
@@ -231,7 +230,7 @@
     .login-title {
       font-size: 26px;
       font-weight: 800;
-      color: #5b21b6;
+      color: #1e40af;
       margin-bottom: 6px;
     }
     .login-sub {
@@ -319,7 +318,7 @@
     }
     .otp-box.filled {
       border-color: var(--accent);
-      background: #f5f3ff;
+      background: #eff6ff;
     }
     .otp-box.error-box { border-color: var(--danger); background: #fef2f2; }
 
@@ -419,7 +418,7 @@
     .stat-num {
       font-size: 28px;
       font-weight: 800;
-      color: #7c3aed;
+      color: #2563eb;
     }
     .stat-label {
       font-size: 11px;
@@ -469,8 +468,8 @@
       font-size:12px; font-weight:600; color:#6b7280;
       cursor:pointer; transition:all .15s;
     }
-    .filter-tab:hover:not(.active) { border-color:#7c3aed; color:#7c3aed; }
-    .filter-tab.active { background:#7c3aed; border-color:#7c3aed; color:white; }
+    .filter-tab:hover:not(.active) { border-color:#2563eb; color:#2563eb; }
+    .filter-tab.active { background:#2563eb; border-color:#2563eb; color:white; }
     .filter-tab.attention { border-color:#f59e0b; color:#92400e; background:#fef3c7; }
     .filter-tab.attention:hover:not(.active) { background:#fde68a; }
 
@@ -538,7 +537,7 @@
     .status-under_review { background: #fef9c3; color: #854d0e; }
     .status-needs_info   { background: #fff7ed; color: #c2410c; }
     .status-approved     { background: #f0fdf4; color: #15803d; }
-    .status-assigned     { background: #f5f3ff; color: #7c3aed; }
+    .status-assigned     { background: #eff6ff; color: #2563eb; }
     .status-declined     { background: #fef2f2; color: #b91c1c; }
     .status-postponed    { background: #f3f4f6; color: #374151; }
     .status-cancelled    { background: #fef2f2; color: #9f1239; }
@@ -666,11 +665,11 @@
     }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(102,126,234,.4); }
     .btn-secondary {
-      background: #f5f3ff;
+      background: #eff6ff;
       color: var(--accent);
-      border: 1.5px solid #e9d5ff;
+      border: 1.5px solid #bfdbfe;
     }
-    .btn-secondary:hover { background: #ede9fe; }
+    .btn-secondary:hover { background: #eff6ff; }
     .btn-sm { padding: 6px 12px; font-size: 12px; }
     .btn-danger { background: #fef2f2; color: var(--danger); border: 1.5px solid #fecaca; }
     .btn-danger:hover { background: var(--danger); color: white; }
@@ -703,8 +702,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #f0e6ff;
-      background: linear-gradient(135deg, #f5f3ff, #fdf4ff);
+      border-bottom: 1px solid #eff6ff;
+      background: linear-gradient(135deg, #eff6ff, #f0f9ff);
     }
     .modal-title {
       font-size: 19px;
@@ -715,7 +714,7 @@
       width: 36px; height: 36px;
       border-radius: 50%;
       border: none;
-      background: #ede9fe;
+      background: #eff6ff;
       color: var(--accent);
       font-size: 18px;
       cursor: pointer;
@@ -733,10 +732,10 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .5px;
-      color: #7c3aed;
+      color: #2563eb;
       margin: 20px 0 8px;
       padding-bottom: 6px;
-      border-bottom: 2px solid #f5f3ff;
+      border-bottom: 2px solid #eff6ff;
     }
 
     .form-grid {
@@ -788,7 +787,7 @@
       transition: all .2s ease;
       background: #faf5ff;
     }
-    .upload-area:hover { border-color: var(--accent); background: #f5f3ff; }
+    .upload-area:hover { border-color: var(--accent); background: #eff6ff; }
     .upload-area input { display: none; }
     .upload-preview {
       max-width: 100%;
@@ -819,7 +818,7 @@
       box-shadow: 0 16px 48px rgba(102,126,234,.22);
       z-index: 300;
       overflow: hidden;
-      border: 1px solid #f0e6ff;
+      border: 1px solid #eff6ff;
     }
     .notif-panel.open { display: block; }
 
@@ -837,7 +836,7 @@
       box-shadow: 0 16px 48px rgba(102,126,234,.22);
       z-index: 300;
       overflow: hidden;
-      border: 1px solid #f0e6ff;
+      border: 1px solid #eff6ff;
     }
     .chat-panel.open { display: flex; }
     .chat-panel-header {
@@ -910,18 +909,39 @@
     @media (max-width: 400px) {
       .chat-panel { right: 8px; left: 8px; width: auto; }
     }
+
+    /* ── Responsive topbar ── */
+    /* At medium widths: hide club name text, keep avatar */
+    @media (max-width: 860px) {
+      #topbarClubName { display: none !important; }
+      .topbar { gap: 8px; padding: 0 14px; }
+      .topbar-right { gap: 8px; }
+    }
+    /* At smaller widths: hide "Club Portal" pill and show icon-only action buttons */
+    @media (max-width: 680px) {
+      .brand-sub { display: none; }
+      #changePassBtn .btn-text { display: none; }
+      #changePassBtn { padding: 7px 10px; }
+      #signOutBtn .btn-text { display: none; }
+      #signOutBtn { padding: 7px 10px; }
+    }
+    /* At narrow widths: shorten the back link */
+    @media (max-width: 520px) {
+      .nav-back-text { display: none; }
+      .topbar { gap: 6px; padding: 0 10px; }
+    }
     .notif-panel-header {
       padding: 16px 18px;
-      border-bottom: 1px solid #f0e6ff;
+      border-bottom: 1px solid #eff6ff;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: linear-gradient(135deg, #f5f3ff, #fdf4ff);
+      background: linear-gradient(135deg, #eff6ff, #f0f9ff);
     }
     .notif-panel-title {
       font-size: 14px;
       font-weight: 800;
-      color: #5b21b6;
+      color: #1e40af;
     }
     .notif-mark-read {
       font-size: 11px;
@@ -940,7 +960,7 @@
       transition: background .15s;
     }
     .notif-item:hover { background: #faf5ff; }
-    .notif-item.unread { background: #f5f3ff; border-left: 3px solid var(--accent); }
+    .notif-item.unread { background: #eff6ff; border-left: 3px solid var(--accent); }
     .notif-item-title {
       font-size: 13px;
       font-weight: 700;
@@ -995,7 +1015,7 @@
       max-width: 320px;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
-    .toast.success { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .toast.success { background: linear-gradient(135deg, #2563eb, #2563eb); }
     .toast.error { background: linear-gradient(135deg, #dc2626, #9f1239); }
 
     /* ── Responsive ── */
@@ -1015,7 +1035,7 @@
 
 <!-- ── Topbar ── -->
 <header class="topbar">
-  <a class="nav-back" href="index.html">← Life on Campus</a>
+  <a class="nav-back" href="index.html">← <span class="nav-back-text">Life on Campus</span></a>
   <div class="brand">Event Hub</div>
   <span class="brand-sub">Club Portal</span>
   <div class="topbar-right">
@@ -1031,6 +1051,13 @@
       🔔
       <span class="notif-badge" id="notifBadge"></span>
     </button>
+    <button class="sign-out-btn" id="changePassBtn" style="display:none;" onclick="openChangePasswordHub()">🔑 <span class="btn-text">Change Password</span></button>
+    <button class="sign-out-btn" id="signOutBtn" style="display:none;" onclick="signOut()"><span class="btn-text">Sign Out</span> →</button>
+  </div>
+</header>
+      🔔
+      <span class="notif-badge" id="notifBadge"></span>
+    </button>
     <button class="sign-out-btn" id="changePassBtn" style="display:none;" onclick="openChangePasswordHub()">🔑 Change Password</button>
     <button class="sign-out-btn" id="signOutBtn" style="display:none;" onclick="signOut()">Sign Out</button>
   </div>
@@ -1041,7 +1068,7 @@
   <div class="modal" style="max-width:440px;text-align:left;padding:28px 28px 24px;">
 
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-      <div style="width:44px;height:44px;background:#f5f3ff;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🔑</div>
+      <div style="width:44px;height:44px;background:#eff6ff;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🔑</div>
       <div>
         <div class="modal-title" style="margin:0 0 2px;font-size:18px;">Change Password</div>
         <p style="font-size:12px;color:var(--muted);margin:0;line-height:1.4;">Choose a strong password for your Event Hub account</p>
@@ -1189,7 +1216,7 @@
       <a href="#" onclick="showForgotPassword(event)" style="font-size:12px;color:var(--muted);text-decoration:none;">Forgot password?</a>
     </div>
 
-    <div id="forgotPasswordRow" style="display:none;margin-top:14px;padding:16px;background:#f5f3ff;border-radius:12px;border:1px solid #e9d5ff;">
+    <div id="forgotPasswordRow" style="display:none;margin-top:14px;padding:16px;background:#eff6ff;border-radius:12px;border:1px solid #bfdbfe;">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--accent);">Reset Password</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Enter your club email and we'll send you a reset link.</div>
       <input class="login-input" id="resetEmail" type="email" placeholder="yourclub@aku.edu" style="margin-bottom:8px;" />
@@ -1222,14 +1249,14 @@
   </div>
   <div class="login-form-panel">
     <div class="login-card" style="text-align:center;">
-      <div style="width:80px;height:80px;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 24px;box-shadow:0 8px 24px rgba(124,58,237,.35);">⏳</div>
+      <div style="width:80px;height:80px;background:linear-gradient(135deg,#2563eb,#3b82f6);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 24px;box-shadow:0 8px 24px rgba(124,58,237,.35);">⏳</div>
       <div class="login-title" style="text-align:center;">Request Submitted!</div>
       <div class="login-sub" style="text-align:center;margin-bottom:24px;">
         Your email has been verified and your access request sent to the OSEP team. You'll receive an approval email within <strong>1–2 working days</strong>.
       </div>
 
       <!-- What happens next -->
-      <div style="background:#f5f3ff;border-radius:14px;padding:20px;text-align:left;margin-bottom:24px;">
+      <div style="background:#eff6ff;border-radius:14px;padding:20px;text-align:left;margin-bottom:24px;">
         <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">What happens next</div>
         <div style="font-size:13px;color:var(--ink);line-height:2;">
           1️⃣ OSEP team reviews your request<br>
@@ -1266,7 +1293,7 @@
   </div>
   <div class="login-form-panel">
     <div class="login-card">
-      <div class="login-icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">🔐</div>
+      <div class="login-icon" style="background:linear-gradient(135deg,#2563eb,#3b82f6);">🔐</div>
       <div class="login-title">Verify Your Email</div>
       <div class="login-sub">Enter the verification code sent to</div>
       <div style="font-weight:700;color:var(--accent);font-size:14px;margin-bottom:28px;word-break:break-all;" id="otpEmailDisplay"></div>
@@ -1373,14 +1400,14 @@
     <div style="font-size:48px;margin-bottom:12px;">📋</div>
     <div class="modal-title" style="margin-bottom:8px;">One quick step first</div>
     <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px;" id="pendingReportMsg"></p>
-    <div style="background:#f5f3ff;border:1px solid #e9d5ff;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
-        <div style="width:22px;height:22px;border-radius:50%;background:#7c3aed;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-        <div style="font-size:13px;color:#4c1d95;line-height:1.5;">Ask your Coordinator to mark the event as <strong>Closed</strong></div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+        <div style="font-size:13px;color:#1e3a8a;line-height:1.5;">Ask your Coordinator to mark the event as <strong>Closed</strong></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:10px;">
-        <div style="width:22px;height:22px;border-radius:50%;background:#7c3aed;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
-        <div style="font-size:13px;color:#4c1d95;line-height:1.5;">Come back here to submit your next proposal</div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+        <div style="font-size:13px;color:#1e3a8a;line-height:1.5;">Come back here to submit your next proposal</div>
       </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:center;">
@@ -1433,17 +1460,17 @@
           <label>Scale of Event *</label>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
             <label id="scale-small" onclick="selectScale('small')" style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;text-transform:none;letter-spacing:0;font-weight:400;">
-              <input type="radio" name="eventScale" value="small" style="accent-color:#7c3aed;margin-bottom:6px;" />
+              <input type="radio" name="eventScale" value="small" style="accent-color:#2563eb;margin-bottom:6px;" />
               <div style="font-weight:700;font-size:13px;margin-bottom:4px;">🟢 Small Event</div>
               <div style="font-size:11px;color:#6b7280;line-height:1.5;">No purchases required. Up to 200 participants. Can be held after working days notice.</div>
             </label>
             <label id="scale-medium" onclick="selectScale('medium')" style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;text-transform:none;letter-spacing:0;font-weight:400;">
-              <input type="radio" name="eventScale" value="medium" style="accent-color:#7c3aed;margin-bottom:6px;" />
+              <input type="radio" name="eventScale" value="medium" style="accent-color:#2563eb;margin-bottom:6px;" />
               <div style="font-weight:700;font-size:13px;margin-bottom:4px;">🟡 Medium Event</div>
               <div style="font-size:11px;color:#6b7280;line-height:1.5;">Involves Purchase Department. Up to 200 participants. Minimum 14 days notice required.</div>
             </label>
             <label id="scale-mega" onclick="selectScale('mega')" style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;text-transform:none;letter-spacing:0;font-weight:400;">
-              <input type="radio" name="eventScale" value="mega" style="accent-color:#7c3aed;margin-bottom:6px;" />
+              <input type="radio" name="eventScale" value="mega" style="accent-color:#2563eb;margin-bottom:6px;" />
               <div style="font-weight:700;font-size:13px;margin-bottom:4px;">🔴 Mega Event</div>
               <div style="font-size:11px;color:#6b7280;line-height:1.5;">Involves Purchase Dept, External Participants, Pass Sale, 200+ participants. Minimum 30 days notice required.</div>
             </label>
@@ -1515,48 +1542,48 @@
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;margin-bottom:8px;">
           <input type="checkbox" name="audience" id="audAllStudents" value="All Students"
             onchange="toggleAllAudience(this.checked)"
-            style="width:15px;height:15px;accent-color:#7c3aed;flex-shrink:0;" />
-          <span style="font-size:13px;font-weight:700;color:#7c3aed;">All Students</span>
+            style="width:15px;height:15px;accent-color:#2563eb;flex-shrink:0;" />
+          <span style="font-size:13px;font-weight:700;color:#2563eb;">All Students</span>
           <span style="font-size:11px;color:#9ca3af;">— selects all programmes below</span>
         </label>
         <div style="border-top:1px solid #f3f4f6;margin-bottom:12px;"></div>
 
         <!-- Undergraduate -->
         <div style="margin-bottom:12px;">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">Undergraduate</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#2563eb;margin-bottom:6px;">Undergraduate</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="ASDH" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> ASDH</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BScN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> BScN</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="Post RN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> Post RN</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBBS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MBBS</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BS-FAS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> BS-FAS</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="B. Ed" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> B. Ed</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="ASDH" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> ASDH</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BScN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> BScN</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="Post RN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> Post RN</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBBS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MBBS</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="BS-FAS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> BS-FAS</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="B. Ed" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> B. Ed</label>
           </div>
         </div>
 
         <!-- Postgraduate -->
         <div style="margin-bottom:12px;">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">Postgraduate</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#2563eb;margin-bottom:6px;">Postgraduate</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MScN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MScN</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil Education" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MPhil Education</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPE" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MHPE</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPM" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MHPM</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MS Epi and Bio" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MS Epi and Bio</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBE" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MBE</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSPH" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MSPH</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil BBS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MPhil BBS</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSHM" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> MSHM</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MScN" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MScN</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil Education" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MPhil Education</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPE" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MHPE</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MHPM" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MHPM</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MS Epi and Bio" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MS Epi and Bio</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MBE" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MBE</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSPH" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MSPH</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MPhil BBS" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MPhil BBS</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="MSHM" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> MSHM</label>
           </div>
         </div>
 
         <!-- Doctoral -->
         <div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">Doctoral</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#2563eb;margin-bottom:6px;">Doctoral</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Health Sciences" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Health Sciences</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Nursing" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Nursing</label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Education" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#7c3aed;" /> PhD Education</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Health Sciences" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> PhD Health Sciences</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Nursing" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> PhD Nursing</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px;"><input type="checkbox" name="audience" value="PhD Education" onchange="syncAllAudience()" style="width:14px;height:14px;accent-color:#2563eb;" /> PhD Education</label>
           </div>
         </div>
 
@@ -1576,16 +1603,16 @@
       <div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
-            <input type="radio" name="transport" value="yes" id="transportYes" style="accent-color:#7c3aed;" onchange="document.getElementById('transportNote').style.display='block'" />
+            <input type="radio" name="transport" value="yes" id="transportYes" style="accent-color:#2563eb;" onchange="document.getElementById('transportNote').style.display='block'" />
             Yes
           </label>
           <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
-            <input type="radio" name="transport" value="no" id="transportNo" checked style="accent-color:#7c3aed;" onchange="document.getElementById('transportNote').style.display='none'" />
+            <input type="radio" name="transport" value="no" id="transportNo" checked style="accent-color:#2563eb;" onchange="document.getElementById('transportNote').style.display='none'" />
             No
           </label>
         </div>
-        <div id="transportNote" style="display:none;font-size:12px;color:#7c3aed;background:#f5f3ff;border-radius:8px;padding:8px 10px;">
-          📋 Please also fill out the <strong>Transport Request Form</strong> available in the <a href="forms.html" target="_blank" style="color:#7c3aed;font-weight:700;">Forms section</a>.
+        <div id="transportNote" style="display:none;font-size:12px;color:#2563eb;background:#eff6ff;border-radius:8px;padding:8px 10px;">
+          📋 Please also fill out the <strong>Transport Request Form</strong> available in the <a href="forms.html" target="_blank" style="color:#2563eb;font-weight:700;">Forms section</a>.
         </div>
       </div>
 
@@ -1593,26 +1620,26 @@
       <div class="form-section-title">🛠️ Support Required</div>
       <div style="border:1.5px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:16px;background:white;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="camera" style="width:14px;height:14px;accent-color:#7c3aed;" /> 📷 Camera (OSEP)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="sound_osep" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🔊 Sound System (OSEP)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="sound_lh" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🔊 Sound System (incl. LH)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="projector" style="width:14px;height:14px;accent-color:#7c3aed;" /> 📽️ Projector</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="laptop" style="width:14px;height:14px;accent-color:#7c3aed;" /> 💻 Laptop</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="mep" style="width:14px;height:14px;accent-color:#7c3aed;" /> ⚡ MEP (Electrician on Call)</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="security" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🛡️ Security Guard</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="housekeeping" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🧹 Housekeeping</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="refreshments" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🍽️ Refreshments</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="outside_vendors" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🏪 Permission for Outside Vendors</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="vouchers" style="width:14px;height:14px;accent-color:#7c3aed;" /> 🎟️ Vouchers</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="camera" style="width:14px;height:14px;accent-color:#2563eb;" /> 📷 Camera (OSEP)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="sound_osep" style="width:14px;height:14px;accent-color:#2563eb;" /> 🔊 Sound System (OSEP)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="sound_lh" style="width:14px;height:14px;accent-color:#2563eb;" /> 🔊 Sound System (incl. LH)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="projector" style="width:14px;height:14px;accent-color:#2563eb;" /> 📽️ Projector</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="laptop" style="width:14px;height:14px;accent-color:#2563eb;" /> 💻 Laptop</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="mep" style="width:14px;height:14px;accent-color:#2563eb;" /> ⚡ MEP (Electrician on Call)</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="security" style="width:14px;height:14px;accent-color:#2563eb;" /> 🛡️ Security Guard</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="housekeeping" style="width:14px;height:14px;accent-color:#2563eb;" /> 🧹 Housekeeping</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="refreshments" style="width:14px;height:14px;accent-color:#2563eb;" /> 🍽️ Refreshments</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="outside_vendors" style="width:14px;height:14px;accent-color:#2563eb;" /> 🏪 Permission for Outside Vendors</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="vouchers" style="width:14px;height:14px;accent-color:#2563eb;" /> 🎟️ Vouchers</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;">
-            <input type="checkbox" name="support" value="purchase_items" style="width:14px;height:14px;accent-color:#7c3aed;"
+            <input type="checkbox" name="support" value="purchase_items" style="width:14px;height:14px;accent-color:#2563eb;"
               onchange="document.getElementById('purchaseItemsBox').style.display=this.checked?'block':'none'" />
             🛒 Purchase Items
           </label>
           <div id="purchaseItemsBox" style="display:none;grid-column:1/-1;margin-top:4px;">
             <textarea id="purchaseItemsDetail" rows="3" placeholder="List items to purchase e.g. Prizes, Decorations, Stationery…"
               style="width:100%;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;resize:vertical;outline:none;"
-              onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
           </div>
         </div>
       </div>
@@ -1631,20 +1658,20 @@
 
       <!-- Section 8: Disclaimer -->
       <div class="form-section-title">📋 Disclaimer *</div>
-      <div style="border:1.5px solid #e9d5ff;border-radius:12px;overflow:hidden;margin-bottom:4px;">
-        <div style="background:#f5f3ff;padding:14px 16px;border-bottom:1px solid #e9d5ff;">
-          <p style="font-size:12px;color:#4c1d95;font-weight:600;margin-bottom:8px;">We (Club/Society/Forum/Committee Convener and Co-Convener) agree and accept that:</p>
+      <div style="border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:4px;">
+        <div style="background:#eff6ff;padding:14px 16px;border-bottom:1px solid #bfdbfe;">
+          <p style="font-size:12px;color:#1e3a8a;font-weight:600;margin-bottom:8px;">We (Club/Society/Forum/Committee Convener and Co-Convener) agree and accept that:</p>
           <ul style="padding-left:16px;display:flex;flex-direction:column;gap:6px;">
-            <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Inspect and confirm equipment is in good condition upon receipt</li>
-            <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Handle it responsibly and use it only for approved club or society events</li>
-            <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Return all items with accessories in the same condition as received</li>
-            <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Report any damage or malfunction to the OSE team immediately</li>
-            <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Misuse or unauthorised use may result in disciplinary action</li>
-            <li style="font-size:12px;color:#4c1d95;line-height:1.5;">Take full financial responsibility for any damage, loss, or theft</li>
+            <li style="font-size:12px;color:#1e3a8a;line-height:1.5;">Inspect and confirm equipment is in good condition upon receipt</li>
+            <li style="font-size:12px;color:#1e3a8a;line-height:1.5;">Handle it responsibly and use it only for approved club or society events</li>
+            <li style="font-size:12px;color:#1e3a8a;line-height:1.5;">Return all items with accessories in the same condition as received</li>
+            <li style="font-size:12px;color:#1e3a8a;line-height:1.5;">Report any damage or malfunction to the OSE team immediately</li>
+            <li style="font-size:12px;color:#1e3a8a;line-height:1.5;">Misuse or unauthorised use may result in disciplinary action</li>
+            <li style="font-size:12px;color:#1e3a8a;line-height:1.5;">Take full financial responsibility for any damage, loss, or theft</li>
           </ul>
         </div>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 16px;background:white;">
-          <input type="checkbox" id="fDisclaimer" style="width:18px;height:18px;accent-color:#7c3aed;flex-shrink:0;cursor:pointer;" />
+          <input type="checkbox" id="fDisclaimer" style="width:18px;height:18px;accent-color:#2563eb;flex-shrink:0;cursor:pointer;" />
           <span style="font-size:13px;font-weight:600;color:#374151;">I agree to the above terms and conditions</span>
         </label>
       </div>
@@ -1756,7 +1783,7 @@ function statusBadge(status){
 function statusColor(status){
   const map = {
     submitted:"#2563eb", under_review:"#d97706", needs_info:"#c2410c",
-    approved:"#15803d", assigned:"#7c3aed", declined:"#b91c1c",
+    approved:"#15803d", assigned:"#2563eb", declined:"#b91c1c",
     postponed:"#374151", cancelled:"#9f1239"
   };
   return map[status] || "#9ca3af";
@@ -2414,7 +2441,7 @@ function proposalCardHTML(p){
   const canEdit = ["submitted","needs_info"].includes(p.status);
   const actions = `
     <button class="btn btn-secondary btn-sm" onclick="viewProposal('${p.id}')">View Details</button>
-    ${canEdit ? `<button class="btn btn-sm" style="background:#f5f3ff;color:var(--accent);border:1.5px solid #e9d5ff;" onclick="openProposalModal('${p.id}')">✏️ Edit</button>` : ""}
+    ${canEdit ? `<button class="btn btn-sm" style="background:#eff6ff;color:var(--accent);border:1.5px solid #bfdbfe;" onclick="openProposalModal('${p.id}')">✏️ Edit</button>` : ""}
   `;
 
   // ── Two-phase timeline ──
@@ -2444,7 +2471,7 @@ function proposalCardHTML(p){
        }).join("")}</div>`;
 
   const phase2Html = isPhase2 && !isTerminal
-    ? `<div style="margin-top:10px;margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7c3aed;">Phase 2 — Event Execution</div>
+    ? `<div style="margin-top:10px;margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2563eb;">Phase 2 — Event Execution</div>
        <div class="proposal-timeline">${PHASE2_STEPS.map((step, i) => {
          const done    = phase2Idx > i;
          const current = phase2Idx === i;
@@ -2494,7 +2521,7 @@ function proposalCardHTML(p){
             <span style="color:#c4b5d4;">${timeAgo(p.submitted_at)}</span>
           </div>
           ${statusBadge(p.status)}
-          ${p.execution_status && p.execution_status !== "pending" ? `<span class="status-badge" style="background:#f5f3ff;color:#7c3aed;margin-left:4px;">${PHASE2_STEPS.find(s=>s.key===p.execution_status)?.emoji || ""} ${p.execution_status.replace(/_/g," ")}</span>` : ""}
+          ${p.execution_status && p.execution_status !== "pending" ? `<span class="status-badge" style="background:#eff6ff;color:#2563eb;margin-left:4px;">${PHASE2_STEPS.find(s=>s.key===p.execution_status)?.emoji || ""} ${p.execution_status.replace(/_/g," ")}</span>` : ""}
         </div>
         <div class="proposal-actions">${actions}</div>
       </div>
@@ -2517,9 +2544,9 @@ function proposalCardHTML(p){
           <div class="card-thread-reply">
             <textarea id="thread-reply-${p.id}" rows="2" placeholder="Reply to admin…"
               style="flex:1;padding:8px 11px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;resize:none;outline:none;"
-              onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
             <button onclick="sendCardReply('${p.id}')"
-              style="padding:8px 14px;background:#7c3aed;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;white-space:nowrap;">
+              style="padding:8px 14px;background:#2563eb;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;white-space:nowrap;">
               Send
             </button>
           </div>
@@ -2764,7 +2791,7 @@ function viewProposal(id){
       ${row("Expected Attendance", esc(p.expected_attendance || "—"))}
       ${p.description ? `<div style="grid-column:1/-1;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px;">Description</div><div style="line-height:1.7;">${esc(p.description)}</div></div>` : ""}
       ${p.admin_note  ? `<div style="grid-column:1/-1;background:#fff7ed;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400e;border:1px solid #fed7aa;"><strong>Admin Note:</strong> ${esc(p.admin_note)}</div>` : ""}
-      ${p.assigned_to ? `<div style="grid-column:1/-1;background:#f5f3ff;border-radius:10px;padding:12px 14px;font-size:13px;color:#7c3aed;border:1px solid #e9d5ff;"><strong>Assigned to:</strong> ${esc(p.assigned_to)}</div>` : ""}
+      ${p.assigned_to ? `<div style="grid-column:1/-1;background:#eff6ff;border-radius:10px;padding:12px 14px;font-size:13px;color:#2563eb;border:1px solid #bfdbfe;"><strong>Assigned to:</strong> ${esc(p.assigned_to)}</div>` : ""}
     </div>
     <div style="text-align:right;margin-top:16px;font-size:11px;color:var(--muted);">Submitted ${formatDate(p.submitted_at)}</div>
 
@@ -2775,9 +2802,9 @@ function viewProposal(id){
       <div style="display:flex;gap:8px;">
         <textarea id="hubReplyText" rows="2" placeholder="Reply to admin…"
           style="flex:1;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;resize:none;outline:none;"
-          onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
         <button onclick="sendHubReply('${p.id}')"
-          style="padding:9px 16px;background:#7c3aed;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-end;">
+          style="padding:9px 16px;background:#2563eb;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;cursor:pointer;align-self:flex-end;">
           Send
         </button>
       </div>
@@ -2808,8 +2835,8 @@ function selectScale(scale){
   ["small","medium","mega"].forEach(s => {
     const el = document.getElementById(`scale-${s}`);
     if(!el) return;
-    el.style.border     = s === scale ? "2px solid #7c3aed" : "2px solid #e5e7eb";
-    el.style.background = s === scale ? "#f5f3ff" : "white";
+    el.style.border     = s === scale ? "2px solid #2563eb" : "2px solid #e5e7eb";
+    el.style.background = s === scale ? "#eff6ff" : "white";
   });
   const minWorkingDays = { small:7, medium:14, mega:30 };
   const labels = {
@@ -2901,7 +2928,7 @@ function openProposalModal(id = null){
     campusSel.innerHTML = `<option value="${esc(clubCampus)}">${esc(clubCampus)}</option>`;
     campusSel.value     = clubCampus;
     campusSel.disabled  = true;
-    campusSel.style.cssText = "background:#f5f3ff;color:#7c3aed;font-weight:600;";
+    campusSel.style.cssText = "background:#eff6ff;color:#2563eb;font-weight:600;";
   } else {
     campusSel.innerHTML = `<option value="">Select…</option><option>Karachi</option><option>Nairobi</option><option>Kampala</option><option>Dar es Salaam</option>`;
     campusSel.disabled  = false;
@@ -3014,7 +3041,7 @@ function renderCollaboratorList(items, query = ""){
     html += `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;font-weight:600;text-transform:none;letter-spacing:0;color:#0369a1;">
       <input type="checkbox" name="collaborator" value="dept:OSEP"
         ${isChecked ? 'checked' : ''}
-        style="width:13px;height:13px;accent-color:#7c3aed;"
+        style="width:13px;height:13px;accent-color:#2563eb;"
         onchange="updateCollaboratorState('dept:OSEP', this.checked)" />
       🏛️ OSEP
     </label>`;
@@ -3031,7 +3058,7 @@ function renderCollaboratorList(items, query = ""){
     html += `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px;">
       <input type="checkbox" name="collaborator" value="dept:Counselling and Wellness Office"
         ${isChecked ? 'checked' : ''}
-        style="width:13px;height:13px;accent-color:#7c3aed;"
+        style="width:13px;height:13px;accent-color:#2563eb;"
         onchange="updateCollaboratorState('dept:Counselling and Wellness Office', this.checked)" />
       🏛️ Counselling and Wellness Office
     </label>`;
@@ -3045,7 +3072,7 @@ function renderCollaboratorList(items, query = ""){
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:2px 0;font-weight:400;text-transform:none;letter-spacing:0;">
         <input type="checkbox" id="collabDeptCheck" name="collaborator" value="dept:custom"
           ${deptChecked ? 'checked' : ''}
-          style="width:13px;height:13px;accent-color:#7c3aed;"
+          style="width:13px;height:13px;accent-color:#2563eb;"
           onchange="toggleDeptInput(this.checked)" />
         🏛️ AKU Department
       </label>
@@ -3054,7 +3081,7 @@ function renderCollaboratorList(items, query = ""){
         style="display:${deptChecked?'block':'none'};margin-top:4px;width:100%;padding:7px 10px;
         border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;
         font-size:12px;outline:none;box-sizing:border-box;"
-        onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e5e7eb'"
+        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"
         oninput="updateCollaboratorState('dept:custom', true, this.value)" />
     </div>`;
   }
@@ -3073,7 +3100,7 @@ function itemCheckbox(c){
   return `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:2px 0;font-weight:400;text-transform:none;letter-spacing:0;">
     <input type="checkbox" name="collaborator" value="${esc(c.name)}"
       ${c.checked ? 'checked' : ''}
-      style="width:13px;height:13px;accent-color:#7c3aed;"
+      style="width:13px;height:13px;accent-color:#2563eb;"
       onchange="updateCollaboratorState('${esc(c.name)}', this.checked)" />
     ${esc(c.name)}
   </label>`;
@@ -3262,7 +3289,7 @@ async function goToProposal(notifId, proposalId){
     if(card){
       card.scrollIntoView({ behavior:"smooth", block:"center" });
       card.style.transition = "box-shadow .3s";
-      card.style.boxShadow  = "0 0 0 3px #7c3aed";
+      card.style.boxShadow  = "0 0 0 3px #2563eb";
       setTimeout(() => { card.style.boxShadow = ""; card.style.transition = ""; }, 2000);
       // Auto-open message thread
       const threadBody = document.getElementById(`thread-body-${proposalId}`);
@@ -3299,7 +3326,7 @@ function showSetPasswordScreen(){
   // Show a simple set-new-password screen for clubs arriving via reset link
   document.getElementById("loginScreen").style.display = "flex";
   document.querySelector("#loginScreen .login-card").innerHTML = `
-    <div class="login-icon" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">🔑</div>
+    <div class="login-icon" style="background:linear-gradient(135deg,#2563eb,#3b82f6);">🔑</div>
     <div class="login-title">Set New Password</div>
     <div class="login-sub" style="margin-bottom:20px;">Enter your new password below.</div>
     <div style="margin-bottom:12px;">
