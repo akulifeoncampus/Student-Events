@@ -969,7 +969,38 @@
       outline: none;
     }
 
-    /* ── EVENT LEAD PIPELINE ── */
+    /* ── ATTENTION BANNER ── */
+    .attention-banner {
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .attention-banner.urgent { background: #fef2f2; border: 1px solid #fca5a5; }
+    .attention-banner.clear  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .attention-banner-icon  { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .attention-banner-body  { flex: 1; min-width: 0; }
+    .attention-banner-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .attention-banner.urgent .attention-banner-title { color: #991b1b; }
+    .attention-banner.clear  .attention-banner-title { color: #166534; }
+    .attention-item {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 12px; margin-bottom: 5px;
+    }
+    .attention-item:last-child { margin-bottom: 0; }
+    .attention-item-text { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; }
+    .attention-dot { width: 8px; height: 8px; border-radius: 50%; background: #dc2626; flex-shrink: 0; }
+    .attention-jump-btn {
+      padding: 4px 14px; background: #dc2626; color: white;
+      border: none; border-radius: 6px;
+      font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .attention-jump-btn:hover { background: #b91c1c; }
     .pipeline-card {
       background: white;
       border-radius: 14px;
@@ -1324,6 +1355,9 @@
             <button class="btn btn-primary" onclick="openReportModal()" id="btn-generate-report">✨ Generate AI Report</button>
           </div>
         </div>
+
+        <!-- Attention banner — populated by loadDashboard() -->
+        <div id="attentionBanner"></div>
 
         <!-- Stat cards -->
         <div class="stats-grid">
@@ -3432,6 +3466,8 @@ async function loadDashboard(){
     { data: allClubsData },
     { data: eventsData },
     { data: interestData },
+    { count: pendingProposalsCount },
+    { count: pendingClubsCount },
   ] = await Promise.all([
     sb.from("clubs").select("*",         { count:"exact", head:true }),
     sb.from("events").select("*",        { count:"exact", head:true }),
@@ -3443,6 +3479,8 @@ async function loadDashboard(){
     sb.from("clubs").select("campus"),
     sb.from("events").select("campus, event_date, category"),
     sb.from("events").select("interested_count"),
+    sb.from("event_proposals").select("*", { count:"exact", head:true }).in("status", ["submitted","needs_info"]),
+    sb.from("club_accounts").select("*",   { count:"exact", head:true }).eq("status","pending"),
   ]);
 
   const totalInterests = (interestData || []).reduce((sum, e) => sum + (e.interested_count || 0), 0);
@@ -3455,6 +3493,8 @@ async function loadDashboard(){
   document.getElementById("statUpcoming").textContent    = upcomingData?.length ?? "—";
   document.getElementById("statSubscribers").textContent = subscriberCount ?? "—";
   document.getElementById("statInterests").textContent   = totalInterests  || "—";
+
+  renderAttentionBanner(pendingProposalsCount || 0, pendingClubsCount || 0);
 
   // Per-campus summary cards
   const campusGrid = document.getElementById("campusStatsGrid");
@@ -3492,6 +3532,57 @@ async function loadDashboard(){
 
   renderAllCharts();
   buildPivotTable();
+}
+
+function jumpToSection(name){
+  const btn = document.querySelector(`[data-section="section-${name}"]`);
+  if(btn) showSection(name, btn);
+}
+
+function renderAttentionBanner(pendingProposals, pendingClubs){
+  const banner = document.getElementById("attentionBanner");
+  if(!banner) return;
+
+  const items = [];
+  if(pendingProposals > 0){
+    items.push({
+      text: `<strong>${pendingProposals}</strong> proposal${pendingProposals > 1 ? "s" : ""} waiting for review`,
+      section: "proposals"
+    });
+  }
+  if(pendingClubs > 0){
+    items.push({
+      text: `<strong>${pendingClubs}</strong> club approval request${pendingClubs > 1 ? "s" : ""} pending`,
+      section: "clubs-approval"
+    });
+  }
+
+  if(items.length === 0){
+    banner.innerHTML = `
+      <div class="attention-banner clear">
+        <div class="attention-banner-icon">✅</div>
+        <div class="attention-banner-body">
+          <div class="attention-banner-title">All clear</div>
+          <div style="font-size:12px;color:#166534;">No proposals or club requests are waiting for attention right now.</div>
+        </div>
+      </div>`;
+  } else {
+    banner.innerHTML = `
+      <div class="attention-banner urgent">
+        <div class="attention-banner-icon">🔔</div>
+        <div class="attention-banner-body">
+          <div class="attention-banner-title">Needs your attention</div>
+          ${items.map(item => `
+            <div class="attention-item">
+              <div class="attention-item-text">
+                <div class="attention-dot"></div>
+                <span>${item.text}</span>
+              </div>
+              <button class="attention-jump-btn" onclick="jumpToSection('${item.section}')">Review →</button>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  }
 }
 
 let allPivotData = [];
