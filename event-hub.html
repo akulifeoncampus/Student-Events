@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2563eb" />
+  <meta name="theme-color" content="#000060" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Campus Life" />
+  <meta name="apple-mobile-web-app-title" content="Life on Campus" />
   <link rel="apple-touch-icon" href="https://studentexperience.github.io/icon-192.png" />
-  <title>Campus Life · Event Hub</title>
+  <title>Life on Campus · Event Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -907,7 +907,7 @@
 
 <!-- ── Topbar ── -->
 <header class="topbar">
-  <a class="nav-back" href="index.html">← Campus Life</a>
+  <a class="nav-back" href="index.html">← Life on Campus</a>
   <div class="brand">Event Hub</div>
   <span class="brand-sub">Club Portal</span>
   <div class="topbar-right">
@@ -1022,7 +1022,7 @@
   <div class="login-brand-panel">
     <div class="login-brand-icon">🎉</div>
     <div class="login-brand-title">You're in the queue!</div>
-    <div class="login-brand-sub">The OSEP team reviews all club access requests personally to ensure Campus Life remains a trusted space for AKU clubs.</div>
+    <div class="login-brand-sub">The OSEP team reviews all club access requests personally to ensure Life on Campus remains a trusted space for AKU clubs.</div>
     <div class="login-brand-features" style="margin-top:32px;">
       <div class="login-brand-feature"><div class="login-brand-feature-icon">📋</div><span>Your request has been logged</span></div>
       <div class="login-brand-feature"><div class="login-brand-feature-icon">👀</div><span>OSEP team will review within 1-2 days</span></div>
@@ -1055,7 +1055,7 @@
       </div>
 
       <a href="index.html" class="login-btn" style="display:block;text-decoration:none;text-align:center;">
-        ← Explore Campus Life
+        ← Explore Life on Campus
       </a>
     </div>
   </div>
@@ -2004,7 +2004,7 @@ function proposalCardHTML(p){
   } else if(p.status === "declined" && p.admin_note){
     noteHtml = `<div class="proposal-note decline">❌ <strong>Declined:</strong> ${esc(p.admin_note)}</div>`;
   } else if(p.status === "approved"){
-    noteHtml = `<div class="proposal-note success">🎉 Your event has been approved and will appear on the Campus Life website!</div>`;
+    noteHtml = `<div class="proposal-note success">🎉 Your event has been approved and will appear on the Life on Campus website!</div>`;
   } else if(p.status === "assigned" && p.assigned_to){
     noteHtml = `<div class="proposal-note success">📌 Assigned to Event Lead: <strong>${esc(p.assigned_to)}</strong></div>`;
   } else if((p.status === "postponed" || p.status === "cancelled") && p.status_reason){
