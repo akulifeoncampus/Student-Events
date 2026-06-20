@@ -2043,6 +2043,7 @@ function showOTPMsg(msg, type){
 async function signOut(){
   await sb.auth.signOut();
   if(chatChannel){ sb.removeChannel(chatChannel); chatChannel = null; }
+  stopChatPolling();
   currentClub = null; currentSession = null;
   document.getElementById("portal").classList.remove("visible");
   document.getElementById("loginScreen").style.display = "flex";
@@ -2080,6 +2081,30 @@ function showPortal(){
 /* ── LIVE CHAT ───────────────────────────────────────────────────── */
 let chatMessages  = [];
 let chatChannel   = null;
+let chatPollInterval = null;
+
+function startChatPolling(){
+  stopChatPolling();
+  chatPollInterval = setInterval(async () => {
+    if(!currentClub) return;
+    const { data } = await sb.from("chat_messages")
+      .select("*")
+      .eq("club_email", currentClub.email)
+      .order("created_at", { ascending: true });
+    if(!data) return;
+    const realCount = chatMessages.filter(m => !String(m.id).startsWith("temp_")).length;
+    if(data.length > realCount){
+      chatMessages = data;
+      renderChatMessages();
+      const panel = document.getElementById("chatPanel");
+      if(panel.classList.contains("open")){ scrollChatToBottom(); markChatRead(); }
+      else { updateChatBadge(); }
+    }
+  }, 4000);
+}
+function stopChatPolling(){
+  if(chatPollInterval){ clearInterval(chatPollInterval); chatPollInterval = null; }
+}
 
 function toggleChatPanel(){
   const panel  = document.getElementById("chatPanel");
@@ -2221,6 +2246,7 @@ async function markChatRead(){
 
 function initChatRealtime(){
   if(chatChannel) sb.removeChannel(chatChannel);
+  startChatPolling(); // reliable fallback — updates every 4 seconds
   chatChannel = sb.channel("club_chat_" + currentClub.email)
     .on("postgres_changes", {
       event:  "INSERT",
@@ -3442,9 +3468,15 @@ document.getElementById("notifBtn").addEventListener("click", () => {
   document.getElementById("chatPanel").classList.remove("open");
 });
 document.addEventListener("click", e => {
-  const panel = document.getElementById("notifPanel");
-  const btn   = document.getElementById("notifBtn");
-  if(!panel.contains(e.target) && e.target !== btn) panel.classList.remove("open");
+  const notifPanel = document.getElementById("notifPanel");
+  const notifBtn   = document.getElementById("notifBtn");
+  if(!notifPanel.contains(e.target) && e.target !== notifBtn) notifPanel.classList.remove("open");
+
+  const chatPanel = document.getElementById("chatPanel");
+  const chatBtn   = document.getElementById("chatBtn");
+  if(chatPanel && chatBtn && !chatPanel.contains(e.target) && !chatBtn.contains(e.target)){
+    chatPanel.classList.remove("open");
+  }
 });
 
 /* ── Init ── */
