@@ -1191,14 +1191,21 @@
 <!-- Pending Report Warning Modal -->
 <div class="modal-backdrop" id="pendingReportModal">
   <div class="modal" style="max-width:460px;text-align:center;">
-    <div style="font-size:48px;margin-bottom:12px;">📝</div>
-    <div class="modal-title" style="margin-bottom:8px;">Post-Event Report Required</div>
-    <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:8px;" id="pendingReportMsg"></p>
-    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;color:#92400e;">
-      ⚠️ You cannot submit a new event proposal until the post-event report for your previous event has been submitted and confirmed by the Event Lead.
+    <div style="font-size:48px;margin-bottom:12px;">📋</div>
+    <div class="modal-title" style="margin-bottom:8px;">One quick step first</div>
+    <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px;" id="pendingReportMsg"></p>
+    <div style="background:#f5f3ff;border:1px solid #e9d5ff;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:#7c3aed;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+        <div style="font-size:13px;color:#4c1d95;line-height:1.5;">Ask your Coordinator to mark the event as <strong>Closed</strong></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:#7c3aed;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+        <div style="font-size:13px;color:#4c1d95;line-height:1.5;">Come back here to submit your next proposal</div>
+      </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:center;">
-      <button class="btn btn-secondary" onclick="closeModal('pendingReportModal')">Close</button>
+      <button class="btn btn-secondary" onclick="closeModal('pendingReportModal')">Got it</button>
     </div>
   </div>
 </div>
@@ -2437,10 +2444,8 @@ function selectScale(scale){
 
 function showPendingReportWarning(proposal){
   const eventDate = formatDate(proposal.proposed_date);
-  const execStatus = proposal.execution_status || "pending";
-  const statusLabel = execStatus === "completed" ? "Event Held — awaiting closure" : "not yet closed";
   document.getElementById("pendingReportMsg").textContent =
-    `Your event "${proposal.event_name}" (${eventDate}) has a status of "${statusLabel}". Please ask your Coordinator to mark the event as Closed before you can submit a new proposal.`;
+    `"${proposal.event_name}" (${eventDate}) still needs to be closed before you can submit a new proposal.`;
   document.getElementById("pendingReportModal").classList.add("open");
 }
 
