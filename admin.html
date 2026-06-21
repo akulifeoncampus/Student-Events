@@ -979,26 +979,40 @@
       font-size: .92em;
     }
 
-    /* ── Group chat: club checkbox items in Create Group modal ── */
-    .club-check-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 12px; cursor: pointer; transition: background .1s;
-      border-bottom: 1px solid #f9fafb;
+    /* ── Create Group Modal — club card selection ── */
+    .club-select-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px; cursor: pointer;
+      border-left: 3px solid transparent;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background .12s, border-color .12s;
+      user-select: none;
     }
-    .club-check-item:last-child { border-bottom: none; }
-    .club-check-item:hover { background: #f9fafb; }
-    .club-check-item input[type=checkbox] {
-      width: 18px; height: 18px; cursor: pointer;
-      accent-color: var(--accent); flex-shrink: 0;
-    }
-    .club-check-avatar {
-      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      background: var(--accent-light); color: var(--accent);
-      font-size: 11px; font-weight: 700;
+    .club-select-card:last-child { border-bottom: none; }
+    .club-select-card:hover { background: #f9fafb; }
+    .club-select-card.selected { background: #eff6ff; border-left-color: #2563eb; }
+    .club-select-check {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid #d1d5db; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: transparent;
+      transition: all .15s;
     }
-    .club-check-name  { font-size: 13px; font-weight: 600; color: var(--ink); }
-    .club-check-email { font-size: 10px; color: var(--muted); }
+    .club-select-card.selected .club-select-check {
+      background: #2563eb; border-color: #2563eb; color: white;
+    }
+    .club-select-av {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: #eff6ff; color: #2563eb;
+      font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .club-select-card.selected .club-select-av {
+      background: linear-gradient(135deg,#000060,#2563eb); color: white;
+    }
+    .club-select-name  { font-size: 13px; font-weight: 700; color: #111827; }
+    .club-select-email { font-size: 11px; color: #6b7280; margin-top: 1px; }
 
     /* ── TEAM OVERVIEW ── */
     .lead-card {
@@ -1569,32 +1583,78 @@
 
   </div>
 
-  <!-- Create Group Modal -->
-  <div class="modal-backdrop" id="createGroupModal" role="dialog" aria-modal="true" aria-label="Create group chat" style="display:none;align-items:center;justify-content:center;">
-    <div class="modal" style="max-width:440px;text-align:left;max-height:80vh;display:flex;flex-direction:column;">
-      <div class="modal-title" style="margin-bottom:4px;">👥 Create Group Chat</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6;">Message multiple clubs at once. All members can see and reply to each other.</p>
+  <!-- Create Group Modal (redesigned) -->
+  <div id="createGroupModal" role="dialog" aria-modal="true" aria-label="Create group chat"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:20px;width:100%;max-width:460px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);">
 
-      <label style="font-size:12px;font-weight:700;color:var(--ink);display:block;margin-bottom:5px;" for="groupNameInput">Group Name</label>
-      <input type="text" id="groupNameInput"
-        placeholder="e.g. FAS Events Coordination"
-        aria-required="true"
-        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;margin-bottom:16px;"
-        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
-
-      <label style="font-size:12px;font-weight:700;color:var(--ink);display:block;margin-bottom:5px;">Select Clubs</label>
-      <div id="clubSelectList"
-        style="border:1.5px solid var(--border);border-radius:10px;overflow-y:auto;max-height:200px;flex-shrink:0;"
-        role="group" aria-label="Clubs to add to group">
-        <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;">Loading clubs…</div>
+      <!-- Gradient header -->
+      <div style="background:linear-gradient(135deg,#000060 0%,#2563eb 100%);padding:22px 24px 18px;flex-shrink:0;">
+        <div style="font-size:20px;font-weight:800;color:white;margin-bottom:4px;">👥 Create Group Chat</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.5;">Message multiple clubs at once. All members can see and reply to each other.</div>
       </div>
-      <div id="groupSelectedCount" style="font-size:11px;color:var(--muted);margin-top:6px;margin-bottom:4px;" aria-live="polite">0 clubs selected</div>
-      <div id="createGroupError" style="font-size:12px;color:#dc2626;min-height:16px;"></div>
 
-      <div style="display:flex;gap:10px;margin-top:16px;">
-        <button class="btn btn-secondary" onclick="closeCreateGroupModal()">Cancel</button>
-        <button class="btn btn-primary" id="btnCreateGroup" onclick="createGroup()">Create Group</button>
+      <!-- Scrollable body -->
+      <div style="padding:20px 24px 10px;overflow-y:auto;flex:1;">
+
+        <!-- Group name field -->
+        <div style="margin-bottom:18px;">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;display:block;margin-bottom:7px;" for="groupNameInput">Group Name</label>
+          <input type="text" id="groupNameInput"
+            placeholder="e.g. FAS Events Coordination"
+            aria-required="true"
+            style="width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;color:#111827;"
+            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"/>
+        </div>
+
+        <!-- Club selector -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;" for="groupClubSearch">Select Clubs</label>
+            <span id="groupSelectedCount" aria-live="polite"
+              style="font-size:11px;font-weight:700;background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:999px;transition:all .2s;">
+              0 selected
+            </span>
+          </div>
+
+          <!-- Search bar -->
+          <div style="position:relative;margin-bottom:8px;">
+            <span aria-hidden="true" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:13px;">🔍</span>
+            <input type="text" id="groupClubSearch"
+              placeholder="Search clubs…"
+              aria-label="Search clubs to add to group"
+              style="width:100%;box-sizing:border-box;padding:9px 12px 9px 34px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;outline:none;"
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"
+              oninput="filterGroupClubs(this.value)"/>
+          </div>
+
+          <!-- Club list -->
+          <div id="clubSelectList"
+            style="border:1.5px solid #e5e7eb;border-radius:12px;overflow-y:auto;max-height:220px;"
+            role="group" aria-label="Select clubs for this group">
+            <div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px;">Loading clubs…</div>
+          </div>
+        </div>
+
+        <div id="createGroupError" role="alert" style="font-size:12px;color:#dc2626;min-height:16px;margin-top:8px;"></div>
       </div>
+
+      <!-- Footer with buttons -->
+      <div style="padding:14px 24px;border-top:1px solid #f3f4f6;display:flex;gap:10px;flex-shrink:0;background:#fafafa;border-radius:0 0 20px 20px;">
+        <button onclick="closeCreateGroupModal()"
+          aria-label="Cancel and close modal"
+          style="flex:1;padding:11px;border:1.5px solid #e5e7eb;border-radius:10px;background:white;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;transition:border-color .15s;"
+          onfocus="this.style.borderColor='#9ca3af'" onblur="this.style.borderColor='#e5e7eb'">
+          Cancel
+        </button>
+        <button id="btnCreateGroup" onclick="createGroup()"
+          aria-label="Create the group chat"
+          style="flex:2;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#000060,#2563eb);color:white;font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;"
+          onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+          Create Group →
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -8286,54 +8346,94 @@ async function loadAdminGroupMessages(conversationId){
   }, 50);
 }
 
+let allClubsForGroup = []; // cached for search filtering
+
 async function openCreateGroupModal(){
   document.getElementById("createGroupModal").style.display = "flex";
-  document.getElementById("groupNameInput").value          = "";
-  document.getElementById("groupSelectedCount").textContent = "0 clubs selected";
-  document.getElementById("createGroupError").textContent  = "";
+  document.getElementById("groupNameInput").value           = "";
+  document.getElementById("groupSelectedCount").textContent = "0 selected";
+  document.getElementById("createGroupError").textContent   = "";
+  document.getElementById("groupClubSearch").value          = "";
 
   const { data: clubs } = await sb.from("club_accounts")
-    .select("email,club_name").eq("campus", currentAdminCampus)
-    .eq("status","approved").order("club_name");
+    .select("email, club_name")
+    .eq("campus", currentAdminCampus)
+    .eq("status", "approved")
+    .order("club_name");
 
+  allClubsForGroup = clubs || [];
+  renderGroupClubList(allClubsForGroup);
+}
+
+function renderGroupClubList(clubs){
   const listEl = document.getElementById("clubSelectList");
   if(!clubs || !clubs.length){
-    listEl.innerHTML = `<p style="padding:14px;font-size:12px;color:var(--muted);">No approved clubs found for this campus.</p>`;
+    listEl.innerHTML = `<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px;">No approved clubs found for this campus.</div>`;
     return;
   }
   listEl.innerHTML = clubs.map(c => {
     const name     = c.club_name || c.email;
     const initials = name.split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
-    return `<label class="club-check-item">
-      <input type="checkbox" value="${esc(c.email)}" data-name="${esc(name)}"
-        onchange="updateGroupSelectedCount()" aria-label="Add ${esc(name)} to group">
-      <div class="club-check-avatar" aria-hidden="true">${initials}</div>
-      <div>
-        <div class="club-check-name">${esc(name)}</div>
-        <div class="club-check-email">${esc(c.email)}</div>
+    return `<div class="club-select-card"
+      role="checkbox" aria-checked="false" tabindex="0"
+      data-email="${esc(c.email)}" data-name="${esc(name)}"
+      onclick="toggleClubSelection(this)"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleClubSelection(this)}">
+      <div class="club-select-check" aria-hidden="true">✓</div>
+      <div class="club-select-av" aria-hidden="true">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="club-select-name">${esc(name)}</div>
+        <div class="club-select-email">${esc(c.email)}</div>
       </div>
-    </label>`;
+    </div>`;
   }).join("");
+}
+
+function filterGroupClubs(q){
+  const lower   = q.toLowerCase();
+  const filtered = allClubsForGroup.filter(c =>
+    (c.club_name||c.email).toLowerCase().includes(lower) ||
+    c.email.toLowerCase().includes(lower)
+  );
+  // Remember which emails were selected before re-render
+  const selectedEmails = [...document.querySelectorAll(".club-select-card.selected")]
+    .map(el => el.dataset.email);
+  renderGroupClubList(filtered);
+  // Restore selected state
+  selectedEmails.forEach(email => {
+    const card = document.querySelector(`.club-select-card[data-email="${email}"]`);
+    if(card){ card.classList.add("selected"); card.setAttribute("aria-checked","true"); }
+  });
+  updateGroupSelectedCount();
+}
+
+function toggleClubSelection(card){
+  const isNowSelected = !card.classList.contains("selected");
+  card.classList.toggle("selected", isNowSelected);
+  card.setAttribute("aria-checked", isNowSelected ? "true" : "false");
+  updateGroupSelectedCount();
+}
+
+function updateGroupSelectedCount(){
+  const count  = document.querySelectorAll(".club-select-card.selected").length;
+  const badge  = document.getElementById("groupSelectedCount");
+  badge.textContent      = count > 0 ? `${count} selected` : "0 selected";
+  badge.style.background = count > 0 ? "#000060" : "#eff6ff";
+  badge.style.color      = count > 0 ? "white"   : "#2563eb";
 }
 
 function closeCreateGroupModal(){
   document.getElementById("createGroupModal").style.display = "none";
 }
 
-function updateGroupSelectedCount(){
-  const count = document.querySelectorAll("#clubSelectList input:checked").length;
-  document.getElementById("groupSelectedCount").textContent =
-    `${count} club${count !== 1 ? "s" : ""} selected`;
-}
-
 async function createGroup(){
-  const name    = (document.getElementById("groupNameInput").value || "").trim();
-  const checked = [...document.querySelectorAll("#clubSelectList input:checked")];
-  const errEl   = document.getElementById("createGroupError");
+  const name     = (document.getElementById("groupNameInput").value || "").trim();
+  const selected = [...document.querySelectorAll(".club-select-card.selected")];
+  const errEl    = document.getElementById("createGroupError");
   errEl.textContent = "";
 
   if(!name)          { errEl.textContent = "Please enter a group name."; return; }
-  if(!checked.length){ errEl.textContent = "Please select at least one club."; return; }
+  if(!selected.length){ errEl.textContent = "Please select at least one club."; return; }
 
   const btn = document.getElementById("btnCreateGroup");
   btn.disabled = true; btn.textContent = "Creating…";
@@ -8350,27 +8450,29 @@ async function createGroup(){
 
     // 2. Add participants (creating admin + selected clubs)
     const participants = [
-      { conversation_id: conv.id, participant_email: currentUser.email,
-        participant_type: "admin", participant_name: getDisplayName(currentUser.email) },
-      ...checked.map(input => ({
+      { conversation_id:  conv.id,
+        participant_email: currentUser.email,
+        participant_type:  "admin",
+        participant_name:  getDisplayName(currentUser.email) },
+      ...selected.map(card => ({
         conversation_id:   conv.id,
-        participant_email: input.value,
+        participant_email: card.dataset.email,
         participant_type:  "club",
-        participant_name:  input.dataset.name,
+        participant_name:  card.dataset.name,
       }))
     ];
     const { error: partErr } = await sb.from("chat_participants").insert(participants);
     if(partErr) throw new Error(partErr.message);
 
     closeCreateGroupModal();
-    showToast(`✅ Group "${name}" created with ${checked.length} club${checked.length !== 1 ? "s" : ""}!`, "success");
+    showToast(`✅ Group "${name}" created with ${selected.length} club${selected.length !== 1 ? "s" : ""}!`, "success");
     loadAdminGroupConversations();
     openAdminGroupThread(conv.id, name);
 
   } catch(e){
     errEl.textContent = "❌ " + e.message;
   } finally {
-    btn.disabled = false; btn.textContent = "Create Group";
+    btn.disabled = false; btn.textContent = "Create Group →";
   }
 }
 
