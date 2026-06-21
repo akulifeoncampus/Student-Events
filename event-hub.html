@@ -875,6 +875,24 @@
       background: var(--grad);
       flex-shrink: 0;
     }
+
+    /* ── Hub chat tab bar — matches admin panel pill style ── */
+    .hub-chat-tabs {
+      display: flex; gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #f3f4f6;
+      background: white; flex-shrink: 0;
+    }
+    .hub-chat-tab {
+      padding: 5px 16px; border-radius: 999px;
+      border: 1.5px solid #e5e7eb; background: white;
+      font-family: 'Poppins', sans-serif; font-size: 11px;
+      font-weight: 600; cursor: pointer; color: #6b7280;
+      transition: all .12s;
+    }
+    .hub-chat-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .hub-chat-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .hub-chat-tab.active { background: var(--accent); border-color: var(--accent); color: white; }
     .chat-header-avatar {
       width: 36px; height: 36px; border-radius: 50%;
       background: rgba(255,255,255,.25); color: white;
@@ -1167,16 +1185,18 @@
     <button class="chat-header-close" onclick="toggleChatPanel()" aria-label="Close chat">✕</button>
   </div>
 
-  <!-- Tab bar: Direct | Groups -->
-  <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.15);flex-shrink:0;" role="tablist" aria-label="Chat sections">
-    <button id="hubTabDirect" role="tab" aria-selected="true"
+  <!-- Tab bar: Direct | Groups — pill style matching admin panel -->
+  <div class="hub-chat-tabs" role="tablist" aria-label="Chat sections">
+    <button class="hub-chat-tab active" id="hubTabDirect"
+      role="tab" aria-selected="true"
       onclick="switchHubChatView('direct')"
-      style="flex:1;padding:9px;background:rgba(255,255,255,.15);color:white;border:none;border-bottom:2.5px solid white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">
+      aria-controls="chatDirectView">
       💬 Direct
     </button>
-    <button id="hubTabGroups" role="tab" aria-selected="false"
+    <button class="hub-chat-tab" id="hubTabGroups"
+      role="tab" aria-selected="false"
       onclick="switchHubChatView('groups')"
-      style="flex:1;padding:9px;background:none;color:rgba(255,255,255,.7);border:none;border-bottom:2.5px solid transparent;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
+      aria-controls="chatGroupsListView">
       👥 Groups
     </button>
   </div>
@@ -2404,37 +2424,39 @@ function initChatRealtime(){
 function switchHubChatView(view){
   hubChatView = view;
 
-  // Tab button styles
-  const directBtn = document.getElementById("hubTabDirect");
-  const groupsBtn = document.getElementById("hubTabGroups");
-  const activeStyle   = "flex:1;padding:9px;background:rgba(255,255,255,.15);color:white;border:none;border-bottom:2.5px solid white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;";
-  const inactiveStyle = "flex:1;padding:9px;background:none;color:rgba(255,255,255,.7);border:none;border-bottom:2.5px solid transparent;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;";
+  // ── Tab buttons: use CSS classes, not inline styles ──
+  const isGroupTab = view === "groups" || view === "group-thread";
+  const directBtn  = document.getElementById("hubTabDirect");
+  const groupsBtn  = document.getElementById("hubTabGroups");
+  directBtn.classList.toggle("active", !isGroupTab);
+  directBtn.setAttribute("aria-selected", !isGroupTab ? "true" : "false");
+  groupsBtn.classList.toggle("active", isGroupTab);
+  groupsBtn.setAttribute("aria-selected", isGroupTab ? "true" : "false");
 
+  // ── Show correct view panel ──
+  document.getElementById("chatDirectView").style.display      = view === "direct"       ? "flex" : "none";
+  document.getElementById("chatGroupsListView").style.display  = view === "groups"       ? "flex" : "none";
+  document.getElementById("chatGroupThreadView").style.display = view === "group-thread" ? "flex" : "none";
+
+  // ── Update header content (group-thread header is set by openHubGroupThread) ──
+  const avatarEl = document.querySelector("#chatPanelHeader .chat-header-avatar");
   if(view === "direct"){
-    directBtn.style.cssText = activeStyle; directBtn.setAttribute("aria-selected","true");
-    groupsBtn.style.cssText = inactiveStyle; groupsBtn.setAttribute("aria-selected","false");
-    document.getElementById("chatDirectView").style.display      = "flex";
-    document.getElementById("chatGroupsListView").style.display  = "none";
-    document.getElementById("chatGroupThreadView").style.display = "none";
     document.getElementById("chatHeaderName").textContent = "OSEP Support Team";
     document.getElementById("chatHeaderSub").textContent  = "We typically reply within a few hours";
-    document.querySelector("#chatPanelHeader .chat-header-avatar").style.display = "flex";
+    document.getElementById("chatHeaderSub").style.cursor = "";
+    document.getElementById("chatHeaderSub").onclick      = null;
+    if(avatarEl) avatarEl.style.display = "flex";
   } else if(view === "groups"){
-    directBtn.style.cssText = inactiveStyle; directBtn.setAttribute("aria-selected","false");
-    groupsBtn.style.cssText = activeStyle;   groupsBtn.setAttribute("aria-selected","true");
-    document.getElementById("chatDirectView").style.display      = "none";
-    document.getElementById("chatGroupsListView").style.display  = "flex";
-    document.getElementById("chatGroupThreadView").style.display = "none";
     document.getElementById("chatHeaderName").textContent = "Your Groups";
     document.getElementById("chatHeaderSub").textContent  = "Group conversations with OSEP";
-    document.querySelector("#chatPanelHeader .chat-header-avatar").style.display = "none";
+    document.getElementById("chatHeaderSub").style.cursor = "";
+    document.getElementById("chatHeaderSub").onclick      = null;
+    if(avatarEl) avatarEl.style.display = "none";
     stopHubGroupPolling();
     loadHubGroups();
   } else if(view === "group-thread"){
-    // Don't change tab buttons — Groups tab stays selected
-    document.getElementById("chatDirectView").style.display      = "none";
-    document.getElementById("chatGroupsListView").style.display  = "none";
-    document.getElementById("chatGroupThreadView").style.display = "flex";
+    // Header already updated by openHubGroupThread before this is called
+    if(avatarEl) avatarEl.style.display = "none";
   }
 }
 
