@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#000060">
+  <meta name="robots" content="noindex">
+  <title>Event Check-In — Life on Campus</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: #f0f7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
+      padding: 16px 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .header-brand { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2px; }
+    .header-title { font-size: 18px; font-weight: 800; color: white; }
+    .header-event { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 4px; font-style: italic; }
+
+    /* ── Screens ── */
+    .screen { display: none; flex: 1; align-items: center; justify-content: center; padding: 24px 20px; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── Card ── */
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,96,.1);
+      text-align: center;
+    }
+
+    .screen-icon { font-size: 52px; margin-bottom: 14px; line-height: 1; }
+    .screen-title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+    .screen-sub   { font-size: 14px; color: #6b7280; line-height: 1.6; }
+
+    /* ── Progress dots ── */
+    .progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .progress-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #e5e7eb; transition: background .2s;
+    }
+    .progress-dot.active  { background: #2563eb; }
+    .progress-dot.done    { background: #000060; }
+
+    /* ── Step label ── */
+    .step-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: #9ca3af; margin-bottom: 16px;
+    }
+    .step-question {
+      font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 20px; line-height: 1.4;
+    }
+
+    /* ── Type buttons (big tap targets) ── */
+    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .type-btn {
+      padding: 18px 12px; border-radius: 14px;
+      border: 2px solid #e5e7eb; background: white;
+      cursor: pointer; transition: all .15s;
+      font-family: inherit; text-align: center;
+    }
+    .type-btn:hover, .type-btn:focus { border-color: #2563eb; background: #eff6ff; outline: none; }
+    .type-btn-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+    .type-btn-label { font-size: 13px; font-weight: 700; color: #111827; }
+    .type-btn-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+    /* ── Select dropdowns ── */
+    .field-group { text-align: left; margin-bottom: 16px; }
+    .field-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
+    .field-select {
+      width: 100%; padding: 13px 14px; border: 1.5px solid #e5e7eb;
+      border-radius: 10px; font-family: inherit; font-size: 14px;
+      color: #111827; background: white; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 40px; cursor: pointer;
+    }
+    .field-select:focus { outline: none; border-color: #2563eb; }
+    .field-select:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
+
+    /* ── Action buttons ── */
+    .btn-primary {
+      width: 100%; padding: 15px; border-radius: 12px;
+      background: linear-gradient(135deg, #000060, #2563eb);
+      color: white; border: none; font-family: inherit;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s; margin-top: 8px;
+    }
+    .btn-primary:hover { opacity: .9; }
+    .btn-primary:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-back {
+      width: 100%; padding: 12px; border-radius: 12px;
+      border: 1.5px solid #e5e7eb; background: white;
+      color: #6b7280; font-family: inherit; font-size: 14px;
+      font-weight: 600; cursor: pointer; margin-top: 10px;
+    }
+    .btn-back:hover { border-color: #2563eb; color: #2563eb; }
+
+    /* ── Confirmation ── */
+    .confetti { font-size: 48px; margin-bottom: 12px; animation: pop .4s ease; }
+    @keyframes pop { 0%{transform:scale(.5);opacity:0} 80%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+    .confirm-title { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+    .confirm-event { font-size: 15px; font-weight: 700; color: #2563eb; margin-bottom: 12px; }
+    .confirm-msg   { font-size: 13px; color: #6b7280; line-height: 1.7; }
+
+    /* ── Error / Inactive ── */
+    .error-icon  { font-size: 48px; margin-bottom: 12px; }
+    .error-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+    .error-msg   { font-size: 13px; color: #6b7280; line-height: 1.7; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; padding: 16px 20px;
+      font-size: 11px; color: #9ca3af; flex-shrink: 0;
+    }
+
+    @media (max-width: 360px) {
+      .card { padding: 20px 16px; }
+      .type-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header" role="banner">
+    <div class="header-brand">Aga Khan University</div>
+    <div class="header-title">Life on Campus</div>
+    <div class="header-event" id="headerEvent" aria-live="polite"></div>
+  </header>
+
+  <!-- Loading -->
+  <section class="screen active" id="screenLoading" aria-label="Loading">
+    <div class="card">
+      <div class="screen-icon" aria-hidden="true">⏳</div>
+      <div class="screen-title">Loading event…</div>
+      <div class="screen-sub">Just a moment</div>
+    </div>
+  </section>
+
+  <!-- Error -->
+  <section class="screen" id="screenError" aria-label="Error" aria-live="assertive">
+    <div class="card">
+      <div class="error-icon" aria-hidden="true">❌</div>
+      <div class="error-title">Link not valid</div>
+      <div class="error-msg" id="errorMsg">This check-in link is invalid or the event could not be found. Please ask the event organiser for the correct QR code.</div>
+    </div>
+  </section>
+
+  <!-- QR not yet active -->
+  <section class="screen" id="screenInactive" aria-label="Attendance not open">
+    <div class="card">
+      <div class="screen-icon" aria-hidden="true">🕒</div>
+      <div class="screen-title" id="inactiveTitle">Attendance not open yet</div>
+      <div class="screen-sub" id="inactiveMsg">The check-in window is not currently active. Please scan the QR code at the event.</div>
+    </div>
+  </section>
+
+  <!-- Already checked in -->
+  <section class="screen" id="screenDuplicate" aria-label="Already checked in">
+    <div class="card">
+      <div class="screen-icon" aria-hidden="true">✅</div>
+      <div class="screen-title">Already checked in!</div>
+      <div class="screen-sub">You have already checked in to this event from this device. Enjoy the event!</div>
+    </div>
+  </section>
+
+  <!-- Form -->
+  <section class="screen" id="screenForm" aria-label="Check-in form">
+    <div class="card">
+
+      <!-- Progress dots -->
+      <div class="progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="4">
+        <div class="progress-dot active" id="dot1"></div>
+        <div class="progress-dot" id="dot2"></div>
+        <div class="progress-dot" id="dot3"></div>
+        <div class="progress-dot" id="dot4"></div>
+      </div>
+
+      <!-- Step 1: Who are you? -->
+      <div id="step1">
+        <div class="step-label">Step 1 of 4</div>
+        <div class="step-question" id="step1Question">You are a…</div>
+        <div class="type-grid" role="group" aria-label="Attendee type">
+          <button class="type-btn" onclick="selectType('student')" aria-label="Student">
+            <span class="type-btn-icon" aria-hidden="true">🎓</span>
+            <span class="type-btn-label">Student</span>
+          </button>
+          <button class="type-btn" onclick="selectType('faculty')" aria-label="Faculty member">
+            <span class="type-btn-icon" aria-hidden="true">👨‍🏫</span>
+            <span class="type-btn-label">Faculty</span>
+          </button>
+          <button class="type-btn" onclick="selectType('staff')" aria-label="Staff member">
+            <span class="type-btn-icon" aria-hidden="true">💼</span>
+            <span class="type-btn-label">Staff</span>
+          </button>
+          <button class="type-btn" onclick="selectType('external_guest')" aria-label="External guest">
+            <span class="type-btn-icon" aria-hidden="true">🌐</span>
+            <span class="type-btn-label">Guest</span>
+            <span class="type-btn-sub">External</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Entity (students only) -->
+      <div id="step2" style="display:none;">
+        <div class="step-label">Step 2 of 4</div>
+        <div class="step-question">Which faculty or school?</div>
+        <div class="field-group">
+          <label class="field-label" for="selEntity">Your entity</label>
+          <select class="field-select" id="selEntity" aria-required="true">
+            <option value="">— Select your entity —</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="goToStep3()" id="btnStep2Next">Next →</button>
+        <button class="btn-back" onclick="goToStep1()">← Back</button>
+      </div>
+
+      <!-- Step 3: Level (students only) -->
+      <div id="step3" style="display:none;">
+        <div class="step-label">Step 3 of 4</div>
+        <div class="step-question">Your level of education?</div>
+        <div class="field-group">
+          <label class="field-label" for="selLevel">Level</label>
+          <select class="field-select" id="selLevel" aria-required="true">
+            <option value="">— Select your level —</option>
+            <option value="Undergraduate">Undergraduate</option>
+            <option value="Graduate">Graduate</option>
+            <option value="Post-Graduate">Post-Graduate</option>
+            <option value="PhD">PhD</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="goToStep4()" id="btnStep3Next">Next →</button>
+        <button class="btn-back" onclick="goToStep2()">← Back</button>
+      </div>
+
+      <!-- Step 4: Program (students only) -->
+      <div id="step4" style="display:none;">
+        <div class="step-label">Step 4 of 4</div>
+        <div class="step-question">Your programme?</div>
+        <div class="field-group">
+          <label class="field-label" for="selProgram">Programme</label>
+          <select class="field-select" id="selProgram" aria-required="true">
+            <option value="">— Select your programme —</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
+        <button class="btn-back" onclick="goToStep3()">← Back</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Confirmation -->
+  <section class="screen" id="screenDone" aria-label="Check-in confirmed" aria-live="polite">
+    <div class="card">
+      <div class="confetti" aria-hidden="true">🎉</div>
+      <div class="confirm-title">You're checked in!</div>
+      <div class="confirm-event" id="confirmEventName"></div>
+      <div class="confirm-msg">Thank you for attending. Enjoy the event and have a great time! 🚀</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    Life on Campus · Aga Khan University · <a href="https://lifeoncampus.net" style="color:#2563eb;text-decoration:none;">lifeoncampus.net</a>
+  </footer>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CONFIGURATION
+══════════════════════════════════════════════════════════════ */
+const SUPABASE_URL = "https://dgzuqvffnbfybngoadse.supabase.co";
+const SUPABASE_KEY = "sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8";
+
+// QR window: opens 2 hours BEFORE event, closes 5 hours AFTER event start
+const WINDOW_BEFORE_HRS = 2;
+const WINDOW_AFTER_HRS  = 5;
+
+/* ══════════════════════════════════════════════════════════════
+   PROGRAMME DATA  (expand as needed)
+══════════════════════════════════════════════════════════════ */
+const CAMPUS_DATA = {
+  "Karachi": {
+    entities: [
+      "Medical College",
+      "School of Nursing and Midwifery (SONAM)",
+      "Faculty of Arts and Sciences (FAS)",
+      "Institute for Educational Development (IED)",
+      "Postgraduate Medical Education",
+      "Other / Not Listed"
+    ],
+    programs: {
+      "Medical College": {
+        "Undergraduate": ["MBBS"],
+        "Graduate":      ["MD Residency","FCPS","Fellowship Programme"],
+        "Post-Graduate": ["MMed","MSc (Medical Sciences)"],
+        "PhD":           ["PhD Medicine"]
+      },
+      "School of Nursing and Midwifery (SONAM)": {
+        "Undergraduate": ["BScN (4-year)","Post-RN BScN"],
+        "Graduate":      ["MScN"],
+        "Post-Graduate": ["MScN (Advanced)"]
+      },
+      "Faculty of Arts and Sciences (FAS)": {
+        "Undergraduate": ["BSc Economics","BSc Social Development","BA","Other BSc / BA"],
+        "Graduate":      ["MSc","MA"],
+        "Post-Graduate": ["MPhil"],
+        "PhD":           ["PhD"]
+      },
+      "Institute for Educational Development (IED)": {
+        "Graduate":      ["MEd","MA Education","PGDE"],
+        "Post-Graduate": ["EdD","MPhil Education"],
+        "PhD":           ["PhD Education"]
+      },
+      "Postgraduate Medical Education": {
+        "Graduate":      ["MPH","MSc","MBA Healthcare"],
+        "Post-Graduate": ["Postgraduate Diploma","Fellowship"]
+      },
+      "Other / Not Listed": {
+        "Undergraduate": ["Other"],
+        "Graduate":      ["Other"],
+        "Post-Graduate": ["Other"],
+        "PhD":           ["Other"]
+      }
+    }
+  },
+  "Nairobi": {
+    entities: [
+      "AKU Graduate School of Media and Communications (GSMC)",
+      "AKU Institute for Human Development (IHD)",
+      "AKU Hospital Nairobi Programmes",
+      "Other / Not Listed"
+    ],
+    programs: {
+      "AKU Graduate School of Media and Communications (GSMC)": {
+        "Graduate": ["MA Communication","MA Journalism","MA Development Communication"]
+      },
+      "AKU Institute for Human Development (IHD)": {
+        "Graduate": ["MEd","MA Early Childhood Development"]
+      },
+      "AKU Hospital Nairobi Programmes": {
+        "Graduate": ["Clinical Training","Residency","Nursing Programme"]
+      },
+      "Other / Not Listed": {
+        "Undergraduate": ["Other"], "Graduate": ["Other"],
+        "Post-Graduate": ["Other"], "PhD": ["Other"]
+      }
+    }
+  },
+  "Kampala": {
+    entities: [
+      "AKU Uganda",
+      "Other / Not Listed"
+    ],
+    programs: {
+      "AKU Uganda": {
+        "Undergraduate": ["Nursing"],
+        "Graduate":      ["Clinical Training","Other"]
+      },
+      "Other / Not Listed": {
+        "Undergraduate": ["Other"], "Graduate": ["Other"],
+        "Post-Graduate": ["Other"]
+      }
+    }
+  },
+  "Dar es Salaam": {
+    entities: [
+      "AKU Tanzania",
+      "Other / Not Listed"
+    ],
+    programs: {
+      "AKU Tanzania": {
+        "Undergraduate": ["Nursing"],
+        "Graduate":      ["Clinical Training","Other"]
+      },
+      "Other / Not Listed": {
+        "Undergraduate": ["Other"], "Graduate": ["Other"],
+        "Post-Graduate": ["Other"]
+      }
+    }
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+let eventId    = null;
+let eventData  = null;
+let attendeeType = null;
+let deviceFingerprint = null;
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
+(async function init(){
+  // 1. Get event ID from URL
+  const params = new URLSearchParams(location.search);
+  eventId = params.get("e");
+  if(!eventId){ return showError("No event ID found in this link."); }
+
+  // 2. Device fingerprint
+  const fpKey = `lc_fp_${eventId}`;
+  deviceFingerprint = localStorage.getItem(fpKey);
+  if(!deviceFingerprint){
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    deviceFingerprint = Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
+    localStorage.setItem(fpKey, deviceFingerprint);
+  }
+
+  // 3. Already checked in?
+  if(localStorage.getItem(`lc_done_${eventId}`)){
+    return showScreen("screenDuplicate");
+  }
+
+  // 4. Fetch event from Supabase
+  let event;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/event_proposals?id=eq.${encodeURIComponent(eventId)}&select=event_name,campus,proposed_date,proposed_time,status&limit=1`,
+      { headers: { "apikey": SUPABASE_KEY, "Accept": "application/json" } }
+    );
+    const data = await res.json();
+    event = data?.[0];
+  } catch(e){
+    return showError("Could not connect to the server. Please check your internet connection.");
+  }
+
+  if(!event){ return showError("Event not found. Please ask the organiser for the correct QR code."); }
+  eventData = event;
+
+  // 5. Update header
+  document.getElementById("headerEvent").textContent = event.event_name;
+  document.getElementById("confirmEventName").textContent = event.event_name;
+
+  // 6. Check if event is in a valid status
+  const validStatuses = ["approved","assigned","in_progress","completed"];
+  if(!validStatuses.includes(event.status)){
+    return showInactive("This event is not currently accepting check-ins.");
+  }
+
+  // 7. Check time window
+  if(event.proposed_date){
+    const timeStr   = event.proposed_time || "00:00";
+    const eventStart= new Date(`${event.proposed_date}T${timeStr.length === 5 ? timeStr : timeStr.substring(0,5)}:00`);
+    const now       = new Date();
+    const winStart  = new Date(eventStart.getTime() - WINDOW_BEFORE_HRS * 3600000);
+    const winEnd    = new Date(eventStart.getTime() + WINDOW_AFTER_HRS  * 3600000);
+
+    if(now < winStart){
+      const minsLeft = Math.round((winStart - now) / 60000);
+      const label    = minsLeft >= 60 ? `${Math.round(minsLeft/60)} hour${Math.round(minsLeft/60)!==1?"s":""}` : `${minsLeft} minute${minsLeft!==1?"s":""}`;
+      return showInactive(`Check-in opens in ${label}. Come back closer to the event!`, "⏳ Not Open Yet");
+    }
+    if(now > winEnd){
+      return showInactive("The check-in window for this event has closed.", "⏰ Window Closed");
+    }
+  }
+
+  // 8. Populate entity dropdown for this campus
+  populateEntities(event.campus);
+
+  // 9. Show the form
+  showScreen("screenForm");
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN HELPERS
+══════════════════════════════════════════════════════════════ */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function showError(msg){
+  document.getElementById("errorMsg").textContent = msg;
+  showScreen("screenError");
+}
+function showInactive(msg, title){
+  if(title) document.getElementById("inactiveTitle").textContent = title;
+  document.getElementById("inactiveMsg").textContent = msg;
+  showScreen("screenInactive");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STEP NAVIGATION
+══════════════════════════════════════════════════════════════ */
+function updateDots(step){
+  [1,2,3,4].forEach(i => {
+    const dot = document.getElementById(`dot${i}`);
+    dot.classList.remove("active","done");
+    if(i < step)  dot.classList.add("done");
+    if(i === step) dot.classList.add("active");
+  });
+}
+
+function showStep(n){
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById(`step${i}`);
+    if(el) el.style.display = i === n ? "block" : "none";
+  });
+  updateDots(n);
+}
+
+function goToStep1(){
+  attendeeType = null;
+  showStep(1);
+}
+function goToStep2(){ showStep(2); }
+function goToStep3(){ showStep(3); }
+function goToStep4(){
+  const entity = document.getElementById("selEntity").value;
+  const level  = document.getElementById("selLevel").value;
+  if(!entity || !level){ return; }
+  populatePrograms(eventData.campus, entity, level);
+  showStep(4);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STEP 1 — Type selection
+══════════════════════════════════════════════════════════════ */
+function selectType(type){
+  attendeeType = type;
+  if(type === "student"){
+    showStep(2);
+  } else {
+    // Faculty, Staff, External Guest — submit immediately
+    submitCheckin();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROGRAMME DATA HELPERS
+══════════════════════════════════════════════════════════════ */
+function populateEntities(campus){
+  const sel    = document.getElementById("selEntity");
+  const campus_data = CAMPUS_DATA[campus] || CAMPUS_DATA["Karachi"];
+  const entities = campus_data.entities;
+  sel.innerHTML = `<option value="">— Select your entity —</option>`;
+  entities.forEach(e => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = e;
+    sel.appendChild(opt);
+  });
+}
+
+function populatePrograms(campus, entity, level){
+  const sel = document.getElementById("selProgram");
+  sel.innerHTML = `<option value="">— Select your programme —</option>`;
+
+  const campus_data = CAMPUS_DATA[campus] || CAMPUS_DATA["Karachi"];
+  const programs = campus_data.programs?.[entity]?.[level] || ["Other / Not Listed"];
+
+  programs.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = p;
+    sel.appendChild(opt);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FORM VALIDATION BEFORE PROCEEDING
+══════════════════════════════════════════════════════════════ */
+document.getElementById("selEntity").addEventListener("change", function(){
+  // Reset level and program when entity changes
+  document.getElementById("selLevel").value = "";
+  document.getElementById("selProgram").innerHTML = `<option value="">— Select your programme —</option>`;
+});
+
+/* Override goToStep3 to validate */
+const _goToStep3 = goToStep3;
+goToStep3 = function(){
+  if(!document.getElementById("selEntity").value){
+    document.getElementById("selEntity").focus();
+    return;
+  }
+  _goToStep3();
+};
+
+/* Override goToStep4 to validate */
+const _goToStep4 = goToStep4;
+goToStep4 = function(){
+  if(!document.getElementById("selLevel").value){
+    document.getElementById("selLevel").focus();
+    return;
+  }
+  _goToStep4();
+};
+
+/* ══════════════════════════════════════════════════════════════
+   SUBMIT CHECK-IN
+══════════════════════════════════════════════════════════════ */
+async function submitCheckin(){
+  const btn = document.getElementById("btnSubmit") || document.querySelector(".btn-primary");
+  if(btn){ btn.disabled = true; btn.textContent = "Checking in…"; }
+
+  const entity  = attendeeType === "student" ? document.getElementById("selEntity").value  : null;
+  const level   = attendeeType === "student" ? document.getElementById("selLevel").value   : null;
+  const program = attendeeType === "student" ? document.getElementById("selProgram").value : null;
+
+  if(attendeeType === "student" && (!entity || !level || !program)){
+    if(btn){ btn.disabled = false; btn.textContent = "Check In ✓"; }
+    return;
+  }
+
+  const payload = {
+    event_id:        eventId,
+    event_name:      eventData.event_name,
+    campus:          eventData.campus,
+    attendee_type:   attendeeType,
+    entity:          entity   || null,
+    education_level: level    || null,
+    program:         program  || null,
+    device_hash:     deviceFingerprint,
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/event_attendance`, {
+      method:  "POST",
+      headers: {
+        "apikey":       SUPABASE_KEY,
+        "Content-Type": "application/json",
+        "Prefer":       "return=minimal"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+
+    // Mark as done locally to prevent duplicate submissions
+    localStorage.setItem(`lc_done_${eventId}`, "1");
+
+    // Show confirmation
+    showScreen("screenDone");
+
+  } catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = "Check In ✓"; }
+    alert("Could not submit. Please try again or check your internet connection.");
+    console.error("Check-in error:", e);
+  }
+}
+</script>
+</body>
+</html>
