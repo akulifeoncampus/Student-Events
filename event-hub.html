@@ -571,6 +571,36 @@
       gap: 8px;
     }
 
+    /* ── Proposal card tabs (#19) ── */
+    .card-tabs {
+      display: flex;
+      border-top: 1px solid #f3f4f6;
+      border-bottom: 1px solid #f3f4f6;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .card-tabs::-webkit-scrollbar { display: none; }
+    .card-tab {
+      flex-shrink: 0;
+      padding: 10px 15px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2.5px solid transparent;
+      cursor: pointer;
+      transition: color .15s, border-color .15s, background .15s;
+      white-space: nowrap;
+    }
+    .card-tab:hover { color: var(--accent); }
+    .card-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+    .card-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: #f8fbff; }
+    .card-tab-pane { display: none; }
+    .card-tab-pane.active { display: block; }
+
     /* Timeline inside card */
     .proposal-timeline {
       border-top: 1px solid #f3f4f6;
@@ -1743,14 +1773,14 @@ const STATUS_CONFIG = {
 
 /* ── Two-phase timeline config ── */
 const PHASE1_STEPS = [
-  { key:"submitted",    label:"Received",   emoji:"📥" },
-  { key:"under_review", label:"In Review",  emoji:"🔍" },
-  { key:"needs_info",   label:"Needs Info", emoji:"💬" },
-  { key:"approved",     label:"Approved",   emoji:"✅" },
+  { key:"submitted",    label:"Received",             emoji:"📥" },
+  { key:"under_review", label:"In Review",            emoji:"🔍" },
+  { key:"needs_info",   label:"Needs Info",           emoji:"💬" },
+  { key:"approved",     label:"Approved",             emoji:"✅" },
+  { key:"assigned",     label:"Coordinator Assigned", emoji:"📌" },
 ];
 
 const PHASE2_STEPS = [
-  { key:"assigned",         label:"Coordinator Assigned", emoji:"📌" },
   { key:"in_progress",      label:"Preparation Underway", emoji:"▶️" },
   { key:"completed",        label:"Event Held",           emoji:"🎉" },
   { key:"report_submitted", label:"Event Closed",         emoji:"🔒" },
@@ -1762,11 +1792,11 @@ const TERMINAL_STATUSES = {
   cancelled: { label:"Cancelled",    emoji:"🚫", color:"#9f1239", bg:"#fff1f2" },
 };
 
-// Map admin status → phase1 index
-const PHASE1_ORDER = ["submitted","under_review","needs_info","approved"];
+// Phase 1: submitted → under_review → needs_info → approved → assigned
+const PHASE1_ORDER = ["submitted","under_review","needs_info","approved","assigned"];
 
-// Map execution_status → phase2 index  
-const PHASE2_ORDER = ["assigned","in_progress","completed","report_submitted"];
+// Phase 2: preparation → event held → event closed
+const PHASE2_ORDER = ["in_progress","completed","report_submitted"];
 
 function statusBadge(status){
   const c = STATUS_CONFIG[status] || { label:status, emoji:"•", cls:"status-submitted" };
@@ -2360,6 +2390,27 @@ function updateStats(){
   });
 }
 
+/* ── Card tab switching (#19) ── */
+function switchCardTab(proposalId, tabName){
+  const card = document.getElementById(`card-${proposalId}`);
+  if(!card) return;
+
+  // Update tab buttons
+  card.querySelectorAll(".card-tab").forEach(btn => {
+    const isActive = btn.dataset.tab === tabName;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+
+  // Update panes
+  card.querySelectorAll(".card-tab-pane").forEach(pane => pane.classList.remove("active"));
+  const activePane = document.getElementById(`tab-${tabName}-${proposalId}`);
+  if(activePane) activePane.classList.add("active");
+
+  // Lazy-load messages on first open
+  if(tabName === "messages") loadCardMessages(proposalId);
+}
+
 function renderProposals(){
   const el = document.getElementById("proposalsList");
   if(!allProposals.length){
@@ -2409,14 +2460,14 @@ function setFilter(key, btn){
 function proposalCardHTML(p){
   const sc   = statusColor(p.status);
   const meta = [
-    p.proposed_date ? `📅 ${formatDate(p.proposed_date)}`   : "",
-    p.proposed_time ? `⏰ ${esc(p.proposed_time)}`           : "",
-    p.proposed_venue? `📍 ${esc(p.proposed_venue)}`         : "",
-    p.campus        ? `🏫 ${esc(p.campus)}`                  : "",
-    p.category      ? `🏷️ ${esc(p.category)}`               : "",
+    p.proposed_date  ? `📅 ${formatDate(p.proposed_date)}`  : "",
+    p.proposed_time  ? `⏰ ${esc(p.proposed_time)}`          : "",
+    p.proposed_venue ? `📍 ${esc(p.proposed_venue)}`        : "",
+    p.campus         ? `🏫 ${esc(p.campus)}`                 : "",
+    p.category       ? `🏷️ ${esc(p.category)}`              : "",
   ].filter(Boolean);
 
-  // Admin note display
+  // Admin/status notes
   let noteHtml = "";
   if(p.status === "needs_info" && p.admin_note){
     noteHtml = `<div class="proposal-note info">💬 <strong>More info needed:</strong> ${esc(p.admin_note)}</div>`;
@@ -2437,45 +2488,47 @@ function proposalCardHTML(p){
     ${canEdit ? `<button class="btn btn-sm" style="background:#eff6ff;color:var(--accent);border:1.5px solid #bfdbfe;" onclick="openProposalModal('${p.id}')">✏️ Edit</button>` : ""}
   `;
 
-  // ── Two-phase timeline ──
-  const isTerminal   = !!TERMINAL_STATUSES[p.status];
-  const isPhase2     = ["assigned","in_progress","completed","report_submitted"].includes(p.status) ||
-                       ["in_progress","completed","report_submitted","cancelled","postponed"].includes(p.execution_status);
-  const phase1Status = isPhase2 ? "approved" : p.status;
-  const phase1Idx    = PHASE1_ORDER.indexOf(phase1Status);
-  const phase2Idx    = isPhase2 ? PHASE2_ORDER.indexOf(p.execution_status || "assigned") : -1;
+  // ── Phase logic (#20: Coordinator Assigned is now Phase 1, Phase 2 starts at Preparation Underway) ──
+  const isTerminal = !!TERMINAL_STATUSES[p.status];
+  const isPhase2   = ["in_progress","completed","report_submitted"].includes(p.execution_status);
 
+  // When in Phase 2 all Phase 1 steps are complete (including Coordinator Assigned)
+  const phase1Status = isPhase2 ? "assigned" : p.status;
+  const phase1Idx    = PHASE1_ORDER.indexOf(phase1Status);
+  const phase2Idx    = isPhase2 ? PHASE2_ORDER.indexOf(p.execution_status) : -1;
+
+  // Phase 1 HTML
   const phase1Html = isTerminal
-    ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${TERMINAL_STATUSES[p.status].bg};border-radius:10px;margin-bottom:8px;">
-        <span style="font-size:20px;">${TERMINAL_STATUSES[p.status].emoji}</span>
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${TERMINAL_STATUSES[p.status].bg};border-radius:10px;">
+        <span style="font-size:20px;" aria-hidden="true">${TERMINAL_STATUSES[p.status].emoji}</span>
         <span style="font-weight:700;color:${TERMINAL_STATUSES[p.status].color};">${TERMINAL_STATUSES[p.status].label}</span>
         ${p.status_reason ? `<span style="font-size:12px;color:#6b7280;margin-left:4px;">— ${esc(p.status_reason)}</span>` : ""}
        </div>`
     : `<div style="margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;">Phase 1 — Admin Review</div>
-       <div class="proposal-timeline">${PHASE1_STEPS.map((step, i) => {
-         // Mark all steps including current as done when in phase2 (everything is approved)
-         const done    = isPhase2 ? phase1Idx >= i : phase1Idx > i;
+       <div class="proposal-timeline" role="list" aria-label="Phase 1 steps">${PHASE1_STEPS.map((step, i) => {
+         const done    = isPhase2 ? true : phase1Idx > i;
          const current = !isPhase2 && phase1Idx === i;
          const cls     = done ? "done" : current ? "current" : "";
-         return `<div class="timeline-step ${cls}">
-           <div class="timeline-dot">${done ? "✓" : step.emoji}</div>
+         return `<div class="timeline-step ${cls}" role="listitem" aria-label="${step.label}${done ? " — completed" : current ? " — current step" : " — upcoming"}">
+           <div class="timeline-dot" aria-hidden="true">${done ? "✓" : step.emoji}</div>
            <div class="timeline-label">${step.label}</div>
          </div>`;
        }).join("")}</div>`;
 
+  // Phase 2 HTML
   const phase2Html = isPhase2 && !isTerminal
-    ? `<div style="margin-top:10px;margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2563eb;">Phase 2 — Event Execution</div>
-       <div class="proposal-timeline">${PHASE2_STEPS.map((step, i) => {
+    ? `<div style="margin-top:14px;margin-bottom:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2563eb;">Phase 2 — Event Execution</div>
+       <div class="proposal-timeline" role="list" aria-label="Phase 2 steps">${PHASE2_STEPS.map((step, i) => {
          const done    = phase2Idx > i;
          const current = phase2Idx === i;
          const cls     = done ? "done" : current ? "current" : "";
-         return `<div class="timeline-step ${cls}">
-           <div class="timeline-dot">${done ? "✓" : step.emoji}</div>
+         return `<div class="timeline-step ${cls}" role="listitem" aria-label="${step.label}${done ? " — completed" : current ? " — current step" : " — upcoming"}">
+           <div class="timeline-dot" aria-hidden="true">${done ? "✓" : step.emoji}</div>
            <div class="timeline-label">${step.label}</div>
          </div>`;
        }).join("")}</div>` : "";
 
-  // Resources section — only show post-approval if resources were requested
+  // ── Resources ──
   const supportReq = p.support_required
     ? (typeof p.support_required === "string" ? JSON.parse(p.support_required) : p.support_required)
     : {};
@@ -2488,68 +2541,129 @@ function proposalCardHTML(p){
     security:"🛡️ Security Guard", housekeeping:"🧹 Housekeeping",
     refreshments:"🍽️ Refreshments", outside_vendors:"🏪 Outside Vendors", vouchers:"🎟️ Vouchers"
   };
-  const requestedKeys = Object.keys(supportReq).filter(k => supportReq[k]);
-  const resourcesHtml = (isPhase2 && requestedKeys.length) ? `
-    <div style="padding:10px 16px;border-top:1px solid #f3f4f6;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af;margin-bottom:8px;">🛠️ Resource Booking Status</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;">
+  const requestedKeys  = Object.keys(supportReq).filter(k => supportReq[k]);
+  const hasResources   = ["assigned","in_progress","completed","report_submitted"].includes(p.status) && requestedKeys.length > 0;
+
+  const resourceContent = hasResources
+    ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">
         ${requestedKeys.map(k => {
           const label = SUPPORT_LABELS_HUB[k] || k;
           const st = supportConfirmed[k] === true  ? ["#f0fdf4","#15803d","✅ Confirmed"]
                    : supportConfirmed[k] === false ? ["#fef2f2","#b91c1c","❌ Not Available"]
                    : ["#fef9c3","#92400e","⏳ Pending"];
-          return `<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;background:${st[0]};color:${st[1]};">${label}: ${st[2]}</span>`;
+          return `<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;background:${st[0]};color:${st[1]};">${label}: ${st[2]}</span>`;
         }).join("")}
-      </div>
-    </div>` : "";
+       </div>`
+    : `<p style="font-size:12px;color:var(--muted);margin:0;">No resources have been confirmed for this event yet.</p>`;
+
+  // ── Execution badge for card header ──
+  const execStep   = PHASE2_STEPS.find(s => s.key === p.execution_status);
+  const execBadge  = execStep
+    ? `<span class="status-badge" style="background:#eff6ff;color:#2563eb;margin-left:4px;">${execStep.emoji} ${execStep.label}</span>`
+    : "";
+
+  // ── Attendance tab visibility: from approved onwards ──
+  const showAttendance = ["approved","assigned","in_progress","completed","report_submitted"].includes(p.status);
 
   return `
-    <div class="proposal-card" id="card-${p.id}">
+    <div class="proposal-card" id="card-${p.id}" aria-label="Event proposal: ${esc(p.event_name)}">
+
+      <!-- Card header: always visible -->
       <div class="proposal-card-top">
-        <div class="proposal-status-bar" style="background:${sc};"></div>
+        <div class="proposal-status-bar" style="background:${sc};" aria-hidden="true"></div>
         <div class="proposal-body">
           <div class="proposal-name">${esc(p.event_name)}</div>
-          <div class="proposal-meta">
+          <div class="proposal-meta" aria-label="Event details">
             ${meta.map(m => `<span>${m}</span>`).join("")}
-            <span style="color:#c4b5d4;">${timeAgo(p.submitted_at)}</span>
+            <span style="color:#9ca3af;">${timeAgo(p.submitted_at)}</span>
           </div>
-          ${statusBadge(p.status)}
-          ${p.execution_status && p.execution_status !== "pending" ? `<span class="status-badge" style="background:#eff6ff;color:#2563eb;margin-left:4px;">${PHASE2_STEPS.find(s=>s.key===p.execution_status)?.emoji || ""} ${p.execution_status.replace(/_/g," ")}</span>` : ""}
+          <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px;">
+            ${statusBadge(p.status)}
+            ${execBadge}
+          </div>
         </div>
         <div class="proposal-actions">${actions}</div>
       </div>
-      ${noteHtml}
-      <div style="padding:12px 16px 4px;">
-        ${phase1Html}
-        ${phase2Html}
-      </div>
-      ${resourcesHtml}
 
-      <!-- Inline Message Thread -->
-      <div class="card-thread" id="thread-${p.id}">
-        <div class="card-thread-header" onclick="toggleCardThread('${p.id}')">
-          <span>💬 Messages</span>
-          <span class="thread-unread-badge" id="unread-${p.id}" style="display:none;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;"></span>
-          <span class="thread-toggle-icon" id="toggle-icon-${p.id}" style="margin-left:auto;color:var(--muted);font-size:12px;">▸ Show</span>
+      ${noteHtml}
+
+      <!-- Tab navigation -->
+      <div class="card-tabs" role="tablist" aria-label="Proposal information sections">
+        <button class="card-tab active" data-tab="timeline"
+          onclick="switchCardTab('${p.id}','timeline')"
+          role="tab" aria-selected="true" aria-controls="tab-timeline-${p.id}" id="tabbtn-timeline-${p.id}">
+          📋 Timeline
+        </button>
+        <button class="card-tab" data-tab="resources"
+          onclick="switchCardTab('${p.id}','resources')"
+          role="tab" aria-selected="false" aria-controls="tab-resources-${p.id}" id="tabbtn-resources-${p.id}">
+          🛠️ Resources
+        </button>
+        <button class="card-tab" data-tab="messages"
+          onclick="switchCardTab('${p.id}','messages')"
+          role="tab" aria-selected="false" aria-controls="tab-messages-${p.id}" id="tabbtn-messages-${p.id}">
+          💬 Messages
+          <span id="unread-${p.id}" aria-label="unread messages" style="display:none;background:#ef4444;color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px;vertical-align:middle;"></span>
+        </button>
+        ${showAttendance ? `<button class="card-tab" data-tab="attendance"
+          onclick="switchCardTab('${p.id}','attendance')"
+          role="tab" aria-selected="false" aria-controls="tab-attendance-${p.id}" id="tabbtn-attendance-${p.id}">
+          📱 Attendance
+        </button>` : ""}
+      </div>
+
+      <!-- Timeline tab (default) -->
+      <div class="card-tab-pane active" id="tab-timeline-${p.id}" role="tabpanel" aria-labelledby="tabbtn-timeline-${p.id}">
+        <div style="padding:14px 16px 12px;">
+          ${phase1Html}
+          ${phase2Html}
         </div>
-        <div class="card-thread-body" id="thread-body-${p.id}" style="display:none;">
-          <div class="card-thread-messages" id="thread-msgs-${p.id}"></div>
-          <div class="card-thread-reply">
-            <textarea id="thread-reply-${p.id}" rows="2" placeholder="Reply to admin…"
+      </div>
+
+      <!-- Resources tab -->
+      <div class="card-tab-pane" id="tab-resources-${p.id}" role="tabpanel" aria-labelledby="tabbtn-resources-${p.id}">
+        <div style="padding:16px;">
+          ${resourceContent}
+        </div>
+      </div>
+
+      <!-- Messages tab -->
+      <div class="card-tab-pane" id="tab-messages-${p.id}" role="tabpanel" aria-labelledby="tabbtn-messages-${p.id}">
+        <div style="display:flex;flex-direction:column;gap:10px;padding:14px 16px;">
+          <div class="card-thread-messages" id="thread-msgs-${p.id}" aria-live="polite">
+            <div style="font-size:12px;color:#9ca3af;text-align:center;padding:12px 0;">Loading messages…</div>
+          </div>
+          <div class="card-thread-reply" style="display:flex;gap:8px;align-items:flex-end;">
+            <textarea id="thread-reply-${p.id}" rows="2"
+              placeholder="Reply to OSEP…"
+              aria-label="Write a reply to the admin team"
               style="flex:1;padding:8px 11px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;resize:none;outline:none;"
               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
             <button onclick="sendCardReply('${p.id}')"
+              aria-label="Send reply"
               style="padding:8px 14px;background:#2563eb;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;white-space:nowrap;">
               Send
             </button>
           </div>
         </div>
       </div>
+
+      ${showAttendance ? `
+      <!-- Attendance tab (QR — functionality coming in feature #51) -->
+      <div class="card-tab-pane" id="tab-attendance-${p.id}" role="tabpanel" aria-labelledby="tabbtn-attendance-${p.id}">
+        <div style="text-align:center;padding:28px 20px;">
+          <div style="font-size:42px;margin-bottom:10px;" aria-hidden="true">📱</div>
+          <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px;">QR Attendance</div>
+          <div style="font-size:12px;color:var(--muted);max-width:260px;margin:0 auto;line-height:1.7;">
+            Display the QR code at your event entrance so attendees can check in. This feature is coming soon.
+          </div>
+        </div>
+      </div>` : ""}
+
     </div>`;
 }
 
-/* ── View proposal detail ── */
-/* ── Card inline message thread ── */
+/* ── Card inline message thread (legacy toggle — now handled by switchCardTab) ── */
 async function toggleCardThread(proposalId){
   const body = document.getElementById(`thread-body-${proposalId}`);
   const icon = document.getElementById(`toggle-icon-${proposalId}`);
