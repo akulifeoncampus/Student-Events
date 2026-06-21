@@ -3247,7 +3247,7 @@ function selectScale(scale){
     el.style.border     = s === scale ? "2px solid #2563eb" : "2px solid #e5e7eb";
     el.style.background = s === scale ? "#eff6ff" : "white";
   });
-  const minWorkingDays = { small:7, medium:14, mega:30 };
+  const minWorkingDays = { small:0, medium:14, mega:30 };
   const labels = {
     small:  "🟢 Small Event: Minimum 7 working days (Mon–Fri) from today.",
     medium: "🟡 Medium Event: Minimum 14 working days (Mon–Fri) from today.",
