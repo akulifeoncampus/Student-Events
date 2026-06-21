@@ -1156,27 +1156,72 @@
 
 <!-- ── Chat Panel ── -->
 <div class="chat-panel" id="chatPanel">
-  <div class="chat-panel-header">
-    <div class="chat-header-avatar">OS</div>
+
+  <!-- Dynamic header — changes based on active view -->
+  <div class="chat-panel-header" id="chatPanelHeader">
+    <div class="chat-header-avatar" aria-hidden="true">OS</div>
     <div class="chat-header-info">
-      <div class="chat-header-name">OSEP Support Team</div>
-      <div class="chat-header-sub">We typically reply within a few hours</div>
+      <div class="chat-header-name" id="chatHeaderName">OSEP Support Team</div>
+      <div class="chat-header-sub"  id="chatHeaderSub">We typically reply within a few hours</div>
     </div>
     <button class="chat-header-close" onclick="toggleChatPanel()" aria-label="Close chat">✕</button>
   </div>
-  <div class="chat-msg-list" id="chatMsgList">
-    <div class="chat-empty">
-      <div style="font-size:36px;margin-bottom:10px;">💬</div>
-      <div>Send a message to the OSEP team.<br>We're here to help!</div>
+
+  <!-- Tab bar: Direct | Groups -->
+  <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.15);flex-shrink:0;" role="tablist" aria-label="Chat sections">
+    <button id="hubTabDirect" role="tab" aria-selected="true"
+      onclick="switchHubChatView('direct')"
+      style="flex:1;padding:9px;background:rgba(255,255,255,.15);color:white;border:none;border-bottom:2.5px solid white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">
+      💬 Direct
+    </button>
+    <button id="hubTabGroups" role="tab" aria-selected="false"
+      onclick="switchHubChatView('groups')"
+      style="flex:1;padding:9px;background:none;color:rgba(255,255,255,.7);border:none;border-bottom:2.5px solid transparent;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
+      👥 Groups
+    </button>
+  </div>
+
+  <!-- VIEW 1: Direct 1:1 messages -->
+  <div id="chatDirectView" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+    <div class="chat-msg-list" id="chatMsgList" aria-live="polite" aria-label="Direct messages">
+      <div class="chat-empty">
+        <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">💬</div>
+        <div>Send a message to the OSEP team.<br>We're here to help!</div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-textarea" id="chatInput" rows="1"
+        placeholder="Type a message…"
+        aria-label="Write a direct message to OSEP"
+        onkeydown="handleChatKey(event)"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+      <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send message">➤</button>
     </div>
   </div>
-  <div class="chat-input-row">
-    <textarea class="chat-textarea" id="chatInput" rows="1"
-      placeholder="Type a message…"
-      onkeydown="handleChatKey(event)"
-      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
-    <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send">➤</button>
+
+  <!-- VIEW 2: Groups list -->
+  <div id="chatGroupsListView" style="display:none;flex-direction:column;flex:1;overflow-y:auto;" role="list" aria-label="Group conversations">
+    <div id="hubGroupsList">
+      <div class="chat-empty">
+        <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">👥</div>
+        <div>You haven't been added to any groups yet.</div>
+      </div>
+    </div>
   </div>
+
+  <!-- VIEW 3: Group thread -->
+  <div id="chatGroupThreadView" style="display:none;flex-direction:column;flex:1;min-height:0;">
+    <div class="chat-msg-list" id="chatGroupMsgList" aria-live="polite" aria-label="Group messages"></div>
+    <div class="chat-input-row">
+      <textarea class="chat-textarea" id="chatGroupInput" rows="1"
+        placeholder="Message the group…"
+        aria-label="Write a message to the group"
+        onkeydown="handleHubGroupKey(event)"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+      <button class="chat-send-btn" onclick="sendHubGroupMessage()" aria-label="Send group message">➤</button>
+    </div>
+  </div>
+
 </div>
 
 <div class="notif-panel" id="notifPanel">
@@ -1499,7 +1544,7 @@
             <label id="scale-small" onclick="selectScale('small')" style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;text-transform:none;letter-spacing:0;font-weight:400;">
               <input type="radio" name="eventScale" value="small" style="accent-color:#2563eb;margin-bottom:6px;" />
               <div style="font-weight:700;font-size:13px;margin-bottom:4px;">🟢 Small Event</div>
-              <div style="font-size:11px;color:#6b7280;line-height:1.5;">No purchases required. Up to 200 participants. Can be held after 7 working days notice.</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.5;">No purchases required. Up to 200 participants. Can be held after working days notice.</div>
             </label>
             <label id="scale-medium" onclick="selectScale('medium')" style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;text-transform:none;letter-spacing:0;font-weight:400;">
               <input type="radio" name="eventScale" value="medium" style="accent-color:#2563eb;margin-bottom:6px;" />
@@ -2108,8 +2153,10 @@ async function signOut(){
   await sb.auth.signOut();
   if(chatChannel){ sb.removeChannel(chatChannel); chatChannel = null; }
   stopChatPolling();
+  stopHubGroupPolling();
   stopAttendancePolling();
   closeFullscreenQR();
+  hubChatView = "direct"; hubActiveGroupId = null; hubGroupMessages = []; hubGroupConversations = [];
   currentClub = null; currentSession = null;
   document.getElementById("portal").classList.remove("visible");
   document.getElementById("loginScreen").style.display = "flex";
@@ -2145,9 +2192,17 @@ function showPortal(){
 }
 
 /* ── LIVE CHAT ───────────────────────────────────────────────────── */
-let chatMessages  = [];
-let chatChannel   = null;
+let chatMessages     = [];
+let chatChannel      = null;
 let chatPollInterval = null;
+
+// Group chat state
+let hubChatView          = "direct"; // "direct" | "groups" | "group-thread"
+let hubGroupConversations= [];
+let hubActiveGroupId     = null;
+let hubGroupMessages     = [];
+let hubGroupChannel      = null;
+let hubGroupPollInterval = null;
 
 function startChatPolling(){
   stopChatPolling();
@@ -2175,9 +2230,13 @@ function stopChatPolling(){
 function toggleChatPanel(){
   const panel  = document.getElementById("chatPanel");
   const isOpen = panel.classList.toggle("open");
-  // Close notification panel if open
-  if(isOpen) document.getElementById("notifPanel").classList.remove("open");
-  if(isOpen){ markChatRead(); setTimeout(scrollChatToBottom, 50); }
+  if(isOpen){
+    document.getElementById("notifPanel").classList.remove("open");
+    // Always return to direct view when reopening
+    if(hubChatView !== "direct") switchHubChatView("direct");
+    markChatRead();
+    setTimeout(scrollChatToBottom, 50);
+  }
 }
 
 async function loadChatMessages(){
@@ -2340,6 +2399,218 @@ function initChatRealtime(){
     })
     .subscribe();
 }
+/* ── HUB GROUP CHAT ─────────────────────────────────────────────── */
+
+function switchHubChatView(view){
+  hubChatView = view;
+
+  // Tab button styles
+  const directBtn = document.getElementById("hubTabDirect");
+  const groupsBtn = document.getElementById("hubTabGroups");
+  const activeStyle   = "flex:1;padding:9px;background:rgba(255,255,255,.15);color:white;border:none;border-bottom:2.5px solid white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;";
+  const inactiveStyle = "flex:1;padding:9px;background:none;color:rgba(255,255,255,.7);border:none;border-bottom:2.5px solid transparent;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;";
+
+  if(view === "direct"){
+    directBtn.style.cssText = activeStyle; directBtn.setAttribute("aria-selected","true");
+    groupsBtn.style.cssText = inactiveStyle; groupsBtn.setAttribute("aria-selected","false");
+    document.getElementById("chatDirectView").style.display      = "flex";
+    document.getElementById("chatGroupsListView").style.display  = "none";
+    document.getElementById("chatGroupThreadView").style.display = "none";
+    document.getElementById("chatHeaderName").textContent = "OSEP Support Team";
+    document.getElementById("chatHeaderSub").textContent  = "We typically reply within a few hours";
+    document.querySelector("#chatPanelHeader .chat-header-avatar").style.display = "flex";
+  } else if(view === "groups"){
+    directBtn.style.cssText = inactiveStyle; directBtn.setAttribute("aria-selected","false");
+    groupsBtn.style.cssText = activeStyle;   groupsBtn.setAttribute("aria-selected","true");
+    document.getElementById("chatDirectView").style.display      = "none";
+    document.getElementById("chatGroupsListView").style.display  = "flex";
+    document.getElementById("chatGroupThreadView").style.display = "none";
+    document.getElementById("chatHeaderName").textContent = "Your Groups";
+    document.getElementById("chatHeaderSub").textContent  = "Group conversations with OSEP";
+    document.querySelector("#chatPanelHeader .chat-header-avatar").style.display = "none";
+    stopHubGroupPolling();
+    loadHubGroups();
+  } else if(view === "group-thread"){
+    // Don't change tab buttons — Groups tab stays selected
+    document.getElementById("chatDirectView").style.display      = "none";
+    document.getElementById("chatGroupsListView").style.display  = "none";
+    document.getElementById("chatGroupThreadView").style.display = "flex";
+  }
+}
+
+async function loadHubGroups(){
+  if(!currentClub) return;
+  // Fetch all group conversations this club is a participant of
+  const { data: parts } = await sb.from("chat_participants")
+    .select("conversation_id")
+    .eq("participant_email", currentClub.email);
+
+  if(!parts || !parts.length){
+    hubGroupConversations = [];
+    renderHubGroupList();
+    return;
+  }
+
+  const convIds = parts.map(p => p.conversation_id);
+  const { data: convs } = await sb.from("chat_conversations")
+    .select("*").in("id", convIds)
+    .order("last_message_at", { ascending: false });
+
+  if(!convs){ hubGroupConversations = []; renderHubGroupList(); return; }
+
+  // Fetch last message for each group
+  hubGroupConversations = await Promise.all(convs.map(async conv => {
+    const { data: msgs } = await sb.from("chat_messages")
+      .select("message_text,sender_name").eq("conversation_id", conv.id)
+      .order("created_at", { ascending: false }).limit(1);
+    return { ...conv, last_msg: msgs?.[0] || null };
+  }));
+  renderHubGroupList();
+}
+
+function renderHubGroupList(){
+  const listEl = document.getElementById("hubGroupsList");
+  if(!hubGroupConversations.length){
+    listEl.innerHTML = `<div class="chat-empty" role="status">
+      <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">👥</div>
+      <div>You haven't been added to any groups yet.</div>
+    </div>`;
+    return;
+  }
+  listEl.innerHTML = hubGroupConversations.map(g => {
+    const initials = (g.name||"G").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const preview  = g.last_msg ? (g.last_msg.sender_name + ": " + (g.last_msg.message_text||"").substring(0,40)) : "No messages yet";
+    const time     = new Date(g.last_message_at||g.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+    return `<div role="button" tabindex="0" aria-label="Open group: ${esc(g.name)}"
+      onclick="openHubGroupThread('${g.id}','${esc(g.name)}')"
+      onkeydown="if(event.key==='Enter') openHubGroupThread('${g.id}','${esc(g.name)}')"
+      style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-bottom:1px solid #f3f4f6;transition:background .12s;"
+      onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#000060,#2563eb);color:white;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span style="font-size:13px;font-weight:700;color:#111827;">${esc(g.name)}</span>
+          <span style="font-size:10px;color:#9ca3af;">${time}</span>
+        </div>
+        <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(preview)}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function openHubGroupThread(conversationId, groupName){
+  hubActiveGroupId = conversationId;
+  document.getElementById("chatHeaderName").textContent = groupName;
+  document.getElementById("chatHeaderSub").textContent  = "← Back to groups";
+  document.getElementById("chatHeaderSub").style.cursor = "pointer";
+  document.getElementById("chatHeaderSub").onclick = () => switchHubChatView("groups");
+
+  switchHubChatView("group-thread");
+  await loadHubGroupMessages(conversationId);
+  startHubGroupPolling(conversationId);
+}
+
+async function loadHubGroupMessages(conversationId){
+  const { data } = await sb.from("chat_messages")
+    .select("*").eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+  hubGroupMessages = data || [];
+  renderHubGroupMessages();
+  setTimeout(() => {
+    const el = document.getElementById("chatGroupMsgList");
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+function renderHubGroupMessages(){
+  const container = document.getElementById("chatGroupMsgList");
+  if(!hubGroupMessages.length){
+    container.innerHTML = `<div class="chat-empty"><div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">👥</div><div>No messages yet in this group.</div></div>`;
+    return;
+  }
+  let html = "", lastDate = "";
+  hubGroupMessages.forEach(m => {
+    const isOwn   = m.sender_email === currentClub?.email;
+    const dt      = new Date(m.created_at);
+    const dateStr = dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+    const timeStr = dt.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+    const initials= (m.sender_name||"?").split(" ").map(w=>w[0]||"").join("").substring(0,2).toUpperCase();
+    if(dateStr !== lastDate){
+      html += `<div style="text-align:center;font-size:10px;color:var(--muted);margin:4px 0;" aria-label="${dateStr}">${dateStr}</div>`;
+      lastDate = dateStr;
+    }
+    html += `<div class="chat-msg ${isOwn ? "from-club" : "from-admin"}" role="listitem">
+      ${!isOwn ? `<div class="chat-sender-row"><div class="chat-sender-avatar" aria-hidden="true">${initials}</div><span class="chat-sender-name">${esc(m.sender_name)}</span></div>` : ""}
+      <div class="chat-bubble">${esc(m.message_text)}</div>
+      <div class="chat-time" aria-label="Sent at ${timeStr}">${timeStr}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+async function sendHubGroupMessage(){
+  const input = document.getElementById("chatGroupInput");
+  const text  = (input.value || "").trim();
+  if(!text || !hubActiveGroupId || !currentClub) return;
+
+  input.value = "";
+  input.style.height = "auto";
+
+  const tempId = "temp_" + Date.now();
+  hubGroupMessages.push({
+    id: tempId, sender_type:"club",
+    sender_email: currentClub.email, sender_name: currentClub.club_name || currentClub.email,
+    message_text: text, created_at: new Date().toISOString(),
+    conversation_id: hubActiveGroupId,
+  });
+  renderHubGroupMessages();
+  const el = document.getElementById("chatGroupMsgList");
+  if(el) el.scrollTop = el.scrollHeight;
+
+  const { error } = await sb.from("chat_messages").insert({
+    conversation_id: hubActiveGroupId,
+    campus:          currentClub.campus || "",
+    sender_type:     "club",
+    sender_email:    currentClub.email,
+    sender_name:     currentClub.club_name || currentClub.email,
+    message_text:    text,
+  });
+
+  hubGroupMessages = hubGroupMessages.filter(m => m.id !== tempId);
+  if(error){ showToast("❌ Could not send message", "error"); renderHubGroupMessages(); return; }
+
+  await loadHubGroupMessages(hubActiveGroupId);
+  await sb.from("chat_conversations")
+    .update({ last_message_at: new Date().toISOString() })
+    .eq("id", hubActiveGroupId);
+}
+
+function handleHubGroupKey(e){
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendHubGroupMessage(); }
+}
+
+function startHubGroupPolling(conversationId){
+  stopHubGroupPolling();
+  hubGroupPollInterval = setInterval(async () => {
+    if(!conversationId || hubChatView !== "group-thread") return;
+    const { data } = await sb.from("chat_messages")
+      .select("*").eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+    if(data && data.length > hubGroupMessages.filter(m => !String(m.id).startsWith("temp_")).length){
+      hubGroupMessages = data;
+      renderHubGroupMessages();
+      const el = document.getElementById("chatGroupMsgList");
+      if(el) el.scrollTop = el.scrollHeight;
+    }
+  }, 4000);
+}
+
+function stopHubGroupPolling(){
+  if(hubGroupPollInterval){ clearInterval(hubGroupPollInterval); hubGroupPollInterval = null; }
+}
+
+/* ── END HUB GROUP CHAT ─────────────────────────────────────────── */
+
 /* ── END LIVE CHAT ───────────────────────────────────────────────── */
 
 function initFabScroll(){
@@ -3247,7 +3518,7 @@ function selectScale(scale){
     el.style.border     = s === scale ? "2px solid #2563eb" : "2px solid #e5e7eb";
     el.style.background = s === scale ? "#eff6ff" : "white";
   });
-  const minWorkingDays = { small:0, medium:14, mega:30 };
+  const minWorkingDays = { small:0, medium:14, mega:30 }; // TEMP: small=0 for QR testing (restore to 7 after)
   const labels = {
     small:  "🟢 Small Event: Minimum 7 working days (Mon–Fri) from today.",
     medium: "🟡 Medium Event: Minimum 14 working days (Mon–Fri) from today.",
