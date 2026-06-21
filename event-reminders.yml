@@ -1,0 +1,65 @@
+# ══════════════════════════════════════════════════════════════════
+# Life on Campus — Event Reminder Notifications
+#
+# This workflow automatically sends push notifications to students:
+#   • Every hour  → checks if any event starts in the next hour
+#   • Every day at midnight PKT → sends 24-hour advance reminders
+#
+# HOW TO SET THIS UP (one time only):
+#   1. In your GitHub repository, create the folder structure:
+#      .github/workflows/
+#   2. Save this file as:
+#      .github/workflows/event-reminders.yml
+#   3. Commit and push to GitHub
+#   4. GitHub will start running this automatically — no other setup needed
+#
+# TO TEST MANUALLY:
+#   Go to GitHub repo → Actions → Event Reminder Notifications → Run workflow
+# ══════════════════════════════════════════════════════════════════
+
+name: Event Reminder Notifications
+
+on:
+  schedule:
+    # Runs every hour to check for events starting soon (1-hour reminder)
+    - cron: '0 * * * *'
+
+    # Runs once daily at 19:00 UTC = midnight PKT / 10pm EAT
+    # This sends the "tomorrow" advance reminders to subscribed students
+    - cron: '0 19 * * *'
+
+  # Allows you to run this manually from the GitHub Actions tab for testing
+  workflow_dispatch:
+
+jobs:
+  hourly-event-reminder:
+    name: 1-Hour Event Reminder
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify subscribers of events starting soon
+        run: |
+          curl -s -o /dev/null -w "Status: %{http_code}\n" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"type":"check_reminders"}' \
+            "https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor"
+
+  daily-advance-reminder:
+    name: 24-Hour Advance Reminder
+    runs-on: ubuntu-latest
+
+    # Only run this job on the midnight PKT schedule (19:00 UTC)
+    # or when triggered manually for testing
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.schedule == '0 19 * * *'
+
+    steps:
+      - name: Notify subscribers of tomorrow's events
+        run: |
+          curl -s -o /dev/null -w "Status: %{http_code}\n" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"type":"reminder_24h"}' \
+            "https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor"
