@@ -979,6 +979,27 @@
       font-size: .92em;
     }
 
+    /* ── Group chat: club checkbox items in Create Group modal ── */
+    .club-check-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; cursor: pointer; transition: background .1s;
+      border-bottom: 1px solid #f9fafb;
+    }
+    .club-check-item:last-child { border-bottom: none; }
+    .club-check-item:hover { background: #f9fafb; }
+    .club-check-item input[type=checkbox] {
+      width: 18px; height: 18px; cursor: pointer;
+      accent-color: var(--accent); flex-shrink: 0;
+    }
+    .club-check-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      background: var(--accent-light); color: var(--accent);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .club-check-name  { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .club-check-email { font-size: 10px; color: var(--muted); }
+
     /* ── TEAM OVERVIEW ── */
     .lead-card {
       background: white;
@@ -1480,43 +1501,101 @@
       </div>
       <div style="padding:10px 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
         <input class="admin-chat-search" type="text" id="adminChatSearch"
-          placeholder="🔍 Search clubs…" oninput="filterAdminConversations(this.value)"/>
-        <div class="admin-chat-tabs">
-          <button class="admin-chat-tab active" data-tab="all"    onclick="switchAdminChatTab('all',this)">All</button>
-          <button class="admin-chat-tab"         data-tab="unread" onclick="switchAdminChatTab('unread',this)">Unread</button>
+          placeholder="🔍 Search clubs…" oninput="filterAdminConversations(this.value)"
+          aria-label="Search conversations"/>
+        <div class="admin-chat-tabs" role="tablist" aria-label="Message filter">
+          <button class="admin-chat-tab active" data-tab="all"
+            onclick="switchAdminChatTab('all',this)"
+            role="tab" aria-selected="true">All</button>
+          <button class="admin-chat-tab" data-tab="unread"
+            onclick="switchAdminChatTab('unread',this)"
+            role="tab" aria-selected="false">Unread</button>
+          <button class="admin-chat-tab" data-tab="groups"
+            onclick="switchAdminChatTab('groups',this)"
+            role="tab" aria-selected="false">👥 Groups</button>
         </div>
       </div>
-      <div class="admin-convo-list" id="adminConvoList">
+
+      <!-- Direct conversation list (All / Unread tabs) -->
+      <div class="admin-convo-list" id="adminConvoList" role="list" aria-label="Direct conversations">
         <div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;">
           <div style="font-size:36px;margin-bottom:8px;">💬</div>
           No conversations yet
         </div>
       </div>
+
+      <!-- Groups list (Groups tab) -->
+      <div id="adminGroupListSection" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+        <div style="padding:10px 12px;border-bottom:1px solid #f3f4f6;flex-shrink:0;">
+          <button onclick="openCreateGroupModal()"
+            aria-label="Create a new group chat"
+            style="width:100%;padding:9px;background:linear-gradient(135deg,#000060,#2563eb);color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+            + New Group
+          </button>
+        </div>
+        <div class="admin-convo-list" id="adminGroupConvoList" role="list" aria-label="Group conversations">
+          <div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;">
+            <div style="font-size:36px;margin-bottom:8px;">👥</div>
+            No groups yet. Create one to get started.
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Thread View -->
+    <!-- Thread View (used for both 1:1 and group threads) -->
     <div class="admin-chat-thread" id="adminChatThread">
       <div class="admin-chat-ph">
-        <button class="admin-thread-back" onclick="showAdminChatList()" aria-label="Back">←</button>
+        <button class="admin-thread-back" onclick="showAdminChatList()" aria-label="Back to conversations">←</button>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:700;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="adminThreadClubName">Club</div>
           <div style="font-size:10px;color:rgba(255,255,255,.7);" id="adminThreadCampus"></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.65);" id="adminThreadParticipants" aria-label="Group participants"></div>
         </div>
         <button class="admin-chat-ph-close" onclick="toggleAdminChatPanel()" aria-label="Close">✕</button>
       </div>
-      <div class="chat-msg-list" id="adminChatMsgList"></div>
+      <div class="chat-msg-list" id="adminChatMsgList" aria-live="polite" aria-label="Messages"></div>
       <div style="position:relative;">
-        <div class="mention-dropdown" id="mentionDropdown" style="display:none;"></div>
+        <div class="mention-dropdown" id="mentionDropdown" style="display:none;" role="listbox" aria-label="Mention suggestions"></div>
         <div class="chat-input-row">
           <textarea class="chat-textarea" id="adminChatInput" rows="1"
             placeholder="Reply…"
+            aria-label="Write a message"
             onkeydown="handleAdminChatKey(event)"
             oninput="handleAdminMentionInput(this)"></textarea>
-          <button class="chat-send-btn" onclick="sendAdminChatMessage()" aria-label="Send">➤</button>
+          <button class="chat-send-btn" onclick="sendAdminChatMessage()" aria-label="Send message">➤</button>
         </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- Create Group Modal -->
+  <div class="modal-backdrop" id="createGroupModal" role="dialog" aria-modal="true" aria-label="Create group chat" style="display:none;align-items:center;justify-content:center;">
+    <div class="modal" style="max-width:440px;text-align:left;max-height:80vh;display:flex;flex-direction:column;">
+      <div class="modal-title" style="margin-bottom:4px;">👥 Create Group Chat</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6;">Message multiple clubs at once. All members can see and reply to each other.</p>
+
+      <label style="font-size:12px;font-weight:700;color:var(--ink);display:block;margin-bottom:5px;" for="groupNameInput">Group Name</label>
+      <input type="text" id="groupNameInput"
+        placeholder="e.g. FAS Events Coordination"
+        aria-required="true"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;margin-bottom:16px;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+
+      <label style="font-size:12px;font-weight:700;color:var(--ink);display:block;margin-bottom:5px;">Select Clubs</label>
+      <div id="clubSelectList"
+        style="border:1.5px solid var(--border);border-radius:10px;overflow-y:auto;max-height:200px;flex-shrink:0;"
+        role="group" aria-label="Clubs to add to group">
+        <div style="padding:16px;text-align:center;color:var(--muted);font-size:12px;">Loading clubs…</div>
+      </div>
+      <div id="groupSelectedCount" style="font-size:11px;color:var(--muted);margin-top:6px;margin-bottom:4px;" aria-live="polite">0 clubs selected</div>
+      <div id="createGroupError" style="font-size:12px;color:#dc2626;min-height:16px;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-secondary" onclick="closeCreateGroupModal()">Cancel</button>
+        <button class="btn btn-primary" id="btnCreateGroup" onclick="createGroup()">Create Group</button>
+      </div>
+    </div>
   </div>
 
   <!-- Notification Panel -->
@@ -7620,6 +7699,10 @@ let adminChatTabFilter     = "all";
 let adminChatSearchQuery   = "";
 let adminChatPollInterval  = null;
 
+// Group chat state
+let adminGroupConversations   = [];
+let adminActiveConversationId = null; // set when viewing a group thread
+
 /* ── @mention state ── */
 let adminCampusTeam    = []; // [{email, name, role}]
 let pendingMentions    = []; // emails of mentioned admins in current draft
@@ -7721,21 +7804,29 @@ function startAdminChatPolling(){
   stopAdminChatPolling();
   adminChatPollInterval = setInterval(async () => {
     if(!currentAdminCampus) return;
-    if(adminChatActiveClub){
-      // Thread is open — poll for new messages
+    if(adminActiveConversationId){
+      // In a group thread — poll for new group messages
       const { data } = await sb.from("chat_messages")
-        .select("*")
-        .eq("club_email", adminChatActiveClub)
+        .select("*").eq("conversation_id", adminActiveConversationId)
         .order("created_at", { ascending: true });
       if(data && data.length > adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
-        adminChatMessages = data;
-        renderAdminThread();
+        adminChatMessages = data; renderAdminThread();
+        const el = document.getElementById("adminChatMsgList");
+        if(el) el.scrollTop = el.scrollHeight;
+      }
+    } else if(adminChatActiveClub){
+      // In a 1:1 thread — poll for new direct messages
+      const { data } = await sb.from("chat_messages")
+        .select("*").eq("club_email", adminChatActiveClub)
+        .order("created_at", { ascending: true });
+      if(data && data.length > adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
+        adminChatMessages = data; renderAdminThread();
         const el = document.getElementById("adminChatMsgList");
         if(el) el.scrollTop = el.scrollHeight;
         markAdminChatRead(adminChatActiveClub);
       }
     } else {
-      // No thread open — refresh conversation list for unread badges
+      // No thread open — refresh conversation list
       await loadAdminConversations();
     }
   }, 4000);
@@ -7757,7 +7848,9 @@ function toggleAdminChatPanel(){
 function showAdminChatList(){
   document.getElementById("adminChatListView").style.display = "flex";
   document.getElementById("adminChatThread").classList.remove("open");
-  adminChatActiveClub = null;
+  adminChatActiveClub       = null;
+  adminActiveConversationId = null;
+  document.getElementById("adminThreadParticipants").textContent = "";
 }
 
 async function loadAdminConversations(){
@@ -7845,17 +7938,34 @@ function filterAdminConversations(q){
 
 function switchAdminChatTab(tab, btn){
   adminChatTabFilter = tab;
-  document.querySelectorAll(".admin-chat-tab").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".admin-chat-tab").forEach(b => {
+    b.classList.remove("active");
+    b.setAttribute("aria-selected", "false");
+  });
   btn.classList.add("active");
-  renderAdminConversations();
+  btn.setAttribute("aria-selected", "true");
+
+  const isGroups = tab === "groups";
+  document.getElementById("adminConvoList").style.display      = isGroups ? "none"  : "block";
+  document.getElementById("adminGroupListSection").style.display= isGroups ? "flex"  : "none";
+  document.getElementById("adminChatSearch").style.display     = isGroups ? "none"  : "block";
+
+  if(isGroups){
+    loadAdminGroupConversations();
+  } else {
+    renderAdminConversations();
+  }
 }
 
 async function openAdminThread(clubEmail, clubName, campus){
-  adminChatActiveClub = clubEmail;
+  adminChatActiveClub       = clubEmail;
+  adminActiveConversationId = null; // clear any group thread state
+
   document.getElementById("adminChatListView").style.display = "none";
   document.getElementById("adminChatThread").classList.add("open");
   document.getElementById("adminThreadClubName").textContent = clubName;
   document.getElementById("adminThreadCampus").textContent   = campus;
+  document.getElementById("adminThreadParticipants").textContent = "";
 
   // Update placeholder and reset mention state
   const name = getDisplayName(currentUser.email);
@@ -7893,24 +8003,28 @@ function renderAdminThread(){
   let html = "";
   let lastDate = "";
   adminChatMessages.forEach(m => {
-    const isAdmin = m.sender_type === "admin";
+    // Groups: own = current user's email. 1:1: own = the admin side
+    const isOwn = adminActiveConversationId
+      ? m.sender_email === currentUser?.email
+      : m.sender_type === "admin";
+
     const dt      = new Date(m.created_at);
     const dateStr = dt.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
     const timeStr = dt.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
     const initials = (m.sender_name||"?").split(" ").map(w=>w[0]||"").join("").substring(0,2).toUpperCase();
 
     if(dateStr !== lastDate){
-      html += `<div style="text-align:center;font-size:10px;color:var(--muted);margin:4px 0;">${dateStr}</div>`;
+      html += `<div style="text-align:center;font-size:10px;color:var(--muted);margin:4px 0;" role="separator" aria-label="${dateStr}">${dateStr}</div>`;
       lastDate = dateStr;
     }
 
-    html += `<div class="chat-msg ${isAdmin ? "from-club" : "from-admin"}">
-      ${!isAdmin ? `<div class="chat-sender-row">
-        <div class="chat-sender-avatar">${initials}</div>
+    html += `<div class="chat-msg ${isOwn ? "from-club" : "from-admin"}" role="listitem">
+      ${!isOwn ? `<div class="chat-sender-row">
+        <div class="chat-sender-avatar" aria-hidden="true">${initials}</div>
         <span class="chat-sender-name">${esc(m.sender_name)}</span>
-      </div>` : `<div style="font-size:10px;color:rgba(255,255,255,.65);margin-bottom:2px;text-align:right;font-family:'Poppins',sans-serif;">${esc(m.sender_name)}</div>`}
+      </div>` : `<div style="font-size:10px;color:rgba(255,255,255,.65);margin-bottom:2px;text-align:right;font-family:'Poppins',sans-serif;" aria-label="Sent by ${esc(m.sender_name)}">${esc(m.sender_name)}</div>`}
       <div class="chat-bubble">${renderMessageText(m.message_text)}</div>
-      <div class="chat-time">${timeStr}</div>
+      <div class="chat-time" aria-label="Sent at ${timeStr}">${timeStr}</div>
     </div>`;
   });
   container.innerHTML = html;
@@ -7919,7 +8033,7 @@ function renderAdminThread(){
 async function sendAdminChatMessage(){
   const input = document.getElementById("adminChatInput");
   const text  = (input.value || "").trim();
-  if(!text || !adminChatActiveClub || !currentUser) return;
+  if(!text || (!adminChatActiveClub && !adminActiveConversationId) || !currentUser) return;
 
   input.value = "";
   input.style.height = "auto";
@@ -7927,36 +8041,62 @@ async function sendAdminChatMessage(){
   pendingMentions = [];
 
   const senderName = getDisplayName(currentUser.email);
-  const tempId = "temp_" + Date.now();
-  adminChatMessages.push({
-    id: tempId, sender_type:"admin",
-    sender_email: currentUser.email, sender_name: senderName,
-    message_text: text, created_at: new Date().toISOString(),
-    club_email: adminChatActiveClub,
-  });
-  renderAdminThread();
-  const el = document.getElementById("adminChatMsgList");
-  if(el) el.scrollTop = el.scrollHeight;
+  const tempId     = "temp_" + Date.now();
 
-  const { error } = await sb.from("chat_messages").insert({
-    club_email:   adminChatActiveClub,
-    campus:       currentAdminCampus,
-    sender_type:  "admin",
-    sender_email: currentUser.email,
-    sender_name:  senderName,
-    message_text: text,
-  });
-
-  if(error){
-    adminChatMessages = adminChatMessages.filter(m => m.id !== tempId);
+  if(adminActiveConversationId){
+    // ── GROUP message ──
+    adminChatMessages.push({
+      id: tempId, sender_type:"admin",
+      sender_email: currentUser.email, sender_name: senderName,
+      message_text: text, created_at: new Date().toISOString(),
+      conversation_id: adminActiveConversationId,
+    });
     renderAdminThread();
-    showToast("❌ " + error.message, "error");
-    return;
-  }
+    const el = document.getElementById("adminChatMsgList");
+    if(el) el.scrollTop = el.scrollHeight;
 
-  adminChatMessages = adminChatMessages.filter(m => m.id !== tempId);
-  await loadAdminThread(adminChatActiveClub);
-  await loadAdminConversations();
+    const { error } = await sb.from("chat_messages").insert({
+      conversation_id: adminActiveConversationId,
+      campus:          currentAdminCampus,
+      sender_type:     "admin",
+      sender_email:    currentUser.email,
+      sender_name:     senderName,
+      message_text:    text,
+    });
+
+    adminChatMessages = adminChatMessages.filter(m => m.id !== tempId);
+    if(error){ showToast("❌ " + error.message, "error"); renderAdminThread(); return; }
+    await loadAdminGroupMessages(adminActiveConversationId);
+    await sb.from("chat_conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", adminActiveConversationId);
+
+  } else {
+    // ── 1:1 direct message ──
+    adminChatMessages.push({
+      id: tempId, sender_type:"admin",
+      sender_email: currentUser.email, sender_name: senderName,
+      message_text: text, created_at: new Date().toISOString(),
+      club_email: adminChatActiveClub,
+    });
+    renderAdminThread();
+    const el = document.getElementById("adminChatMsgList");
+    if(el) el.scrollTop = el.scrollHeight;
+
+    const { error } = await sb.from("chat_messages").insert({
+      club_email:   adminChatActiveClub,
+      campus:       currentAdminCampus,
+      sender_type:  "admin",
+      sender_email: currentUser.email,
+      sender_name:  senderName,
+      message_text: text,
+    });
+
+    adminChatMessages = adminChatMessages.filter(m => m.id !== tempId);
+    if(error){ showToast("❌ " + error.message, "error"); renderAdminThread(); return; }
+    await loadAdminThread(adminChatActiveClub);
+    await loadAdminConversations();
+  }
 }
 
 function handleAdminChatKey(e){
@@ -8056,6 +8196,186 @@ function formatChatTime(iso){
   if(diff < 86400000)   return Math.floor(diff/3600000) + "h ago";
   return dt.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
 }
+/* ── GROUP CHAT FUNCTIONS ── */
+
+async function loadAdminGroupConversations(){
+  if(!currentAdminCampus) return;
+  const { data: convs } = await sb.from("chat_conversations")
+    .select("*").eq("campus", currentAdminCampus)
+    .order("last_message_at", { ascending: false });
+
+  if(!convs){ adminGroupConversations = []; renderAdminGroupList(); return; }
+
+  // Fetch last message for each group
+  adminGroupConversations = await Promise.all(convs.map(async conv => {
+    const { data: msgs } = await sb.from("chat_messages")
+      .select("message_text,sender_name,sender_type")
+      .eq("conversation_id", conv.id)
+      .order("created_at", { ascending: false }).limit(1);
+    return { ...conv, last_msg: msgs?.[0] || null };
+  }));
+  renderAdminGroupList();
+}
+
+function renderAdminGroupList(){
+  const listEl = document.getElementById("adminGroupConvoList");
+  if(!adminGroupConversations.length){
+    listEl.innerHTML = `<div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;">
+      <div style="font-size:36px;margin-bottom:8px;" aria-hidden="true">👥</div>
+      No groups yet. Create one above!
+    </div>`;
+    return;
+  }
+  listEl.innerHTML = adminGroupConversations.map(g => {
+    const initials = (g.name||"G").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const time     = formatChatTime(g.last_message_at || g.created_at);
+    const preview  = g.last_msg
+      ? `${g.last_msg.sender_name}: ${(g.last_msg.message_text||"").substring(0,40)}`
+      : "No messages yet";
+    return `<div class="admin-convo-item" role="button" tabindex="0"
+      aria-label="Group: ${esc(g.name)}"
+      onclick="openAdminGroupThread('${g.id}','${esc(g.name)}')"
+      onkeydown="if(event.key==='Enter') openAdminGroupThread('${g.id}','${esc(g.name)}')">
+      <div class="admin-convo-avatar" style="background:linear-gradient(135deg,#000060,#2563eb);color:white;" aria-hidden="true">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <span class="admin-convo-name">${esc(g.name)}</span>
+          <span class="admin-convo-time">${time}</span>
+        </div>
+        <div class="admin-convo-preview">${esc(preview)}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function openAdminGroupThread(conversationId, groupName){
+  adminActiveConversationId = conversationId;
+  adminChatActiveClub       = null;
+
+  document.getElementById("adminChatListView").style.display = "none";
+  document.getElementById("adminChatThread").classList.add("open");
+  document.getElementById("adminThreadClubName").textContent = groupName;
+  document.getElementById("adminThreadCampus").textContent   = "Group Chat";
+
+  // Load and display participant names
+  const { data: parts } = await sb.from("chat_participants")
+    .select("participant_name, participant_type")
+    .eq("conversation_id", conversationId);
+  const participantsEl = document.getElementById("adminThreadParticipants");
+  if(parts && parts.length){
+    participantsEl.textContent = parts.map(p => p.participant_name).join(", ");
+  }
+
+  const name = getDisplayName(currentUser.email);
+  document.getElementById("adminChatInput").placeholder = `Message as ${name}… (type @ to mention)`;
+  pendingMentions = [];
+  hideMentionDropdown();
+
+  await loadAdminGroupMessages(conversationId);
+}
+
+async function loadAdminGroupMessages(conversationId){
+  const { data } = await sb.from("chat_messages")
+    .select("*").eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+  adminChatMessages = data || [];
+  renderAdminThread();
+  setTimeout(() => {
+    const el = document.getElementById("adminChatMsgList");
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+async function openCreateGroupModal(){
+  document.getElementById("createGroupModal").style.display = "flex";
+  document.getElementById("groupNameInput").value          = "";
+  document.getElementById("groupSelectedCount").textContent = "0 clubs selected";
+  document.getElementById("createGroupError").textContent  = "";
+
+  const { data: clubs } = await sb.from("club_accounts")
+    .select("email,club_name").eq("campus", currentAdminCampus)
+    .eq("status","approved").order("club_name");
+
+  const listEl = document.getElementById("clubSelectList");
+  if(!clubs || !clubs.length){
+    listEl.innerHTML = `<p style="padding:14px;font-size:12px;color:var(--muted);">No approved clubs found for this campus.</p>`;
+    return;
+  }
+  listEl.innerHTML = clubs.map(c => {
+    const name     = c.club_name || c.email;
+    const initials = name.split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    return `<label class="club-check-item">
+      <input type="checkbox" value="${esc(c.email)}" data-name="${esc(name)}"
+        onchange="updateGroupSelectedCount()" aria-label="Add ${esc(name)} to group">
+      <div class="club-check-avatar" aria-hidden="true">${initials}</div>
+      <div>
+        <div class="club-check-name">${esc(name)}</div>
+        <div class="club-check-email">${esc(c.email)}</div>
+      </div>
+    </label>`;
+  }).join("");
+}
+
+function closeCreateGroupModal(){
+  document.getElementById("createGroupModal").style.display = "none";
+}
+
+function updateGroupSelectedCount(){
+  const count = document.querySelectorAll("#clubSelectList input:checked").length;
+  document.getElementById("groupSelectedCount").textContent =
+    `${count} club${count !== 1 ? "s" : ""} selected`;
+}
+
+async function createGroup(){
+  const name    = (document.getElementById("groupNameInput").value || "").trim();
+  const checked = [...document.querySelectorAll("#clubSelectList input:checked")];
+  const errEl   = document.getElementById("createGroupError");
+  errEl.textContent = "";
+
+  if(!name)          { errEl.textContent = "Please enter a group name."; return; }
+  if(!checked.length){ errEl.textContent = "Please select at least one club."; return; }
+
+  const btn = document.getElementById("btnCreateGroup");
+  btn.disabled = true; btn.textContent = "Creating…";
+
+  try {
+    // 1. Create the group conversation
+    const { data: conv, error: convErr } = await sb.from("chat_conversations").insert({
+      name,
+      campus:          currentAdminCampus,
+      created_by:      currentUser.email,
+      last_message_at: new Date().toISOString(),
+    }).select().single();
+    if(convErr || !conv) throw new Error(convErr?.message || "Failed to create group");
+
+    // 2. Add participants (creating admin + selected clubs)
+    const participants = [
+      { conversation_id: conv.id, participant_email: currentUser.email,
+        participant_type: "admin", participant_name: getDisplayName(currentUser.email) },
+      ...checked.map(input => ({
+        conversation_id:   conv.id,
+        participant_email: input.value,
+        participant_type:  "club",
+        participant_name:  input.dataset.name,
+      }))
+    ];
+    const { error: partErr } = await sb.from("chat_participants").insert(participants);
+    if(partErr) throw new Error(partErr.message);
+
+    closeCreateGroupModal();
+    showToast(`✅ Group "${name}" created with ${checked.length} club${checked.length !== 1 ? "s" : ""}!`, "success");
+    loadAdminGroupConversations();
+    openAdminGroupThread(conv.id, name);
+
+  } catch(e){
+    errEl.textContent = "❌ " + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = "Create Group";
+  }
+}
+
+/* ── END GROUP CHAT FUNCTIONS ── */
+
 /* ── END ADMIN CHAT ──────────────────────────────────────────────── */
 
 function toggleNotifPanel(){
