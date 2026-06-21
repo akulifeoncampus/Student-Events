@@ -1140,6 +1140,20 @@
 </div>
 
 
+<!-- ── Full-Screen QR Overlay ── -->
+<div id="qrFullscreen" role="dialog" aria-modal="true" aria-label="QR code for event entrance"
+  style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#000060,#2563eb);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Scan to Check In</div>
+  <div id="qrFullscreenEventName" style="font-size:16px;font-weight:800;color:white;margin-bottom:20px;text-align:center;max-width:300px;"></div>
+  <div id="qrFullscreenCode" style="background:white;padding:16px;border-radius:16px;"></div>
+  <div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:16px;">lifeoncampus.net</div>
+  <button onclick="closeFullscreenQR()"
+    aria-label="Close full-screen QR"
+    style="margin-top:28px;padding:12px 36px;background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.4);border-radius:12px;font-family:'Poppins',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+    ✕ Close
+  </button>
+</div>
+
 <!-- ── Chat Panel ── -->
 <div class="chat-panel" id="chatPanel">
   <div class="chat-panel-header">
@@ -2094,6 +2108,8 @@ async function signOut(){
   await sb.auth.signOut();
   if(chatChannel){ sb.removeChannel(chatChannel); chatChannel = null; }
   stopChatPolling();
+  stopAttendancePolling();
+  closeFullscreenQR();
   currentClub = null; currentSession = null;
   document.getElementById("portal").classList.remove("visible");
   document.getElementById("loginScreen").style.display = "flex";
@@ -2409,6 +2425,10 @@ function switchCardTab(proposalId, tabName){
 
   // Lazy-load messages on first open
   if(tabName === "messages") loadCardMessages(proposalId);
+
+  // Init attendance tab — generate QR and load stats
+  if(tabName === "attendance") initAttendanceTab(proposalId);
+  else stopAttendancePolling(); // stop polling when leaving attendance tab
 }
 
 function renderProposals(){
@@ -2649,19 +2669,184 @@ function proposalCardHTML(p){
       </div>
 
       ${showAttendance ? `
-      <!-- Attendance tab (QR — functionality coming in feature #51) -->
+      <!-- Attendance tab — QR code + live counter -->
       <div class="card-tab-pane" id="tab-attendance-${p.id}" role="tabpanel" aria-labelledby="tabbtn-attendance-${p.id}">
-        <div style="text-align:center;padding:28px 20px;">
-          <div style="font-size:42px;margin-bottom:10px;" aria-hidden="true">📱</div>
-          <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px;">QR Attendance</div>
-          <div style="font-size:12px;color:var(--muted);max-width:260px;margin:0 auto;line-height:1.7;">
-            Display the QR code at your event entrance so attendees can check in. This feature is coming soon.
+        <div style="padding:14px 16px;">
+
+          <!-- Status indicator -->
+          <div id="qr-status-${p.id}" style="font-size:12px;font-weight:600;text-align:center;margin-bottom:12px;"></div>
+
+          <!-- QR Code -->
+          <div style="text-align:center;margin-bottom:12px;">
+            <div id="qr-${p.id}" style="display:inline-block;padding:12px;background:white;border:2px solid #e5e7eb;border-radius:12px;" aria-label="QR code for event check-in"></div>
           </div>
+
+          <!-- Full screen button -->
+          <div style="text-align:center;margin-bottom:16px;">
+            <button onclick="showFullScreenQR('${p.id}','${esc(p.event_name)}')"
+              aria-label="Show full-screen QR code for entrance display"
+              style="padding:9px 20px;background:#000060;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+              📱 Full Screen for Entrance
+            </button>
+          </div>
+
+          <!-- Live attendance stats -->
+          <div id="attend-stats-${p.id}" role="region" aria-label="Attendance statistics" aria-live="polite">
+            <div style="font-size:12px;color:var(--muted);text-align:center;">Loading attendance…</div>
+          </div>
+
         </div>
       </div>` : ""}
 
     </div>`;
 }
+
+/* ── QR ATTENDANCE (#51-58) ────────────────────────────────────── */
+let attendancePollInterval = null;
+let qrGenerated = {}; // track which proposals have QR generated
+
+async function loadQRLib(){
+  if(window.QRCode) return;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function isAttendanceActive(date, time){
+  if(!date) return false;
+  const t   = (time || "00:00").substring(0, 5);
+  const start = new Date(`${date}T${t}:00`);
+  const now   = new Date();
+  return now >= new Date(start - 2 * 3600000) && now <= new Date(start.getTime() + 5 * 3600000);
+}
+
+function getAttendanceStatus(date, time){
+  if(!date) return { active: false, msg: "No event date set." };
+  const t     = (time || "00:00").substring(0, 5);
+  const start = new Date(`${date}T${t}:00`);
+  const now   = new Date();
+  const opens = new Date(start - 2 * 3600000);
+  const closes= new Date(start.getTime() + 5 * 3600000);
+  if(now < opens){
+    const mins = Math.round((opens - now) / 60000);
+    const label = mins >= 60 ? `~${Math.round(mins/60)}h` : `${mins}m`;
+    return { active: false, msg: `⏳ QR opens in ${label}` };
+  }
+  if(now > closes) return { active: false, msg: "⏰ Attendance window closed" };
+  return { active: true, msg: "🟢 Attendance is LIVE" };
+}
+
+async function initAttendanceTab(proposalId){
+  const p = allProposals.find(x => x.id === proposalId);
+  if(!p) return;
+
+  // Update status indicator
+  const statusEl = document.getElementById(`qr-status-${proposalId}`);
+  const { active, msg } = getAttendanceStatus(p.proposed_date, p.proposed_time);
+  if(statusEl){
+    statusEl.textContent = msg;
+    statusEl.style.color = active ? "#15803d" : "#6b7280";
+  }
+
+  // Generate QR code (only once per proposal)
+  if(!qrGenerated[proposalId]){
+    try {
+      await loadQRLib();
+      const qrEl = document.getElementById(`qr-${proposalId}`);
+      if(qrEl && window.QRCode){
+        const url = `https://lifeoncampus.net/attend.html?e=${proposalId}`;
+        new QRCode(qrEl, {
+          text:         url,
+          width:        180,
+          height:       180,
+          colorDark:    "#000060",
+          colorLight:   "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        qrGenerated[proposalId] = true;
+      }
+    } catch(e){ console.warn("QR lib failed to load:", e); }
+  }
+
+  // Load stats and start polling
+  await loadAttendanceStats(proposalId);
+  stopAttendancePolling();
+  attendancePollInterval = setInterval(() => loadAttendanceStats(proposalId), 10000);
+}
+
+async function loadAttendanceStats(proposalId){
+  const statsEl = document.getElementById(`attend-stats-${proposalId}`);
+  if(!statsEl) return;
+
+  const { data, error } = await sb.from("event_attendance")
+    .select("attendee_type").eq("event_id", proposalId);
+
+  if(error || !data){
+    statsEl.innerHTML = `<p style="font-size:12px;color:var(--muted);text-align:center;">Could not load attendance data.</p>`;
+    return;
+  }
+
+  const total    = data.length;
+  const students = data.filter(r => r.attendee_type === "student").length;
+  const faculty  = data.filter(r => r.attendee_type === "faculty").length;
+  const staff    = data.filter(r => r.attendee_type === "staff").length;
+  const external = data.filter(r => r.attendee_type === "external_guest").length;
+
+  const statItem = (icon, count, label) =>
+    count > 0 ? `<div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px;" aria-hidden="true">${icon}</span>
+      <div><div style="font-size:15px;font-weight:800;color:#111827;">${count}</div><div style="font-size:10px;color:var(--muted);">${label}</div></div>
+    </div>` : "";
+
+  statsEl.innerHTML = `
+    <div style="border-top:1px solid #f3f4f6;padding-top:14px;">
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-size:32px;font-weight:800;color:#000060;">${total}</div>
+        <div style="font-size:12px;color:var(--muted);font-weight:600;">Total Check-ins</div>
+      </div>
+      ${total > 0 ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${statItem("🎓", students, "Students")}
+        ${statItem("👨‍🏫", faculty,  "Faculty")}
+        ${statItem("💼", staff,    "Staff")}
+        ${statItem("🌐", external, "External Guests")}
+      </div>` : `
+      <p style="font-size:12px;color:var(--muted);text-align:center;font-style:italic;">No check-ins yet — share the QR at the entrance!</p>`}
+    </div>`;
+}
+
+function stopAttendancePolling(){
+  if(attendancePollInterval){ clearInterval(attendancePollInterval); attendancePollInterval = null; }
+}
+
+function showFullScreenQR(proposalId, eventName){
+  const overlay = document.getElementById("qrFullscreen");
+  const codeEl  = document.getElementById("qrFullscreenCode");
+  document.getElementById("qrFullscreenEventName").textContent = eventName;
+  overlay.style.display = "flex";
+  document.body.style.overflow = "hidden";
+
+  // Clear and regenerate at larger size
+  codeEl.innerHTML = "";
+  if(window.QRCode){
+    const url = `https://lifeoncampus.net/attend.html?e=${proposalId}`;
+    new QRCode(codeEl, { text: url, width: 260, height: 260, colorDark: "#000060", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+  }
+}
+
+function closeFullscreenQR(){
+  document.getElementById("qrFullscreen").style.display = "none";
+  document.body.style.overflow = "";
+}
+
+// Close full-screen on Escape key
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeFullscreenQR();
+});
+/* ── END QR ATTENDANCE ──────────────────────────────────────────── */
 
 /* ── Card inline message thread (legacy toggle — now handled by switchCardTab) ── */
 async function toggleCardThread(proposalId){
