@@ -7762,6 +7762,7 @@ let adminChatPollInterval  = null;
 // Group chat state
 let adminGroupConversations   = [];
 let adminActiveConversationId = null; // set when viewing a group thread
+const groupSelectedEmails     = new Set(); // tracks selected clubs robustly
 
 /* ── @mention state ── */
 let adminCampusTeam    = []; // [{email, name, role}]
@@ -8361,6 +8362,7 @@ async function openCreateGroupModal(){
     .eq("status", "approved")
     .order("club_name");
 
+  groupSelectedEmails.clear(); // reset any previous selections
   allClubsForGroup = clubs || [];
   renderGroupClubList(allClubsForGroup);
 }
@@ -8372,13 +8374,15 @@ function renderGroupClubList(clubs){
     return;
   }
   listEl.innerHTML = clubs.map(c => {
-    const name     = c.club_name || c.email;
-    const initials = name.split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
-    return `<div class="club-select-card"
-      role="checkbox" aria-checked="false" tabindex="0"
+    const name       = c.club_name || c.email;
+    const initials   = name.split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
+    const isSelected = groupSelectedEmails.has(c.email); // state from Set, not DOM
+    return `<div class="club-select-card${isSelected ? " selected" : ""}"
+      role="checkbox" aria-checked="${isSelected ? "true" : "false"}" tabindex="0"
       data-email="${esc(c.email)}" data-name="${esc(name)}"
       onclick="toggleClubSelection(this)"
-      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleClubSelection(this)}">
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleClubSelection(this)}"
+      aria-label="${esc(name)}">
       <div class="club-select-check" aria-hidden="true">✓</div>
       <div class="club-select-av" aria-hidden="true">${initials}</div>
       <div style="flex:1;min-width:0;">
@@ -8390,32 +8394,31 @@ function renderGroupClubList(clubs){
 }
 
 function filterGroupClubs(q){
-  const lower   = q.toLowerCase();
+  const lower    = q.toLowerCase();
   const filtered = allClubsForGroup.filter(c =>
     (c.club_name||c.email).toLowerCase().includes(lower) ||
     c.email.toLowerCase().includes(lower)
   );
-  // Remember which emails were selected before re-render
-  const selectedEmails = [...document.querySelectorAll(".club-select-card.selected")]
-    .map(el => el.dataset.email);
-  renderGroupClubList(filtered);
-  // Restore selected state
-  selectedEmails.forEach(email => {
-    const card = document.querySelector(`.club-select-card[data-email="${email}"]`);
-    if(card){ card.classList.add("selected"); card.setAttribute("aria-checked","true"); }
-  });
+  renderGroupClubList(filtered); // Set restores selected state automatically
   updateGroupSelectedCount();
 }
 
 function toggleClubSelection(card){
-  const isNowSelected = !card.classList.contains("selected");
-  card.classList.toggle("selected", isNowSelected);
-  card.setAttribute("aria-checked", isNowSelected ? "true" : "false");
+  const email = card.dataset.email;
+  if(groupSelectedEmails.has(email)){
+    groupSelectedEmails.delete(email);
+    card.classList.remove("selected");
+    card.setAttribute("aria-checked","false");
+  } else {
+    groupSelectedEmails.add(email);
+    card.classList.add("selected");
+    card.setAttribute("aria-checked","true");
+  }
   updateGroupSelectedCount();
 }
 
 function updateGroupSelectedCount(){
-  const count  = document.querySelectorAll(".club-select-card.selected").length;
+  const count  = groupSelectedEmails.size;
   const badge  = document.getElementById("groupSelectedCount");
   badge.textContent      = count > 0 ? `${count} selected` : "0 selected";
   badge.style.background = count > 0 ? "#000060" : "#eff6ff";
@@ -8427,13 +8430,12 @@ function closeCreateGroupModal(){
 }
 
 async function createGroup(){
-  const name     = (document.getElementById("groupNameInput").value || "").trim();
-  const selected = [...document.querySelectorAll(".club-select-card.selected")];
-  const errEl    = document.getElementById("createGroupError");
+  const name  = (document.getElementById("groupNameInput").value || "").trim();
+  const errEl = document.getElementById("createGroupError");
   errEl.textContent = "";
 
-  if(!name)          { errEl.textContent = "Please enter a group name."; return; }
-  if(!selected.length){ errEl.textContent = "Please select at least one club."; return; }
+  if(!name)                  { errEl.textContent = "Please enter a group name."; return; }
+  if(!groupSelectedEmails.size){ errEl.textContent = "Please select at least one club."; return; }
 
   const btn = document.getElementById("btnCreateGroup");
   btn.disabled = true; btn.textContent = "Creating…";
@@ -8448,24 +8450,26 @@ async function createGroup(){
     }).select().single();
     if(convErr || !conv) throw new Error(convErr?.message || "Failed to create group");
 
-    // 2. Add participants (creating admin + selected clubs)
-    const participants = [
+    // 2. Add participants — read from the Set (source of truth)
+    const selectedClubs = allClubsForGroup.filter(c => groupSelectedEmails.has(c.email));
+    const participants  = [
       { conversation_id:  conv.id,
         participant_email: currentUser.email,
         participant_type:  "admin",
         participant_name:  getDisplayName(currentUser.email) },
-      ...selected.map(card => ({
+      ...selectedClubs.map(c => ({
         conversation_id:   conv.id,
-        participant_email: card.dataset.email,
+        participant_email: c.email,
         participant_type:  "club",
-        participant_name:  card.dataset.name,
+        participant_name:  c.club_name || c.email,
       }))
     ];
     const { error: partErr } = await sb.from("chat_participants").insert(participants);
     if(partErr) throw new Error(partErr.message);
 
+    const count = groupSelectedEmails.size;
     closeCreateGroupModal();
-    showToast(`✅ Group "${name}" created with ${selected.length} club${selected.length !== 1 ? "s" : ""}!`, "success");
+    showToast(`✅ Group "${name}" created with ${count} club${count !== 1 ? "s" : ""}!`, "success");
     loadAdminGroupConversations();
     openAdminGroupThread(conv.id, name);
 
