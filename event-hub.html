@@ -2234,7 +2234,7 @@ function startChatPolling(){
       .order("created_at", { ascending: true });
     if(!data) return;
     const realCount = chatMessages.filter(m => !String(m.id).startsWith("temp_")).length;
-    if(data.length > realCount){
+    if(data.length !== realCount){  // !== catches both new messages AND recovery from empty state
       chatMessages = data;
       renderChatMessages();
       const panel = document.getElementById("chatPanel");
@@ -2252,10 +2252,10 @@ function toggleChatPanel(){
   const isOpen = panel.classList.toggle("open");
   if(isOpen){
     document.getElementById("notifPanel").classList.remove("open");
-    // Always return to direct view when reopening
     if(hubChatView !== "direct") switchHubChatView("direct");
+    loadChatMessages(); // always reload so history is never empty on open
     markChatRead();
-    setTimeout(scrollChatToBottom, 50);
+    setTimeout(scrollChatToBottom, 150);
   }
 }
 
