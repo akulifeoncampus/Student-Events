@@ -1,10 +1,11 @@
-const CACHE_NAME = "campus-life-v1";
+const CACHE_NAME = "campus-life-v2"; // bumped to force refresh on all devices
 
 // Only cache public pages — never admin or event-hub
 const STATIC_ASSETS = [
   "/index.html",
   "/clubs.html",
   "/news.html",
+  "/forms.html",
   "/resources.html",
   "/emergency-contacts.html",
   "/manifest.json",
@@ -104,17 +105,28 @@ self.addEventListener("fetch", event => {
 
 // ── Push Notifications ──
 self.addEventListener("push", event => {
-  const data = event.data?.json() || {};
-  const title   = data.title   || "Campus Life";
+  // Wrap in try/catch — if parsing fails (e.g. DevTools test push sends
+  // plain text), we fall back to a generic notification instead of crashing.
+  let data = {};
+  try {
+    data = event.data?.json() || {};
+  } catch (e) {
+    console.warn("[SW] Push payload was not JSON, using defaults:", e.message);
+  }
+
+  const title = data.title || "Campus Life";
+
+  // NOTE: actions and vibrate are intentionally excluded.
+  // iOS Safari PWA does not support them and silently drops
+  // the entire notification if they are present.
   const options = {
-    body:    data.body    || "You have a new notification.",
-    icon:    data.icon    || "/icon-192.png",
-    badge:   "/icon-192.png",
-    tag:     data.tag     || "campus-life-notification",
-    data:    { url: data.url || "/index.html" },
-    actions: data.actions || [],
-    vibrate: [200, 100, 200],
+    body:  data.body  || "You have a new notification.",
+    icon:  data.icon  || "/icon-192.png",
+    badge: "/icon-192.png",
+    tag:   data.tag   || "campus-life-notification",
+    data:  { url: data.url || "/index.html" },
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
