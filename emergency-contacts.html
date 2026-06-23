@@ -19,7 +19,7 @@
     html, body { max-width:100%; overflow-x:hidden; }
     body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; }
 
-    .topbar { height:56px; background:linear-gradient(135deg,#1e40af 0%,#2563eb 60%,#3b82f6 100%); box-shadow:0 2px 12px rgba(37,99,235,.25); display:flex; align-items:center; padding:0 18px; gap:12px; position:sticky; top:0; z-index:100; }
+    .topbar { height:56px; background:linear-gradient(135deg,#000060 0%,#2563eb 60%,#3b82f6 100%); box-shadow:0 2px 12px rgba(37,99,235,.25); display:flex; align-items:center; padding:0 18px; gap:12px; position:sticky; top:0; z-index:100; }
     .brand { color:white; font-size:17px; font-weight:700; letter-spacing:.3px; }
     .nav-toggle { display:none; background:none; border:none; cursor:pointer; padding:4px 6px; font-size:22px; color:white; }
 
@@ -107,18 +107,18 @@
 <body>
 <header class="topbar">
   <button class="nav-toggle" onclick="document.getElementById('sideNav').classList.toggle('open')">&#9776;</button>
-  <div class="brand">Campus Life</div>
+  <div class="brand">Life on Campus</div>
 </header>
 
 <div class="shell">
-      <nav class="nav" id="sideNav">
-      <a href="index.html">Home</a>
-      <a href="index.html">Events</a>
-      <a href="clubs.html">Clubs</a>
-      <a href="acc.html">ACC</a>
-      <a href="news.html">News</a>
-      <a href="resources.html">Resources</a>
-      <a href="emergency-contacts.html" class="active">Emergency</a>
+      <nav class="nav" id="sideNav" role="navigation" aria-label="Main navigation">
+      <a href="index.html">🏠 Home</a>
+      <a href="index.html">📅 Events</a>
+      <a href="clubs.html">🏛️ Clubs</a>
+      <a href="acc.html">🎓 ACC</a>
+      <a href="news.html">📰 News</a>
+      <a href="resources.html">🔗 Resources</a>
+      <a href="emergency-contacts.html" class="active" aria-current="page">🚨 Emergency</a>
       <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
     </nav>
 
@@ -147,11 +147,11 @@
 
     <!-- Campus Filter -->
     <div class="filter-bar">
-      <button class="filter-chip active" data-campus="" onclick="filterCampus('',this)">All Campuses</button>
-      <button class="filter-chip" data-campus="Karachi" onclick="filterCampus('Karachi',this)">Karachi</button>
-      <button class="filter-chip" data-campus="Nairobi" onclick="filterCampus('Nairobi',this)">Nairobi</button>
-      <button class="filter-chip" data-campus="Kampala" onclick="filterCampus('Kampala',this)">Kampala</button>
-      <button class="filter-chip" data-campus="Dar es Salaam" onclick="filterCampus('Dar es Salaam',this)">Dar es Salaam</button>
+      <button class="filter-chip active" onclick="filterCampus('',this)">All Campuses</button>
+      <button class="filter-chip" onclick="filterCampus('Karachi',this)">Karachi</button>
+      <button class="filter-chip" onclick="filterCampus('Nairobi',this)">Nairobi</button>
+      <button class="filter-chip" onclick="filterCampus('Kampala',this)">Kampala</button>
+      <button class="filter-chip" onclick="filterCampus('Dar es Salaam',this)">Dar es Salaam</button>
     </div>
 
     <div id="contactsContainer"></div>
@@ -218,37 +218,13 @@ async function init(){
   const { data } = await sb.from("emergency_contacts").select("*").eq("is_active",true).order("display_order").order("name");
   allContacts = data || [];
   render(allContacts);
-  detectAndFilterCampus();
 }
 
-function filterCampus(campus, btn, persist = true){
+function filterCampus(campus, btn){
   activeCampus = campus;
-  document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+  document.querySelectorAll(".filter-chip").forEach(c=>c.classList.remove("active"));
   btn.classList.add("active");
   applyContactFilters();
-  if(persist) localStorage.setItem("ec_campus_pref", campus);
-}
-
-async function detectAndFilterCampus(){
-  // If user previously made a manual choice, always respect it
-  const saved = localStorage.getItem("ec_campus_pref");
-  if(saved !== null){
-    const btn = document.querySelector(`.filter-chip[data-campus="${saved}"]`);
-    if(btn) filterCampus(saved, btn, false);
-    return;
-  }
-
-  // No saved preference — auto-detect via IP (silently, no error shown on failure)
-  try {
-    const res  = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(3000) });
-    const data = await res.json();
-    const map  = { PK:"Karachi", KE:"Nairobi", UG:"Kampala", TZ:"Dar es Salaam" };
-    const campus = map[data.country_code];
-    if(campus){
-      const btn = document.querySelector(`.filter-chip[data-campus="${campus}"]`);
-      if(btn) filterCampus(campus, btn, false); // auto-detect — don't persist, let user choose
-    }
-  } catch(e){ /* silently stay on All Campuses */ }
 }
 
 function render(contacts){
