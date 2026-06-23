@@ -7870,7 +7870,7 @@ function startAdminChatPolling(){
       const { data } = await sb.from("chat_messages")
         .select("*").eq("conversation_id", adminActiveConversationId)
         .order("created_at", { ascending: true });
-      if(data && data.length > adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
+      if(data && data.length !== adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
         adminChatMessages = data; renderAdminThread();
         const el = document.getElementById("adminChatMsgList");
         if(el) el.scrollTop = el.scrollHeight;
@@ -7880,7 +7880,7 @@ function startAdminChatPolling(){
       const { data } = await sb.from("chat_messages")
         .select("*").eq("club_email", adminChatActiveClub)
         .order("created_at", { ascending: true });
-      if(data && data.length > adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
+      if(data && data.length !== adminChatMessages.filter(m => !String(m.id).startsWith("temp_")).length){
         adminChatMessages = data; renderAdminThread();
         const el = document.getElementById("adminChatMsgList");
         if(el) el.scrollTop = el.scrollHeight;
