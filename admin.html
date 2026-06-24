@@ -3472,6 +3472,10 @@ async function handleLogin(){
   currentRole        = adminRow.role || "admin";
   currentAdminCampus = adminRow.campus || "";
   currentPermissions = buildPermissions(adminRow.role, adminRow.permissions);
+  // Campus admins are restricted to their own campus only
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    currentPermissions.campus = [currentAdminCampus];
+  }
   showAdminPanel();
   if(adminRow.must_change_password){
     setTimeout(() => showForceChangePassword(), 600);
@@ -3499,6 +3503,10 @@ async function checkSession(){
       currentRole        = adminRow.role || "admin";
       currentAdminCampus = adminRow.campus || "";
       currentPermissions = buildPermissions(adminRow.role, adminRow.permissions);
+      // Campus admins are restricted to their own campus only
+      if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+        currentPermissions.campus = [currentAdminCampus];
+      }
       showAdminPanel();
       if(adminRow.must_change_password){
         setTimeout(() => showForceChangePassword(), 600);
@@ -3703,9 +3711,18 @@ function showAdminPanel(){
     }
     loadTeamOverview();
   } else {
-    // Hide Team Overview nav from event leads
+    // Hide Team Overview nav from event leads and view-only roles
     const navBtn = document.getElementById("teamOverviewNavBtn");
     if(navBtn) navBtn.style.display = "none";
+  }
+
+  // Lock campus filter dropdowns for campus-specific admins
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    const campusSel = document.getElementById("proposalCampusFilter");
+    if(campusSel){
+      campusSel.value    = currentAdminCampus;
+      campusSel.disabled = true;
+    }
   }
 
   // Event Lead Portal — visible to admin, super_admin, event_lead only (not VP, MM&C or Sr. Manager)
@@ -3928,6 +3945,11 @@ function downloadChart(canvasId, label){
 
 async function loadDashboard(){
   const today = new Date().toISOString().split("T")[0];
+
+  // For campus admins, restrict all queries to their campus
+  const campusRestricted = currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All";
+  const byCampus = (q) => campusRestricted ? q.eq("campus", currentAdminCampus) : q;
+
   const [
     { count: clubCount },
     { count: eventCount },
@@ -3942,18 +3964,18 @@ async function loadDashboard(){
     { count: pendingProposalsCount },
     { count: pendingClubsCount },
   ] = await Promise.all([
-    sb.from("clubs").select("*",         { count:"exact", head:true }),
-    sb.from("events").select("*",        { count:"exact", head:true }),
-    sb.from("admins").select("*",        { count:"exact", head:true }),
-    sb.from("news").select("*",          { count:"exact", head:true }),
-    sb.from("club_accounts").select("*", { count:"exact", head:true }).eq("status","approved"),
-    sb.from("push_subscriptions").select("*", { count:"exact", head:true }),
-    sb.from("events").select("event_date").gte("event_date", today),
-    sb.from("clubs").select("campus"),
-    sb.from("events").select("campus, event_date, category"),
-    sb.from("events").select("interested_count"),
-    sb.from("event_proposals").select("*", { count:"exact", head:true }).in("status", ["submitted","needs_info"]),
-    sb.from("club_accounts").select("*",   { count:"exact", head:true }).eq("status","pending"),
+    byCampus(sb.from("clubs").select("*",         { count:"exact", head:true })),
+    byCampus(sb.from("events").select("*",        { count:"exact", head:true })),
+    sb.from("admins").select("*",        { count:"exact", head:true }), // global count
+    sb.from("news").select("*",          { count:"exact", head:true }), // global count
+    byCampus(sb.from("club_accounts").select("*", { count:"exact", head:true }).eq("status","approved")),
+    sb.from("push_subscriptions").select("*", { count:"exact", head:true }), // global count
+    byCampus(sb.from("events").select("event_date").gte("event_date", today)),
+    byCampus(sb.from("clubs").select("campus")),
+    byCampus(sb.from("events").select("campus, event_date, category")),
+    byCampus(sb.from("events").select("interested_count")),
+    byCampus(sb.from("event_proposals").select("*", { count:"exact", head:true }).in("status", ["submitted","needs_info"])),
+    byCampus(sb.from("club_accounts").select("*",   { count:"exact", head:true }).eq("status","pending")),
   ]);
 
   const totalInterests = (interestData || []).reduce((sum, e) => sum + (e.interested_count || 0), 0);
@@ -3971,7 +3993,7 @@ async function loadDashboard(){
 
   // Per-campus summary cards
   const campusGrid = document.getElementById("campusStatsGrid");
-  campusGrid.innerHTML = CAMPUSES.map(c => {
+  campusGrid.innerHTML = campusesToShow.map(c => {
     const clubs    = (allClubsData || []).filter(x => x.campus === c).length;
     const events   = (eventsData   || []).filter(x => x.campus === c).length;
     const upcoming = (eventsData   || []).filter(x => x.campus === c && x.event_date >= today).length;
@@ -3988,6 +4010,9 @@ async function loadDashboard(){
   }).join("");
 
   dashEventData = eventsData || [];
+
+  // Campus stat cards — super admin sees all 4; campus admins see only their campus
+  const campusesToShow = campusRestricted ? [currentAdminCampus] : CAMPUSES;
 
   const years = [...new Set(dashEventData
     .filter(e => e.event_date)
@@ -6369,8 +6394,12 @@ const PROPOSAL_STATUS_CONFIG = {
 };
 
 async function loadProposals(){
-  const { data, error } = await sb.from("event_proposals")
-    .select("*").order("submitted_at", { ascending: false });
+  let q = sb.from("event_proposals").select("*").order("submitted_at", { ascending: false });
+  // Campus admins only see their campus's proposals
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    q = q.eq("campus", currentAdminCampus);
+  }
+  const { data, error } = await q;
   if(error){ showToast("Failed to load proposals", "error"); return; }
   allAdminProposals = data || [];
 
@@ -6961,7 +6990,12 @@ async function assignProposal(){
 let allClubAccounts = [];
 
 async function loadClubApprovals(){
-  const { data, error } = await sb.from("club_accounts").select("*").order("created_at", { ascending: false });
+  let q = sb.from("club_accounts").select("*").order("created_at", { ascending: false });
+  // Campus admins only see their campus's club requests
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    q = q.eq("campus", currentAdminCampus);
+  }
+  const { data, error } = await q;
   if(error){ showToast("Failed to load club requests", "error"); return; }
   allClubAccounts = data || [];
 
