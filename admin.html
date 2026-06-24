@@ -368,47 +368,131 @@
 
     /* ── SIDEBAR ── */
     .sidebar {
-      width: 220px;
-      background: var(--panel);
-      border-right: 1px solid var(--border);
-      padding: 20px 12px;
+      width: 224px;
+      background: var(--color-surface);
+      border-right: 0.5px solid var(--color-border);
+      padding: 14px 10px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      transition: width .22s ease;
+      box-shadow: var(--shadow-md);
+    }
+    .sidebar.collapsed { width: 64px; }
+
+    /* Brand header row */
+    .sidebar-brand-row {
+      display: flex; align-items: center; gap: 9px;
+      padding: 2px 4px; margin-bottom: 10px; flex-shrink: 0;
+    }
+    .sidebar-brand-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--aku-navy); color: #fff;
+      font-size: 12px; font-weight: 700; letter-spacing: -.5px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-family: 'Poppins', sans-serif;
+    }
+    .sidebar-brand-text { flex: 1; min-width: 0; overflow: hidden; }
+    .sidebar-brand-name {
+      font-size: 13px; font-weight: 700; color: var(--color-ink);
+      white-space: nowrap; overflow: hidden;
+      transition: opacity .15s;
+    }
+    .sidebar-brand-sub {
+      font-size: 10px; color: var(--color-hint); white-space: nowrap;
+      transition: opacity .15s;
+    }
+    .sidebar.collapsed .sidebar-brand-text { opacity: 0; pointer-events: none; }
+
+    /* Collapse toggle button */
+    .sidebar-toggle {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 0.5px solid var(--color-border);
+      background: var(--color-surface);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--color-hint); font-size: 11px;
+      flex-shrink: 0; transition: background .12s;
+    }
+    .sidebar-toggle:hover { background: var(--color-bg); color: var(--color-ink); }
+
+    /* Category labels */
+    .sidebar-label {
+      font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--color-hint);
+      padding: 10px 10px 4px;
+      white-space: nowrap; overflow: hidden;
+      transition: opacity .15s;
       flex-shrink: 0;
     }
-    .sidebar-label {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .8px;
-      color: var(--muted);
-      padding: 0 10px;
-      margin-bottom: 8px;
-      margin-top: 20px;
-    }
-    .sidebar-label:first-child { margin-top: 0; }
+    .sidebar.collapsed .sidebar-label { opacity: 0; padding: 6px 0 2px; pointer-events: none; }
+
+    /* Nav items */
     .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--ink);
-      transition: background .12s;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: var(--radius-md);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      color: var(--color-ink); border: none; background: none;
+      width: 100%; text-align: left;
       font-family: 'Poppins', sans-serif;
+      transition: background .12s; white-space: nowrap;
+      overflow: hidden; flex-shrink: 0;
     }
-    .nav-item:hover { background: var(--bg); }
+    .nav-item:hover { background: var(--color-bg); }
     .nav-item.active {
-      background: var(--accent-light);
-      color: var(--accent);
+      background: var(--aku-navy);
+      color: #ffffff;
       font-weight: 600;
     }
-    .nav-icon { font-size: 16px; }
+    .nav-item.active .nav-icon { color: #ffffff; }
+    .nav-item.active .nav-badge { background: rgba(255,255,255,.25); color: #fff; }
+
+    /* Icon inside nav item */
+    .nav-icon {
+      font-size: 17px; color: var(--color-muted);
+      flex-shrink: 0; width: 20px; text-align: center; line-height: 1;
+    }
+
+    /* Text label — hides in collapsed state */
+    .nav-label {
+      flex: 1; white-space: nowrap; overflow: hidden;
+      transition: opacity .15s;
+    }
+    .sidebar.collapsed .nav-label { opacity: 0; }
+
+    /* Pending count badge on nav items */
+    .nav-badge {
+      flex-shrink: 0; margin-left: auto;
+      background: var(--color-danger); color: #fff;
+      font-size: 9px; font-weight: 700;
+      padding: 1px 6px; border-radius: var(--radius-pill);
+      transition: opacity .15s;
+    }
+    .sidebar.collapsed .nav-badge { opacity: 0; }
+
+    /* Bottom utility section — pinned to base */
+    .sidebar-util-section {
+      margin-top: auto; padding-top: 8px;
+      border-top: 0.5px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .sidebar-util-divider {
+      height: 0.5px; background: var(--color-border);
+      margin: 6px 4px;
+    }
+    .sidebar-util-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: var(--radius-md);
+      font-size: 13px; color: var(--color-muted);
+      cursor: pointer; background: none; border: none;
+      width: 100%; font-family: 'Poppins', sans-serif;
+      white-space: nowrap; overflow: hidden;
+      transition: background .12s, color .12s;
+    }
+    .sidebar-util-item:hover { background: var(--color-bg); color: var(--color-ink); }
+    .sidebar-util-item i { font-size: 17px; flex-shrink: 0; width: 20px; text-align: center; }
 
     /* ── MAIN CONTENT ── */
     .main {
@@ -1622,12 +1706,12 @@
     @media (max-width: 768px) {
       .admin-nav-toggle { display: block; }
       .sidebar {
-        display: block;
+        display: flex;
         position: fixed;
-        top: 56px;
+        top: 60px;
         left: -240px;
-        width: 220px;
-        height: calc(100vh - 56px);
+        width: 224px;
+        height: calc(100vh - 60px);
         z-index: 200;
         box-shadow: none;
         overflow-y: auto;
@@ -1637,6 +1721,8 @@
         left: 0;
         box-shadow: 4px 0 20px rgba(0,0,0,.15);
       }
+      .sidebar.collapsed { width: 224px; }
+      .sidebar-toggle { display: none; }
       .main { padding: 16px; }
       .form-grid { grid-template-columns: 1fr; }
       .pages-grid { grid-template-columns: 1fr; }
@@ -1951,53 +2037,94 @@
   <div class="admin-body">
     <!-- Sidebar -->
     <div class="sidebar" id="adminSidebar">
+
+      <!-- Brand header -->
+      <div class="sidebar-brand-row">
+        <div class="sidebar-brand-icon" aria-hidden="true">LC</div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-name">Life on Campus</div>
+          <div class="sidebar-brand-sub">Admin Panel</div>
+        </div>
+        <button class="sidebar-toggle" onclick="toggleSidebar()"
+          id="sidebarToggleBtn" aria-label="Collapse sidebar">
+          <i class="ti ti-chevron-left" id="sidebarToggleIcon"></i>
+        </button>
+      </div>
+
+      <!-- GROUP 1: Overview -->
       <div class="sidebar-label">Overview</div>
       <button class="nav-item active" data-section="section-dashboard" onclick="showSection('dashboard', this)">
-        <span class="nav-icon">📊</span> Dashboard
+        <i class="ti ti-layout-dashboard nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Dashboard</span>
       </button>
 
-      <div class="sidebar-label">Content</div>
+      <!-- GROUP 2: Public website -->
+      <div class="sidebar-label">Public website</div>
+      <button class="nav-item" data-section="section-home" onclick="showSection('home', this)">
+        <i class="ti ti-home nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Home Page</span>
+      </button>
       <button class="nav-item" data-section="section-clubs" onclick="showSection('clubs', this)">
-        <span class="nav-icon">🎭</span> Clubs
+        <i class="ti ti-users-group nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Clubs &amp; Societies</span>
       </button>
       <button class="nav-item" data-section="section-acc" onclick="showSection('acc', this)">
-        <span class="nav-icon">🎨</span> ACC
+        <i class="ti ti-palette nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Arts &amp; Culture</span>
       </button>
       <button class="nav-item" data-section="section-events" onclick="showSection('events', this)">
-        <span class="nav-icon">📅</span> Events
+        <i class="ti ti-calendar-event nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Events</span>
       </button>
       <button class="nav-item" data-section="section-news" onclick="showSection('news', this)">
-        <span class="nav-icon">📰</span> News
+        <i class="ti ti-news nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">News</span>
       </button>
       <button class="nav-item" data-section="section-resources" onclick="showSection('resources', this)">
-        <span class="nav-icon">🔗</span> Resources
+        <i class="ti ti-link nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Resources</span>
       </button>
       <button class="nav-item" data-section="section-emergency" onclick="showSection('emergency', this)">
-        <span class="nav-icon">🚨</span> Emergency Contacts
-      </button>
-      <button class="nav-item" data-section="section-home" onclick="showSection('home', this)">
-        <span class="nav-icon">🏠</span> Home Page
-      </button>
-      <button class="nav-item" data-section="section-clubs-approval" onclick="showSection('clubs-approval', this)" id="clubsApprovalNavBtn">
-        <span class="nav-icon">✅</span> Club Approvals
-        <span id="pendingClubsBadge" style="display:none;margin-left:auto;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;"></span>
-      </button>
-      <button class="nav-item" data-section="section-proposals" onclick="showSection('proposals', this)" id="proposalsNavBtn">
-        <span class="nav-icon">📨</span> Event Proposals
-        <span id="pendingProposalsBadge" style="display:none;margin-left:auto;background:#ef4444;color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;"></span>
-      </button>
-      <button class="nav-item" data-section="section-team-overview" onclick="showSection('team-overview', this)" id="teamOverviewNavBtn" style="display:none;">
-        <span class="nav-icon">📊</span> Team Overview
-      </button>
-      <button class="nav-item" data-section="section-my-events" onclick="showSection('my-events', this)" id="myEventsNavBtn" style="display:none;">
-        <span class="nav-icon">🎯</span> Event Lead Portal
-        <span id="myEventsBadge" style="display:none;margin-left:auto;background:#7c3aed;color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;"></span>
+        <i class="ti ti-phone-call nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Emergency Contacts</span>
       </button>
 
-      <div class="sidebar-label" id="settingsNavLabel">Settings</div>
-      <button class="nav-item" id="adminsNavBtn" onclick="showSection('admins', this)">
-        <span class="nav-icon">👤</span> Admins
+      <!-- GROUP 3: Event management -->
+      <div class="sidebar-label">Event management</div>
+      <button class="nav-item" data-section="section-clubs-approval" onclick="showSection('clubs-approval', this)" id="clubsApprovalNavBtn">
+        <i class="ti ti-circle-check nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Club Approvals</span>
+        <span class="nav-badge" id="pendingClubsBadge" style="display:none;"></span>
       </button>
+      <button class="nav-item" data-section="section-proposals" onclick="showSection('proposals', this)" id="proposalsNavBtn">
+        <i class="ti ti-send nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Event Proposals</span>
+        <span class="nav-badge" id="pendingProposalsBadge" style="display:none;"></span>
+      </button>
+      <button class="nav-item" data-section="section-team-overview" onclick="showSection('team-overview', this)" id="teamOverviewNavBtn" style="display:none;">
+        <i class="ti ti-chart-dots-3 nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Team Overview</span>
+      </button>
+      <button class="nav-item" data-section="section-my-events" onclick="showSection('my-events', this)" id="myEventsNavBtn" style="display:none;">
+        <i class="ti ti-target nav-icon" aria-hidden="true"></i>
+        <span class="nav-label">Event Lead Portal</span>
+        <span class="nav-badge" id="myEventsBadge" style="display:none;"></span>
+      </button>
+
+      <!-- GROUP 4: Administration + utility (pinned to bottom) -->
+      <div class="sidebar-util-section">
+        <div class="sidebar-label" id="settingsNavLabel" style="padding-top:0;">Administration</div>
+        <button class="nav-item" id="adminsNavBtn" onclick="showSection('admins', this)">
+          <i class="ti ti-shield-lock nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Admins</span>
+        </button>
+        <div class="sidebar-util-divider"></div>
+        <button class="sidebar-util-item" onclick="handleLogout()">
+          <i class="ti ti-logout" aria-hidden="true"></i>
+          <span class="nav-label">Sign out</span>
+        </button>
+      </div>
+
     </div>
 
     <!-- Main -->
@@ -4040,6 +4167,27 @@ function toggleAdminSidebar(){
   sidebar.classList.toggle("open", !isOpen);
   overlay.classList.toggle("open", !isOpen);
 }
+
+/* Desktop sidebar collapse toggle */
+function toggleSidebar(){
+  const sidebar = document.getElementById("adminSidebar");
+  const icon    = document.getElementById("sidebarToggleIcon");
+  const isCollapsed = sidebar.classList.toggle("collapsed");
+  if(icon) icon.className = isCollapsed ? "ti ti-chevron-right" : "ti ti-chevron-left";
+  try { localStorage.setItem("sidebarCollapsed", isCollapsed ? "1" : "0"); } catch(e){}
+}
+
+/* Restore sidebar collapse state on load */
+(function(){
+  try {
+    if(localStorage.getItem("sidebarCollapsed") === "1"){
+      const sb   = document.getElementById("adminSidebar");
+      const icon = document.getElementById("sidebarToggleIcon");
+      if(sb)   sb.classList.add("collapsed");
+      if(icon) icon.className = "ti ti-chevron-right";
+    }
+  } catch(e){}
+})();
 
 function showSection(name, btn){
   // Close mobile sidebar when navigating
