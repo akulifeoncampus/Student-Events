@@ -583,6 +583,11 @@
       color: #a21caf;
       border: 1px solid #f0abfc;
     }
+    .role-badge.senior_manager_global {
+      background: #ecfeff;
+      color: #0e7490;
+      border: 1px solid #a5f3fc;
+    }
 
     /* ── CHARTS ── */
     .charts-section-title {
@@ -2060,6 +2065,7 @@
               <option value="admin">Admin</option>
               <option value="vice_provost">Vice Provost</option>
               <option value="manager_marketing_comms">Manager Marketing &amp; Comms</option>
+              <option value="senior_manager_global">Senior Manager - Global</option>
               <option value="super_admin">Super Admin</option>
             </select>
           </div>
@@ -2987,6 +2993,7 @@
           <option value="admin">Admin</option>
           <option value="vice_provost">Vice Provost</option>
           <option value="manager_marketing_comms">Manager Marketing &amp; Comms</option>
+          <option value="senior_manager_global">Senior Manager - Global</option>
           <option value="super_admin">Super Admin</option>
         </select>
         <div id="superAdminNote" style="font-size:11px;color:var(--muted);margin-top:6px;padding:8px 12px;background:#fef9c3;border-radius:8px;display:none;">
@@ -3550,6 +3557,14 @@ const ROLE_DEFAULTS = {
     download_charts: true, import_csv: false,
     manage_proposals: false, assign_events: false
   },
+  senior_manager_global: {
+    campus: ["All"],
+    manage_events: false, manage_clubs: false,
+    manage_news: false,   manage_forms: false,
+    edit_home: false,     view_dashboard: true,
+    download_charts: true, import_csv: false,
+    manage_proposals: false, assign_events: false
+  },
   admin: {
     campus: ["All"],
     manage_events: true, manage_clubs: true,
@@ -3615,6 +3630,7 @@ function showAdminPanel(){
     event_lead:               "EVENT LEAD",
     vice_provost:             "VICE PROVOST",
     manager_marketing_comms:  "MM&C",
+    senior_manager_global:    "SR. MANAGER",
   };
   const badgeColors = {
     super_admin:             { bg:"#fef3c7", color:"#92400e" },
@@ -3622,6 +3638,7 @@ function showAdminPanel(){
     event_lead:              { bg:"#f0fdf4", color:"#15803d" },
     vice_provost:            { bg:"#f5f3ff", color:"#6d28d9" },
     manager_marketing_comms: { bg:"#fdf4ff", color:"#a21caf" },
+    senior_manager_global:   { bg:"#ecfeff", color:"#0e7490" },
   };
   badge.textContent       = badgeLabels[currentRole] || "ADMIN";
   badge.style.background  = (badgeColors[currentRole] || badgeColors.admin).bg;
@@ -3691,8 +3708,8 @@ function showAdminPanel(){
     if(navBtn) navBtn.style.display = "none";
   }
 
-  // Event Lead Portal — visible to admin, super_admin, event_lead only (not VP or MM&C)
-  const isViewOnly = currentRole === "vice_provost" || currentRole === "manager_marketing_comms";
+  // Event Lead Portal — visible to admin, super_admin, event_lead only (not VP, MM&C or Sr. Manager)
+  const isViewOnly = currentRole === "vice_provost" || currentRole === "manager_marketing_comms" || currentRole === "senior_manager_global";
   document.getElementById("myEventsNavBtn").style.display = isViewOnly ? "none" : "";
   if(!isViewOnly) loadMyAssignedEvents();
 
@@ -5035,21 +5052,25 @@ function renderAdmins(list){
     const isEventLead  = a.role === "event_lead";
     const isVP         = a.role === "vice_provost";
     const isMMC        = a.role === "manager_marketing_comms";
+    const isSMG        = a.role === "senior_manager_global";
     const isMe         = a.email === currentUser.email;
     const ROLE_LABELS  = {
       super_admin: "Super Admin", admin: "Admin", event_lead: "Event Lead",
-      vice_provost: "Vice Provost", manager_marketing_comms: "MM&C"
+      vice_provost: "Vice Provost", manager_marketing_comms: "MM&C",
+      senior_manager_global: "Sr. Manager - Global"
     };
     const roleLabel    = ROLE_LABELS[a.role] || "Admin";
     const avatarBg     = isSuperAdmin ? "#fef3c7"
                        : isEventLead  ? "#f0fdf4"
                        : isVP         ? "#f5f3ff"
                        : isMMC        ? "#fdf4ff"
+                       : isSMG        ? "#ecfeff"
                        : "var(--accent-light)";
     const avatarColor  = isSuperAdmin ? "#92400e"
                        : isEventLead  ? "#15803d"
                        : isVP         ? "#6d28d9"
                        : isMMC        ? "#a21caf"
+                       : isSMG        ? "#0e7490"
                        : "var(--accent)";
     return `
       <div class="admin-item">
@@ -5086,7 +5107,7 @@ function handlePermRoleChange(sel){
   const role         = sel.value;
   const isSuperAdmin = role === "super_admin";
   const isEventLead  = role === "event_lead";
-  const isViewOnly   = role === "vice_provost" || role === "manager_marketing_comms";
+  const isViewOnly   = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
 
   // Note for Super Admin
   document.getElementById("superAdminNote").style.display = isSuperAdmin ? "block" : "none";
@@ -5132,7 +5153,7 @@ function handlePermRoleChange(sel){
 // Auto-lock campus to "All" when VP or MM&C is selected in the invite form
 function handleNewRoleChange(sel){
   const role       = sel.value;
-  const isViewOnly = role === "vice_provost" || role === "manager_marketing_comms";
+  const isViewOnly = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
   const campusSel  = document.getElementById("newAdminCampus");
   if(!campusSel) return;
   if(isViewOnly){
