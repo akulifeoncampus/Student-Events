@@ -1693,6 +1693,18 @@
       flex-shrink: 0;
     }
 
+    /* Topbar hamburger always visible — overrides admin-nav-toggle's display:none */
+    .topbar-hamburger {
+      display: flex !important;
+    }
+
+    /* Topbar brand text (no icon — sidebar carries the full treatment) */
+    .topbar-brand-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--aku-navy); white-space: nowrap;
+      letter-spacing: -.2px;
+    }
+
     /* ── Sidebar overlay ── */
     .sidebar-overlay {
       display: none;
