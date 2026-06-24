@@ -573,6 +573,16 @@
       color: #15803d;
       border: 1px solid #bbf7d0;
     }
+    .role-badge.vice_provost {
+      background: #f5f3ff;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
+    }
+    .role-badge.manager_marketing_comms {
+      background: #fdf4ff;
+      color: #a21caf;
+      border: 1px solid #f0abfc;
+    }
 
     /* ── CHARTS ── */
     .charts-section-title {
@@ -2045,9 +2055,11 @@
           </div>
           <div class="field" style="min-width:160px;">
             <label>Role</label>
-            <select id="newAdminRole">
+            <select id="newAdminRole" onchange="handleNewRoleChange(this)">
               <option value="event_lead">Event Lead</option>
               <option value="admin">Admin</option>
+              <option value="vice_provost">Vice Provost</option>
+              <option value="manager_marketing_comms">Manager Marketing &amp; Comms</option>
               <option value="super_admin">Super Admin</option>
             </select>
           </div>
@@ -2973,6 +2985,8 @@
           style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;background:white;outline:none;">
           <option value="event_lead">Event Lead</option>
           <option value="admin">Admin</option>
+          <option value="vice_provost">Vice Provost</option>
+          <option value="manager_marketing_comms">Manager Marketing &amp; Comms</option>
           <option value="super_admin">Super Admin</option>
         </select>
         <div id="superAdminNote" style="font-size:11px;color:var(--muted);margin-top:6px;padding:8px 12px;background:#fef9c3;border-radius:8px;display:none;">
@@ -3519,6 +3533,23 @@ const DEFAULT_PERMS = {
 // Role-based permission defaults
 const ROLE_DEFAULTS = {
   super_admin: { ...DEFAULT_PERMS, assign_events: true },
+  // Dashboard-only roles — see all campuses, no management tabs
+  vice_provost: {
+    campus: ["All"],
+    manage_events: false, manage_clubs: false,
+    manage_news: false,   manage_forms: false,
+    edit_home: false,     view_dashboard: true,
+    download_charts: true, import_csv: false,
+    manage_proposals: false, assign_events: false
+  },
+  manager_marketing_comms: {
+    campus: ["All"],
+    manage_events: false, manage_clubs: false,
+    manage_news: false,   manage_forms: false,
+    edit_home: false,     view_dashboard: true,
+    download_charts: true, import_csv: false,
+    manage_proposals: false, assign_events: false
+  },
   admin: {
     campus: ["All"],
     manage_events: true, manage_clubs: true,
@@ -3567,8 +3598,9 @@ function showAdminPanel(){
   document.getElementById("adminShell").classList.add("visible");
   document.getElementById("userEmail").textContent = getDisplayName(currentUser.email);
 
-  // Show chat button for admin and event_lead only (not super_admin)
-  if(currentRole !== "super_admin"){
+  // Show chat button for admin and event_lead only
+  const isChatRole = currentRole === "admin" || currentRole === "event_lead";
+  if(isChatRole){
     document.getElementById("adminChatBtn").style.display = "flex";
     loadAdminTeam();
     loadAdminConversations();
@@ -3577,11 +3609,19 @@ function showAdminPanel(){
 
   // Topbar badge — show correct role label
   const badge = document.getElementById("topbarBadge");
-  const badgeLabels = { super_admin:"SUPER ADMIN", admin:"ADMIN", event_lead:"EVENT LEAD" };
+  const badgeLabels = {
+    super_admin:              "SUPER ADMIN",
+    admin:                    "ADMIN",
+    event_lead:               "EVENT LEAD",
+    vice_provost:             "VICE PROVOST",
+    manager_marketing_comms:  "MM&C",
+  };
   const badgeColors = {
-    super_admin: { bg:"#fef3c7", color:"#92400e" },
-    admin:       { bg:"#eff6ff", color:"#1d4ed8" },
-    event_lead:  { bg:"#f0fdf4", color:"#15803d" },
+    super_admin:             { bg:"#fef3c7", color:"#92400e" },
+    admin:                   { bg:"#eff6ff", color:"#1d4ed8" },
+    event_lead:              { bg:"#f0fdf4", color:"#15803d" },
+    vice_provost:            { bg:"#f5f3ff", color:"#6d28d9" },
+    manager_marketing_comms: { bg:"#fdf4ff", color:"#a21caf" },
   };
   badge.textContent       = badgeLabels[currentRole] || "ADMIN";
   badge.style.background  = (badgeColors[currentRole] || badgeColors.admin).bg;
@@ -3651,9 +3691,10 @@ function showAdminPanel(){
     if(navBtn) navBtn.style.display = "none";
   }
 
-  // Event Lead Portal — visible to all roles
-  document.getElementById("myEventsNavBtn").style.display = "";
-  loadMyAssignedEvents();
+  // Event Lead Portal — visible to admin, super_admin, event_lead only (not VP or MM&C)
+  const isViewOnly = currentRole === "vice_provost" || currentRole === "manager_marketing_comms";
+  document.getElementById("myEventsNavBtn").style.display = isViewOnly ? "none" : "";
+  if(!isViewOnly) loadMyAssignedEvents();
 
   // Event Leads land on Event Lead Portal by default
   if(isEventLead){
@@ -4992,10 +5033,24 @@ function renderAdmins(list){
     const campusLabel = campuses.includes("All") ? "All Campuses" : campuses.join(", ");
     const isSuperAdmin = a.role === "super_admin";
     const isEventLead  = a.role === "event_lead";
+    const isVP         = a.role === "vice_provost";
+    const isMMC        = a.role === "manager_marketing_comms";
     const isMe         = a.email === currentUser.email;
-    const roleLabel    = isSuperAdmin ? "Super Admin" : isEventLead ? "Event Lead" : "Admin";
-    const avatarBg     = isSuperAdmin ? "#fef3c7" : isEventLead ? "#f0fdf4" : "var(--accent-light)";
-    const avatarColor  = isSuperAdmin ? "#92400e" : isEventLead ? "#15803d" : "var(--accent)";
+    const ROLE_LABELS  = {
+      super_admin: "Super Admin", admin: "Admin", event_lead: "Event Lead",
+      vice_provost: "Vice Provost", manager_marketing_comms: "MM&C"
+    };
+    const roleLabel    = ROLE_LABELS[a.role] || "Admin";
+    const avatarBg     = isSuperAdmin ? "#fef3c7"
+                       : isEventLead  ? "#f0fdf4"
+                       : isVP         ? "#f5f3ff"
+                       : isMMC        ? "#fdf4ff"
+                       : "var(--accent-light)";
+    const avatarColor  = isSuperAdmin ? "#92400e"
+                       : isEventLead  ? "#15803d"
+                       : isVP         ? "#6d28d9"
+                       : isMMC        ? "#a21caf"
+                       : "var(--accent)";
     return `
       <div class="admin-item">
         <div class="admin-avatar" style="background:${avatarBg};color:${avatarColor}">
@@ -5028,14 +5083,15 @@ function renderAdmins(list){
 }
 
 function handlePermRoleChange(sel){
-  const role        = sel.value;
+  const role         = sel.value;
   const isSuperAdmin = role === "super_admin";
   const isEventLead  = role === "event_lead";
+  const isViewOnly   = role === "vice_provost" || role === "manager_marketing_comms";
 
-  // Show note for Super Admin
+  // Note for Super Admin
   document.getElementById("superAdminNote").style.display = isSuperAdmin ? "block" : "none";
 
-  // Show event lead note
+  // Note for Event Lead
   let leadNote = document.getElementById("eventLeadNote");
   if(!leadNote){
     leadNote = document.createElement("div");
@@ -5046,19 +5102,44 @@ function handlePermRoleChange(sel){
   }
   leadNote.style.display = isEventLead ? "block" : "none";
 
-  // Grey out permissions section for super admin
-  document.getElementById("permRestrictedSection").style.opacity      = isSuperAdmin ? "0.4" : "1";
-  document.getElementById("permRestrictedSection").style.pointerEvents = isSuperAdmin ? "none" : "";
+  // Note for VP and MM&C
+  let viewOnlyNote = document.getElementById("viewOnlyNote");
+  if(!viewOnlyNote){
+    viewOnlyNote = document.createElement("div");
+    viewOnlyNote.id = "viewOnlyNote";
+    viewOnlyNote.style.cssText = "font-size:11px;color:var(--muted);margin-top:6px;padding:8px 12px;background:#f5f3ff;border-radius:8px;";
+    viewOnlyNote.textContent = "ℹ️ This role has access to the comprehensive dashboard across all campuses. Management tabs are not visible to them.";
+    document.getElementById("superAdminNote").after(viewOnlyNote);
+  }
+  viewOnlyNote.style.display = isViewOnly ? "block" : "none";
 
-  // If switching to event_lead, auto-set assign_events to false
+  // Grey out permissions section for super admin and view-only roles
+  const shouldLock = isSuperAdmin || isViewOnly;
+  document.getElementById("permRestrictedSection").style.opacity      = shouldLock ? "0.4" : "1";
+  document.getElementById("permRestrictedSection").style.pointerEvents = shouldLock ? "none" : "";
+
+  // Auto-set assign_events based on role
   if(isEventLead){
     const assignEl = document.getElementById("permAssign");
     if(assignEl) assignEl.checked = false;
   }
-  // If switching to admin, auto-set assign_events to true
   if(role === "admin"){
     const assignEl = document.getElementById("permAssign");
     if(assignEl) assignEl.checked = true;
+  }
+}
+
+// Auto-lock campus to "All" when VP or MM&C is selected in the invite form
+function handleNewRoleChange(sel){
+  const role       = sel.value;
+  const isViewOnly = role === "vice_provost" || role === "manager_marketing_comms";
+  const campusSel  = document.getElementById("newAdminCampus");
+  if(!campusSel) return;
+  if(isViewOnly){
+    campusSel.value    = "All";
+    campusSel.disabled = true;
+  } else {
+    campusSel.disabled = false;
   }
 }
 
