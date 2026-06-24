@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.21.0/dist/tabler-icons.min.css">
 
   <style>
     :root {
@@ -158,49 +159,163 @@
     .admin-shell { display: none; }
     .admin-shell.visible { display: flex; flex-direction: column; min-height: 100vh; }
 
+    /* ── TOPBAR ── */
     .topbar {
-      height: 56px;
-      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
-      border-bottom: none;
+      height: 60px;
+      background: #ffffff;
+      border-bottom: 0.5px solid var(--color-border);
       display: flex;
       align-items: center;
-      padding: 0 24px;
-      gap: 16px;
+      padding: 0 16px;
+      gap: 10px;
       position: sticky;
       top: 0;
       z-index: 100;
-      box-shadow: 0 2px 12px rgba(37,99,235,.3);
     }
-    .topbar-brand { font-weight: 700; font-size: 16px; color: white; }
-    .topbar-badge {
-      background: rgba(255,255,255,.2);
-      color: white;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 999px;
-      letter-spacing: .4px;
+
+    /* Hamburger — mobile sidebar toggle */
+    .topbar-hamburger {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-md);
+      border: none; background: transparent;
+      color: var(--color-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0; transition: background .12s;
     }
-    .topbar-user {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 13px;
-      color: rgba(255,255,255,.85);
+    .topbar-hamburger:hover { background: var(--color-bg); }
+
+    /* Search bar */
+    .topbar-search {
+      flex: 1; max-width: 380px; height: 38px;
+      background: var(--color-bg);
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--color-border);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 8px; cursor: text;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .logout-btn {
-      padding: 7px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,.3);
-      background: rgba(255,255,255,.15);
+    .topbar-search:focus-within {
+      border-color: var(--aku-navy);
+      box-shadow: 0 0 0 3px var(--aku-navy-light);
+    }
+    .topbar-search i { font-size: 16px; color: var(--color-hint); flex-shrink: 0; }
+    .topbar-search-input {
+      flex: 1; border: none; background: transparent;
       font-family: 'Poppins', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      color: white;
+      font-size: var(--text-base); color: var(--color-ink); outline: none;
     }
-    .logout-btn:hover { background: rgba(255,255,255,.25); }
+    .topbar-search-input::placeholder { color: var(--color-hint); }
+    .topbar-search-kbd {
+      font-size: var(--text-xs); color: var(--color-hint);
+      background: #fff; border: 1px solid var(--color-border);
+      border-radius: 5px; padding: 2px 7px;
+      font-family: 'Poppins', sans-serif; flex-shrink: 0;
+    }
+
+    /* Right-side action area */
+    .topbar-user {
+      margin-left: auto; display: flex;
+      align-items: center; gap: 4px;
+    }
+
+    /* Icon buttons (messages, bell) */
+    .topbar-icon-btn {
+      width: 38px; height: 38px;
+      border-radius: var(--radius-md);
+      border: none; background: transparent;
+      color: var(--color-muted); cursor: pointer; font-size: 19px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0; transition: background .12s;
+      font-family: 'Poppins', sans-serif;
+    }
+    .topbar-icon-btn:hover { background: var(--color-bg); color: var(--color-ink); }
+    .topbar-icon-btn:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; }
+
+    /* Notification dot badge (kept as .notif-bell-badge for JS compatibility) */
+    .notif-bell-badge {
+      position: absolute; top: 6px; right: 6px;
+      width: 8px; height: 8px;
+      background: var(--color-danger);
+      border-radius: 50%;
+      border: 2px solid #fff;
+      display: none;
+    }
+    .notif-bell-badge.visible { display: block; }
+
+    /* Vertical divider between icons and user */
+    .topbar-divider {
+      width: 1px; height: 24px;
+      background: var(--color-border);
+      margin: 0 6px; flex-shrink: 0;
+    }
+
+    /* User profile button */
+    .topbar-user-btn {
+      display: flex; align-items: center; gap: 9px;
+      padding: 5px 10px; border-radius: var(--radius-md);
+      border: none; background: transparent;
+      cursor: pointer; font-family: 'Poppins', sans-serif;
+      transition: background .12s; flex-shrink: 0;
+    }
+    .topbar-user-btn:hover { background: var(--color-bg); }
+    .topbar-user-btn:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; }
+
+    /* Avatar circle */
+    .topbar-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--aku-navy); color: #fff;
+      font-size: 12px; font-weight: 700; letter-spacing: .5px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-family: 'Poppins', sans-serif;
+    }
+
+    /* Name + role block inside user button */
+    .topbar-user-info { text-align: left; line-height: 1.3; }
+    .topbar-user-name {
+      font-size: var(--text-base); font-weight: 500;
+      color: var(--color-ink); white-space: nowrap;
+      max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .topbar-chevron { font-size: 14px; color: var(--color-hint); flex-shrink: 0; }
+
+    /* Role badge (existing id=topbarBadge, now inside user info) */
+    .topbar-badge {
+      display: inline-block;
+      font-size: 10px; font-weight: 700;
+      padding: 1px 7px; border-radius: var(--radius-pill);
+      letter-spacing: .4px; text-transform: uppercase;
+    }
+
+    /* User dropdown */
+    .topbar-dropdown {
+      display: none;
+      position: fixed; top: 66px; right: 12px;
+      width: 220px;
+      background: #fff;
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 200; padding: 4px;
+    }
+    .topbar-dropdown.open { display: block; }
+    .topbar-dropdown-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 12px; width: 100%;
+      background: transparent; border: none;
+      border-radius: var(--radius-md);
+      font-family: 'Poppins', sans-serif;
+      font-size: var(--text-base); color: var(--color-ink);
+      cursor: pointer; text-align: left; transition: background .12s;
+    }
+    .topbar-dropdown-item:hover { background: var(--color-bg); }
+    .topbar-dropdown-item i { font-size: 17px; color: var(--color-muted); flex-shrink: 0; }
+    .topbar-dropdown-danger { color: var(--color-danger); }
+    .topbar-dropdown-danger:hover { background: var(--color-danger-bg); }
+    .topbar-dropdown-danger i { color: var(--color-danger); }
+    .topbar-dropdown-divider { height: 0.5px; background: var(--color-border); margin: 4px 0; }
+
+    /* .logout-btn kept in DOM for any legacy references but visually hidden */
+    .logout-btn { display: none; }
 
     .admin-body {
       display: flex;
@@ -1483,6 +1598,9 @@
       .pages-grid { grid-template-columns: 1fr; }
       #userEmail { display: none; }
       #changePasswordBtn { display: none; }
+      .topbar-user-name { display: none; }
+      .topbar-search-kbd { display: none; }
+      .topbar-search { max-width: 200px; }
     }
   </style>
 </head>
@@ -1547,22 +1665,62 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <button class="admin-nav-toggle" onclick="toggleAdminSidebar()" aria-label="Toggle navigation">&#9776;</button>
-    <div class="topbar-brand">Life on Campus</div>
-    <div class="topbar-badge" id="topbarBadge">ADMIN</div>
+    <button class="admin-nav-toggle topbar-hamburger" onclick="toggleAdminSidebar()" aria-label="Toggle navigation" aria-expanded="false">
+      <i class="ti ti-menu-2" aria-hidden="true"></i>
+    </button>
+
+    <div class="topbar-search" onclick="document.getElementById('topbarSearchInput').focus()">
+      <i class="ti ti-search" aria-hidden="true"></i>
+      <input class="topbar-search-input" type="text" id="topbarSearchInput"
+        placeholder="Search anything..."
+        aria-label="Search admin panel" />
+      <span class="topbar-search-kbd" aria-hidden="true">⌘K</span>
+    </div>
+
     <div class="topbar-user">
-      <span id="userEmail"></span>
-      <button class="notif-bell-btn" id="adminChatBtn" title="Messages" onclick="toggleAdminChatPanel()" style="display:none;">
-        💬
+      <button class="topbar-icon-btn" id="adminChatBtn"
+        title="Messages" aria-label="Open messages"
+        onclick="toggleAdminChatPanel()" style="display:none;">
+        <i class="ti ti-message-2" aria-hidden="true"></i>
         <span class="notif-bell-badge" id="adminChatBadge"></span>
       </button>
-      <button class="notif-bell-btn" id="adminNotifBtn" title="Notifications" onclick="toggleNotifPanel()">
-        🔔
+
+      <button class="topbar-icon-btn" id="adminNotifBtn"
+        title="Notifications" aria-label="Open notifications"
+        onclick="toggleNotifPanel()">
+        <i class="ti ti-bell" aria-hidden="true"></i>
         <span class="notif-bell-badge" id="adminNotifBadge"></span>
       </button>
-      <button class="logout-btn" id="changePasswordBtn" style="color:var(--ink);border-color:var(--border);" onclick="openChangePassword(false)">🔑 Change Password</button>
-      <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+
+      <div class="topbar-divider" aria-hidden="true"></div>
+
+      <button class="topbar-user-btn" id="topbarUserBtn"
+        onclick="toggleUserDropdown()"
+        aria-label="User menu" aria-haspopup="true" aria-expanded="false">
+        <div class="topbar-avatar" id="userAvatar" aria-hidden="true"></div>
+        <div class="topbar-user-info">
+          <div class="topbar-user-name" id="userEmail"></div>
+          <span class="topbar-badge" id="topbarBadge"></span>
+        </div>
+        <i class="ti ti-chevron-down topbar-chevron" aria-hidden="true"></i>
+      </button>
     </div>
+
+    <!-- Legacy buttons — hidden via CSS, IDs preserved for JS compatibility -->
+    <button class="logout-btn" id="changePasswordBtn" onclick="openChangePassword(false)" style="display:none;">Change Password</button>
+  </div>
+
+  <!-- User dropdown -->
+  <div class="topbar-dropdown" id="userDropdown" role="menu" aria-label="User options">
+    <button class="topbar-dropdown-item" onclick="openChangePassword(false)" role="menuitem">
+      <i class="ti ti-key" aria-hidden="true"></i>
+      <span>Change Password</span>
+    </button>
+    <div class="topbar-dropdown-divider"></div>
+    <button class="topbar-dropdown-item topbar-dropdown-danger" onclick="handleLogout()" role="menuitem">
+      <i class="ti ti-logout" aria-hidden="true"></i>
+      <span>Sign Out</span>
+    </button>
   </div>
 
   <!-- Sidebar overlay (mobile) -->
@@ -3665,6 +3823,12 @@ function showAdminPanel(){
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("adminShell").classList.add("visible");
   document.getElementById("userEmail").textContent = getDisplayName(currentUser.email);
+
+  // Set avatar initials from display name
+  const _displayName = getDisplayName(currentUser.email);
+  const _initials = _displayName.split(" ").map(w => w[0] || "").join("").substring(0, 2).toUpperCase();
+  const _avatarEl = document.getElementById("userAvatar");
+  if(_avatarEl) _avatarEl.textContent = _initials;
 
   // Show chat button for admin and event_lead only
   const isChatRole = currentRole === "admin" || currentRole === "event_lead";
@@ -8700,6 +8864,32 @@ document.addEventListener("click", e => {
   const chatBtn   = document.getElementById("adminChatBtn");
   if(chatPanel && chatBtn && !chatPanel.contains(e.target) && !chatBtn.contains(e.target)){
     chatPanel.classList.remove("open");
+  }
+
+  // Close user dropdown when clicking outside
+  const userDropdown = document.getElementById("userDropdown");
+  const userBtn      = document.getElementById("topbarUserBtn");
+  if(userDropdown && userBtn && !userDropdown.contains(e.target) && !userBtn.contains(e.target)){
+    userDropdown.classList.remove("open");
+    userBtn.setAttribute("aria-expanded", "false");
+  }
+});
+
+/* ── Topbar: user dropdown toggle ── */
+function toggleUserDropdown(){
+  const dd  = document.getElementById("userDropdown");
+  const btn = document.getElementById("topbarUserBtn");
+  if(!dd || !btn) return;
+  const isOpen = dd.classList.toggle("open");
+  btn.setAttribute("aria-expanded", isOpen);
+}
+
+/* ── Topbar: ⌘K / Ctrl+K focuses search bar ── */
+document.addEventListener("keydown", function(e){
+  if((e.metaKey || e.ctrlKey) && e.key === "k"){
+    e.preventDefault();
+    const inp = document.getElementById("topbarSearchInput");
+    if(inp){ inp.focus(); inp.select(); }
   }
 });
 
