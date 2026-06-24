@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co https://studentexperience.github.io;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://studentexperience.github.io;">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,10 +167,43 @@
       display: flex;
       align-items: center;
       padding: 0 16px;
-      gap: 10px;
+      gap: 0;
       position: sticky;
       top: 0;
       z-index: 100;
+    }
+
+    /* LEFT ZONE — brand, equal flex-basis with right zone to pin search dead-centre */
+    .topbar-left {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    /* Brand block */
+    .topbar-brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .topbar-brand-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--aku-navy);
+      color: #fff;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; letter-spacing: -.5px;
+      font-family: 'Poppins', sans-serif;
+    }
+    .topbar-brand-name {
+      font-size: 15px; font-weight: 700;
+      color: var(--aku-navy);
+      white-space: nowrap;
+      letter-spacing: -.2px;
     }
 
     /* Hamburger — mobile sidebar toggle */
@@ -184,9 +217,17 @@
     }
     .topbar-hamburger:hover { background: var(--color-bg); }
 
+    /* CENTRE ZONE — search bar, always dead-centre */
+    .topbar-center {
+      flex: 0 0 auto;
+      display: flex;
+      justify-content: center;
+      padding: 0 16px;
+    }
+
     /* Search bar */
     .topbar-search {
-      flex: 1; max-width: 380px; height: 38px;
+      width: 340px; height: 38px;
       background: var(--color-bg);
       border-radius: var(--radius-pill);
       border: 1px solid var(--color-border);
@@ -212,10 +253,13 @@
       font-family: 'Poppins', sans-serif; flex-shrink: 0;
     }
 
-    /* Right-side action area */
+    /* RIGHT ZONE — actions, equal flex to left so search stays centred */
     .topbar-user {
-      margin-left: auto; display: flex;
-      align-items: center; gap: 4px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
     }
 
     /* Icon buttons (messages, bell) */
@@ -231,7 +275,7 @@
     .topbar-icon-btn:hover { background: var(--color-bg); color: var(--color-ink); }
     .topbar-icon-btn:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; }
 
-    /* Notification dot badge (kept as .notif-bell-badge for JS compatibility) */
+    /* Notification dot badge */
     .notif-bell-badge {
       position: absolute; top: 6px; right: 6px;
       width: 8px; height: 8px;
@@ -278,7 +322,7 @@
     }
     .topbar-chevron { font-size: 14px; color: var(--color-hint); flex-shrink: 0; }
 
-    /* Role badge (existing id=topbarBadge, now inside user info) */
+    /* Role badge */
     .topbar-badge {
       display: inline-block;
       font-size: 10px; font-weight: 700;
@@ -1600,7 +1644,8 @@
       #changePasswordBtn { display: none; }
       .topbar-user-name { display: none; }
       .topbar-search-kbd { display: none; }
-      .topbar-search { max-width: 200px; }
+      .topbar-search { width: 180px; }
+      .topbar-brand-name { display: none; }
     }
   </style>
 </head>
@@ -1665,18 +1710,30 @@
 
   <!-- Topbar -->
   <div class="topbar">
-    <button class="admin-nav-toggle topbar-hamburger" onclick="toggleAdminSidebar()" aria-label="Toggle navigation" aria-expanded="false">
-      <i class="ti ti-menu-2" aria-hidden="true"></i>
-    </button>
 
-    <div class="topbar-search" onclick="document.getElementById('topbarSearchInput').focus()">
-      <i class="ti ti-search" aria-hidden="true"></i>
-      <input class="topbar-search-input" type="text" id="topbarSearchInput"
-        placeholder="Search anything..."
-        aria-label="Search admin panel" />
-      <span class="topbar-search-kbd" aria-hidden="true">⌘K</span>
+    <!-- LEFT ZONE: brand + mobile hamburger -->
+    <div class="topbar-left">
+      <button class="admin-nav-toggle topbar-hamburger" onclick="toggleAdminSidebar()" aria-label="Toggle navigation" aria-expanded="false">
+        <i class="ti ti-menu-2" aria-hidden="true"></i>
+      </button>
+      <div class="topbar-brand-block">
+        <div class="topbar-brand-icon" aria-hidden="true">LC</div>
+        <span class="topbar-brand-name">Life on Campus</span>
+      </div>
     </div>
 
+    <!-- CENTRE ZONE: search bar (always dead-centre) -->
+    <div class="topbar-center">
+      <div class="topbar-search" onclick="document.getElementById('topbarSearchInput').focus()">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input class="topbar-search-input" type="text" id="topbarSearchInput"
+          placeholder="Search anything..."
+          aria-label="Search admin panel" />
+        <span class="topbar-search-kbd" aria-hidden="true">⌘K</span>
+      </div>
+    </div>
+
+    <!-- RIGHT ZONE: icon actions + user profile -->
     <div class="topbar-user">
       <button class="topbar-icon-btn" id="adminChatBtn"
         title="Messages" aria-label="Open messages"
@@ -1706,7 +1763,7 @@
       </button>
     </div>
 
-    <!-- Legacy buttons — hidden via CSS, IDs preserved for JS compatibility -->
+    <!-- Legacy button — hidden, ID preserved for JS compatibility -->
     <button class="logout-btn" id="changePasswordBtn" onclick="openChangePassword(false)" style="display:none;">Change Password</button>
   </div>
 
