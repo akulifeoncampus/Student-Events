@@ -1818,7 +1818,7 @@
                 <div class="chart-card-sub">Total events per campus</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="campusChartType" onchange="renderCampusChart()" aria-label="Chart type">
+                <select class="chart-select" id="campusChartType" onchange="waitForVisible('chartByCampus',renderCampusChart)" aria-label="Chart type">
                   <option value="bar">Bar</option>
                   <option value="doughnut">Doughnut</option>
                   <option value="pie">Pie</option>
@@ -1836,8 +1836,8 @@
                 <div class="chart-card-sub">All campuses combined</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="monthChartYear" onchange="renderMonthChart()" aria-label="Year"></select>
-                <select class="chart-select" id="monthChartType" onchange="renderMonthChart()" aria-label="Chart type">
+                <select class="chart-select" id="monthChartYear" onchange="waitForVisible('chartByMonth',renderMonthChart)" aria-label="Year"></select>
+                <select class="chart-select" id="monthChartType" onchange="waitForVisible('chartByMonth',renderMonthChart)" aria-label="Chart type">
                   <option value="bar">Bar</option>
                   <option value="line">Line</option>
                 </select>
@@ -1857,8 +1857,8 @@
                 <div class="chart-card-sub">Breakdown per campus across months</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="campusMonthYear" onchange="renderCampusMonthChart()" aria-label="Year"></select>
-                <select class="chart-select" id="campusMonthType" onchange="renderCampusMonthChart()" aria-label="Chart type">
+                <select class="chart-select" id="campusMonthYear" onchange="waitForVisible('chartCampusByMonth',renderCampusMonthChart)" aria-label="Year"></select>
+                <select class="chart-select" id="campusMonthType" onchange="waitForVisible('chartCampusByMonth',renderCampusMonthChart)" aria-label="Chart type">
                   <option value="bar">Grouped Bar</option>
                   <option value="line">Line</option>
                 </select>
@@ -1878,14 +1878,14 @@
                 <div class="chart-card-sub">Distribution across all campuses</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="categoryChartCampus" onchange="renderCategoryChart()">
+                <select class="chart-select" id="categoryChartCampus" onchange="waitForVisible('chartByCategory',renderCategoryChart)">
                   <option value="">All Campuses</option>
                   <option>Karachi</option>
                   <option>Nairobi</option>
                   <option>Kampala</option>
                   <option>Dar es Salaam</option>
                 </select>
-                <select class="chart-select" id="categoryChartType" onchange="renderCategoryChart()">
+                <select class="chart-select" id="categoryChartType" onchange="waitForVisible('chartByCategory',renderCategoryChart)">
                   <option value="doughnut">Doughnut</option>
                   <option value="pie">Pie</option>
                   <option value="bar">Bar</option>
@@ -3784,7 +3784,7 @@ function showSection(name, btn){
 
   if(name === "dashboard" && dashEventData.length > 0){
     ["chartByCampus","chartByMonth","chartCampusByMonth","chartByCategory"].forEach(id => destroyChart(id));
-    setTimeout(() => renderAllCharts(), 200);
+    renderAllCharts(); // waitForVisible inside handles canvas-ready timing
   }
   if(name === "resources") loadResources();
   if(name === "emergency") loadEmergencyContacts();
@@ -3826,12 +3826,19 @@ Chart.defaults.plugins.tooltip.boxPadding      = 4;
 Chart.defaults.animation                        = { duration: 700, easing: 'easeInOutQuart' };
 
 function destroyChart(id){
-  // Destroy the Chart.js instance only — do NOT replace the canvas element.
-  // Replacing the canvas causes layout timing issues when switching chart types
-  // because the new canvas has zero dimensions until the browser does a layout pass.
   if(chartInstances[id]){
     chartInstances[id].destroy();
     delete chartInstances[id];
+  }
+  /* After Chart.js destroys a chart it resets the canvas width/height attributes
+     to 0, which makes the next Chart instance render invisibly. Clearing the
+     inline size lets CSS dimensions take over again before the next render. */
+  const canvas = document.getElementById(id);
+  if(canvas){
+    canvas.removeAttribute("width");
+    canvas.removeAttribute("height");
+    canvas.style.width  = "";
+    canvas.style.height = "";
   }
 }
 
@@ -4254,16 +4261,18 @@ function safeRender(fn, label){
 
 function renderAllCharts(){
   const isCampusAdmin = currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All";
-  // Campus admins only see Events by Month and Events by Category
-  // All other roles see the full set including campus-level charts
+  // waitForVisible polls until each canvas has real CSS dimensions before
+  // calling the render function — fixes blank charts on page load, section
+  // switch, and filter changes. safeRender + setTimeout silently swallowed
+  // errors when the canvas was still 0-size; this replaces that pattern.
   if(!isCampusAdmin){
-    setTimeout(() => safeRender(renderCampusChart,      "Campus"),      100);
+    waitForVisible("chartByCampus",      renderCampusChart);
   }
-  setTimeout(() => safeRender(renderMonthChart,         "Month"),       isCampusAdmin ? 100 : 250);
+  waitForVisible("chartByMonth",         renderMonthChart);
   if(!isCampusAdmin){
-    setTimeout(() => safeRender(renderCampusMonthChart, "CampusMonth"), 400);
+    waitForVisible("chartCampusByMonth", renderCampusMonthChart);
   }
-  setTimeout(() => safeRender(renderCategoryChart,      "Category"),    isCampusAdmin ? 250 : 550);
+  waitForVisible("chartByCategory",      renderCategoryChart);
 }
 
 /* ── Chart 1: Events by Campus ── */
