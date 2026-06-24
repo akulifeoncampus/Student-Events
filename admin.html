@@ -1799,23 +1799,26 @@
           </div>
         </div>
 
-        <!-- Per-campus stat cards -->
-        <div class="charts-section-title">By Campus — Summary</div>
-        <div id="campusStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:28px;"></div>
+        <!-- Per-campus stat cards — hidden for campus admins, shown for all other roles -->
+        <div id="campusSummarySection">
+          <div class="charts-section-title">By Campus — Summary</div>
+          <div id="campusStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:28px;"></div>
+        </div>
 
         <!-- ── CHARTS ── -->
         <div class="charts-section-title">Events Analytics</div>
 
-        <!-- Row 1: Events by Campus + Events by Month -->
-        <div class="charts-grid">
-          <div class="chart-card">
+        <!-- Row 1: Events by Campus (hidden for campus admins) + Events by Month (always visible).
+             For campus admins, the row becomes full-width showing only Events by Month. -->
+        <div class="charts-grid" id="row1Charts">
+          <div class="chart-card" id="campusByChartCard">
             <div class="chart-card-header">
               <div>
                 <div class="chart-card-title">Events by Campus</div>
                 <div class="chart-card-sub">Total events per campus</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="campusChartType" onchange="renderCampusChart()">
+                <select class="chart-select" id="campusChartType" onchange="renderCampusChart()" aria-label="Chart type">
                   <option value="bar">Bar</option>
                   <option value="doughnut">Doughnut</option>
                   <option value="pie">Pie</option>
@@ -1823,7 +1826,7 @@
                 <button class="chart-download-btn" onclick="downloadChart('chartByCampus','Events by Campus')">⬇ PNG</button>
               </div>
             </div>
-            <div class="chart-wrap"><canvas id="chartByCampus"></canvas></div>
+            <div class="chart-wrap" style="height:300px;"><canvas id="chartByCampus"></canvas></div>
           </div>
 
           <div class="chart-card">
@@ -1833,20 +1836,20 @@
                 <div class="chart-card-sub">All campuses combined</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="monthChartYear" onchange="renderMonthChart()"></select>
-                <select class="chart-select" id="monthChartType" onchange="renderMonthChart()">
+                <select class="chart-select" id="monthChartYear" onchange="renderMonthChart()" aria-label="Year"></select>
+                <select class="chart-select" id="monthChartType" onchange="renderMonthChart()" aria-label="Chart type">
                   <option value="bar">Bar</option>
                   <option value="line">Line</option>
                 </select>
                 <button class="chart-download-btn" onclick="downloadChart('chartByMonth','Events by Month')">⬇ PNG</button>
               </div>
             </div>
-            <div class="chart-wrap"><canvas id="chartByMonth"></canvas></div>
+            <div class="chart-wrap" style="height:300px;"><canvas id="chartByMonth"></canvas></div>
           </div>
         </div>
 
-        <!-- Row 2: Events by Campus by Month (full width) -->
-        <div class="charts-grid full">
+        <!-- Row 2: Events by Campus by Month — hidden for campus admins -->
+        <div class="charts-grid full" id="campusMonthChartRow">
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
@@ -1854,8 +1857,8 @@
                 <div class="chart-card-sub">Breakdown per campus across months</div>
               </div>
               <div class="chart-controls">
-                <select class="chart-select" id="campusMonthYear" onchange="renderCampusMonthChart()"></select>
-                <select class="chart-select" id="campusMonthType" onchange="renderCampusMonthChart()">
+                <select class="chart-select" id="campusMonthYear" onchange="renderCampusMonthChart()" aria-label="Year"></select>
+                <select class="chart-select" id="campusMonthType" onchange="renderCampusMonthChart()" aria-label="Chart type">
                   <option value="bar">Grouped Bar</option>
                   <option value="line">Line</option>
                 </select>
@@ -1866,7 +1869,7 @@
           </div>
         </div>
 
-        <!-- Row 3: Events by Category full width -->
+        <!-- Row 3: Events by Category — always visible for all roles -->
         <div class="charts-grid full">
           <div class="chart-card">
             <div class="chart-card-header">
@@ -1905,15 +1908,8 @@
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <input type="text" id="pivotSearch" placeholder="🔍 Search clubs…"
                 oninput="applyPivotFilters()"
+                aria-label="Search clubs in pivot table"
                 style="padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;outline:none;width:180px;" />
-              <select id="pivotCampus" onchange="applyPivotFilters()"
-                style="padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;outline:none;background:white;">
-                <option value="">All Campuses</option>
-                <option>Karachi</option>
-                <option>Nairobi</option>
-                <option>Kampala</option>
-                <option>Dar es Salaam</option>
-              </select>
               <button onclick="downloadPivotExcel()"
                 style="padding:8px 16px;background:#15803d;color:white;border:none;border-radius:10px;
                 font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;
@@ -3725,6 +3721,16 @@ function showAdminPanel(){
     }
   }
 
+  // Campus-level dashboard sections: hidden for campus admins, visible for all other roles
+  const isCampusAdmin = currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All";
+  ["campusSummarySection", "campusByChartCard", "campusMonthChartRow"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = isCampusAdmin ? "none" : "";
+  });
+  // Make Events by Month full-width for campus admins (Events by Campus is hidden)
+  const row1 = document.getElementById("row1Charts");
+  if(row1) row1.className = isCampusAdmin ? "charts-grid full" : "charts-grid";
+
   // Event Lead Portal — visible to admin, super_admin, event_lead only (not VP, MM&C or Sr. Manager)
   const isViewOnly = currentRole === "vice_provost" || currentRole === "manager_marketing_comms" || currentRole === "senior_manager_global";
   document.getElementById("myEventsNavBtn").style.display = isViewOnly ? "none" : "";
@@ -3820,20 +3826,12 @@ Chart.defaults.plugins.tooltip.boxPadding      = 4;
 Chart.defaults.animation                        = { duration: 700, easing: 'easeInOutQuart' };
 
 function destroyChart(id){
-  // Destroy existing Chart.js instance
+  // Destroy the Chart.js instance only — do NOT replace the canvas element.
+  // Replacing the canvas causes layout timing issues when switching chart types
+  // because the new canvas has zero dimensions until the browser does a layout pass.
   if(chartInstances[id]){
     chartInstances[id].destroy();
     delete chartInstances[id];
-  }
-  // Replace canvas element entirely — prevents Chart.js stale state when switching types
-  const canvas = document.getElementById(id);
-  if(canvas){
-    const parent    = canvas.parentNode;
-    const newCanvas = document.createElement("canvas");
-    newCanvas.id    = id;
-    // Preserve any inline styles
-    newCanvas.style.cssText = canvas.style.cssText;
-    parent.replaceChild(newCanvas, canvas);
   }
 }
 
@@ -3991,29 +3989,31 @@ async function loadDashboard(){
 
   renderAttentionBanner(pendingProposalsCount || 0, pendingClubsCount || 0);
 
-  // Per-campus summary cards
-  const campusGrid = document.getElementById("campusStatsGrid");
-  campusGrid.innerHTML = campusesToShow.map(c => {
-    const clubs    = (allClubsData || []).filter(x => x.campus === c).length;
-    const events   = (eventsData   || []).filter(x => x.campus === c).length;
-    const upcoming = (eventsData   || []).filter(x => x.campus === c && x.event_date >= today).length;
-    const color    = CAMPUS_COLORS[c] || "#555";
-    return `
-      <div class="stat-card" style="border-top:4px solid ${color};">
-        <div class="stat-label" style="color:${color};">📍 ${c}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
-          <div><div style="font-size:22px;font-weight:700;">${clubs}</div><div style="font-size:11px;color:var(--muted);">Clubs</div></div>
-          <div><div style="font-size:22px;font-weight:700;">${events}</div><div style="font-size:11px;color:var(--muted);">Events</div></div>
-          <div><div style="font-size:22px;font-weight:700;">${upcoming}</div><div style="font-size:11px;color:var(--muted);">Upcoming</div></div>
-        </div>
-      </div>`;
-  }).join("");
-
   dashEventData = eventsData || [];
 
-  // Campus stat cards — super admin sees all 4; campus admins see only their campus
-  const campusesToShow = campusRestricted ? [currentAdminCampus] : CAMPUSES;
+  // Campus stat grid — only shown for Super Admin, VP, MM&C, Senior Manager (not campus admins)
+  if(!campusRestricted){
+    const campusGrid = document.getElementById("campusStatsGrid");
+    if(campusGrid){
+      campusGrid.innerHTML = CAMPUSES.map(c => {
+        const clubs    = (allClubsData || []).filter(x => x.campus === c).length;
+        const events   = (eventsData   || []).filter(x => x.campus === c).length;
+        const upcoming = (eventsData   || []).filter(x => x.campus === c && x.event_date >= today).length;
+        const color    = CAMPUS_COLORS[c] || "#555";
+        return `
+          <div class="stat-card" style="border-top:4px solid ${color};">
+            <div class="stat-label" style="color:${color};">📍 ${c}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
+              <div><div style="font-size:22px;font-weight:700;">${clubs}</div><div style="font-size:11px;color:var(--muted);">Clubs</div></div>
+              <div><div style="font-size:22px;font-weight:700;">${events}</div><div style="font-size:11px;color:var(--muted);">Events</div></div>
+              <div><div style="font-size:22px;font-weight:700;">${upcoming}</div><div style="font-size:11px;color:var(--muted);">Upcoming</div></div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+  }
 
+  // Populate year selectors for month charts
   const years = [...new Set(dashEventData
     .filter(e => e.event_date)
     .map(e => new Date(e.event_date).getFullYear())
@@ -4021,9 +4021,9 @@ async function loadDashboard(){
   const currentYear = new Date().getFullYear();
   if(!years.includes(currentYear)) years.unshift(currentYear);
 
-  ["monthChartYear","campusMonthYear"].forEach(selId => {
+  ["monthChartYear", "campusMonthYear"].forEach(selId => {
     const sel = document.getElementById(selId);
-    sel.innerHTML = years.map(y =>
+    if(sel) sel.innerHTML = years.map(y =>
       `<option value="${y}" ${y === currentYear ? "selected":""}>${y}</option>`
     ).join("");
   });
@@ -4086,21 +4086,33 @@ function renderAttentionBanner(pendingProposals, pendingClubs){
 let allPivotData = [];
 
 async function buildPivotTable(){
-  const [{ data: eventsData }, { data: proposalsData }] = await Promise.all([
-    sb.from("events").select("id,organiser,name,event_date,campus"),
-    sb.from("event_proposals").select("published_event_id,status,execution_status"),
-  ]);
-  if(!eventsData) return;
+  const tbody = document.getElementById("pivotTbody");
+  if(!tbody) return;
 
-  const proposalMap = {};
-  (proposalsData||[]).forEach(p => { if(p.published_event_id) proposalMap[p.published_event_id] = p; });
+  // Query event_proposals directly — reliable source of all club events and statuses.
+  // Previous approach joined events + event_proposals via published_event_id
+  // which failed silently if that column didn't exist, leaving the table stuck on "Loading…"
+  let q = sb.from("event_proposals")
+    .select("club_name, club_email, campus, status, execution_status");
 
-  allPivotData = eventsData.map(e => ({
-    club_name:        e.organiser || "Unassigned",
-    campus:           e.campus    || "",
-    status:           proposalMap[e.id]?.status           || "published",
-    execution_status: proposalMap[e.id]?.execution_status || null,
+  // Campus admins see their campus only
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    q = q.eq("campus", currentAdminCampus);
+  }
+
+  const { data, error } = await q;
+  if(error || !data){
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:20px;">Could not load data. Please refresh.</td></tr>`;
+    return;
+  }
+
+  allPivotData = data.map(p => ({
+    club_name:        p.club_name || p.club_email?.split("@")[0] || "Unknown",
+    campus:           p.campus    || "",
+    status:           p.status    || "submitted",
+    execution_status: p.execution_status || null,
   }));
+
   renderPivot(allPivotData);
 }
 
@@ -4109,20 +4121,18 @@ function filterPivot(q){
 }
 
 function applyPivotFilters(){
-  const q      = (document.getElementById("pivotSearch")?.value  || "").toLowerCase();
-  const campus = (document.getElementById("pivotCampus")?.value  || "");
-  let filtered = allPivotData;
-  if(q)      filtered = filtered.filter(r => (r.club_name||"").toLowerCase().includes(q));
-  if(campus) filtered = filtered.filter(r => r.campus === campus);
+  const q = (document.getElementById("pivotSearch")?.value || "").toLowerCase();
+  const filtered = q
+    ? allPivotData.filter(r => (r.club_name||"").toLowerCase().includes(q))
+    : allPivotData;
   renderPivot(filtered);
 }
 
 function downloadPivotExcel(){
-  const q      = (document.getElementById("pivotSearch")?.value  || "").toLowerCase();
-  const campus = (document.getElementById("pivotCampus")?.value  || "");
-  let filtered = allPivotData;
-  if(q)      filtered = filtered.filter(r => (r.club_name||"").toLowerCase().includes(q));
-  if(campus) filtered = filtered.filter(r => r.campus === campus);
+  const q = (document.getElementById("pivotSearch")?.value || "").toLowerCase();
+  const filtered = q
+    ? allPivotData.filter(r => (r.club_name||"").toLowerCase().includes(q))
+    : allPivotData;
 
   // Build club summary same as renderPivot
   const clubs = {};
@@ -4243,12 +4253,17 @@ function safeRender(fn, label){
 }
 
 function renderAllCharts(){
-  // Stagger renders to give CSS grid time to calculate dimensions
-  // Each chart gets a slightly longer delay to ensure canvas is sized
-  setTimeout(() => safeRender(renderCampusChart,     "Campus"),     100);
-  setTimeout(() => safeRender(renderMonthChart,       "Month"),      250);
-  setTimeout(() => safeRender(renderCampusMonthChart, "CampusMonth"),400);
-  setTimeout(() => safeRender(renderCategoryChart,    "Category"),   550);
+  const isCampusAdmin = currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All";
+  // Campus admins only see Events by Month and Events by Category
+  // All other roles see the full set including campus-level charts
+  if(!isCampusAdmin){
+    setTimeout(() => safeRender(renderCampusChart,      "Campus"),      100);
+  }
+  setTimeout(() => safeRender(renderMonthChart,         "Month"),       isCampusAdmin ? 100 : 250);
+  if(!isCampusAdmin){
+    setTimeout(() => safeRender(renderCampusMonthChart, "CampusMonth"), 400);
+  }
+  setTimeout(() => safeRender(renderCategoryChart,      "Category"),    isCampusAdmin ? 250 : 550);
 }
 
 /* ── Chart 1: Events by Campus ── */
