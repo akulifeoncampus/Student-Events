@@ -1674,9 +1674,10 @@
       flex-shrink: 0;
     }
 
-    /* Topbar hamburger always visible — overrides admin-nav-toggle's display:none */
+    /* Topbar hamburger always visible — overrides admin-nav-toggle's display:none and color:white */
     .topbar-hamburger {
       display: flex !important;
+      color: var(--color-muted) !important;
     }
 
     /* Topbar brand text (no icon — sidebar carries the full treatment) */
@@ -2028,14 +2029,7 @@
     <!-- Sidebar -->
     <div class="sidebar" id="adminSidebar">
 
-      <!-- Brand mark — clicking it always expands/collapses sidebar -->
-      <div class="sidebar-brand-row">
-        <div class="sidebar-brand-icon"
-          onclick="toggleSidebar()"
-          role="button" tabindex="0"
-          aria-label="Toggle sidebar"
-          onkeydown="if(event.key==='Enter')toggleSidebar()">LC</div>
-      </div>
+      <!-- Sidebar starts directly with navigation groups -->
 
       <!-- GROUP 1: Overview -->
       <div class="sidebar-label">Overview</div>
