@@ -776,15 +776,49 @@
       margin-bottom: 28px;
     }
     .stat-card {
-      background: white;
-      border-radius: 14px;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
       padding: 20px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
+      border: 1px solid var(--color-border);
+      border-top: 4px solid var(--card-accent, var(--aku-navy));
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .2s, transform .2s;
     }
-    .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-    .stat-value { font-size: 32px; font-weight: 700; margin: 6px 0 2px; }
-    .stat-sub { font-size: 12px; color: var(--muted); }
+    .stat-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .stat-card-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+    .stat-card-icon {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .stat-card-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke: var(--card-accent, var(--aku-navy));
+    }
+    .stat-label {
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .stat-value {
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--color-ink);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .stat-sub { font-size: var(--text-sm); color: var(--color-hint); }
 
     /* ── ADMINS ── */
     .admin-list {
@@ -2180,11 +2214,71 @@
 
         <!-- Stat cards -->
         <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Clubs</div>
+          <div class="stat-card" style="--card-accent:#000060;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /> <path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /> <path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /> <path d="M17 10h2a2 2 0 0 1 2 2v1" /> <path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /> <path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg></span>
+              <span class="stat-label">Total Clubs</span>
+            </div>
             <div class="stat-value" id="statClubs">—</div>
             <div class="stat-sub">Registered societies</div>
           </div>
+          <div class="stat-card" style="--card-accent:#2563eb;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /> <path d="M9 12l2 2l4 -4" /></svg></span>
+              <span class="stat-label">Onboarded Clubs</span>
+            </div>
+            <div class="stat-value" id="statOnboarded">—</div>
+            <div class="stat-sub">Approved on Event Hub</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#7c3aed;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12" /> <path d="M16 3l0 4" /> <path d="M8 3l0 4" /> <path d="M4 11l16 0" /> <path d="M8 15h2v2h-2l0 -2" /></svg></span>
+              <span class="stat-label">Total Events</span>
+            </div>
+            <div class="stat-value" id="statEvents">—</div>
+            <div class="stat-sub">In the database</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#059669;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /> <path d="M12 7v5l3 3" /></svg></span>
+              <span class="stat-label">Upcoming Events</span>
+            </div>
+            <div class="stat-value" id="statUpcoming">—</div>
+            <div class="stat-sub">From today onwards</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#0891b2;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /> <path d="M11 11a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M12 12l0 2.5" /></svg></span>
+              <span class="stat-label">Admins</span>
+            </div>
+            <div class="stat-value" id="statAdmins">—</div>
+            <div class="stat-sub">Authorised users</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#d97706;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11" /> <path d="M8 8l4 0" /> <path d="M8 12l4 0" /> <path d="M8 16l4 0" /></svg></span>
+              <span class="stat-label">News Articles</span>
+            </div>
+            <div class="stat-value" id="statNews">—</div>
+            <div class="stat-sub">Published articles</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#7c3aed;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /> <path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg></span>
+              <span class="stat-label">Push Subscribers</span>
+            </div>
+            <div class="stat-value" id="statSubscribers">—</div>
+            <div class="stat-sub">Students with notifications on</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#db2777;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" /></svg></span>
+              <span class="stat-label">Total Interests</span>
+            </div>
+            <div class="stat-value" id="statInterests">—</div>
+            <div class="stat-sub">Across all events</div>
+          </div>
+        </div>
           <div class="stat-card">
             <div class="stat-label">Onboarded Clubs</div>
             <div class="stat-value" id="statOnboarded">—</div>
