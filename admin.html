@@ -1809,11 +1809,12 @@
   <!-- Topbar -->
   <div class="topbar">
 
-    <!-- LEFT ZONE: mobile hamburger only -->
+    <!-- LEFT ZONE: hamburger + brand -->
     <div class="topbar-left">
-      <button class="admin-nav-toggle topbar-hamburger" onclick="toggleAdminSidebar()" aria-label="Toggle navigation" aria-expanded="false">
+      <button class="admin-nav-toggle topbar-hamburger" onclick="handleSidebarToggle()" aria-label="Toggle navigation" aria-expanded="false">
         <i class="ti ti-menu-2" aria-hidden="true"></i>
       </button>
+      <span class="topbar-brand-name">Life on Campus</span>
     </div>
 
     <!-- CENTRE ZONE: search bar (always dead-centre) -->
@@ -4183,6 +4184,15 @@ function toggleSidebar(){
   const isCollapsed = sidebar.classList.toggle("collapsed");
   if(icon) icon.className = isCollapsed ? "ti ti-chevron-right" : "ti ti-chevron-left";
   try { localStorage.setItem("sidebarCollapsed", isCollapsed ? "1" : "0"); } catch(e){}
+}
+
+/* Smart toggle: desktop = collapse/expand, mobile = show overlay */
+function handleSidebarToggle(){
+  if(window.innerWidth <= 768){
+    toggleAdminSidebar();
+  } else {
+    toggleSidebar();
+  }
 }
 
 /* Restore sidebar collapse state on load */
