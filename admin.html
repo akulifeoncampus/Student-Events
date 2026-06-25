@@ -371,16 +371,26 @@
       width: 224px;
       background: var(--color-surface);
       border-right: 0.5px solid var(--color-border);
-      padding: 14px 10px;
+      padding: 0;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: hidden;            /* outer sidebar never scrolls */
       transition: width .22s ease;
       box-shadow: var(--shadow-md);
     }
     .sidebar.collapsed { width: 64px; }
+
+    /* Scrollable nav area — fills available space, scrolls if needed */
+    .sidebar-nav-area {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;               /* critical: allows flex child to shrink */
+      padding: 14px 10px 8px;
+    }
+    .sidebar-nav-area::-webkit-scrollbar { width: 3px; }
+    .sidebar-nav-area::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-nav-area::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
 
     /* Brand header row */
     .sidebar-brand-row {
@@ -453,11 +463,11 @@
     }
     .sidebar.collapsed .nav-badge { opacity: 0; }
 
-    /* Bottom utility section — pinned to base */
+    /* Bottom utility section — always pinned, never scrolls away */
     .sidebar-util-section {
-      margin-top: auto; padding-top: 8px;
-      border-top: 0.5px solid var(--color-border);
       flex-shrink: 0;
+      padding: 8px 10px 14px;
+      border-top: 0.5px solid var(--color-border);
     }
     .sidebar-util-divider {
       height: 0.5px; background: var(--color-border);
@@ -2031,65 +2041,70 @@
 
       <!-- Sidebar starts directly with navigation groups -->
 
-      <!-- GROUP 1: Overview -->
-      <div class="sidebar-label">Overview</div>
-      <button class="nav-item active" data-section="section-dashboard" onclick="showSection('dashboard', this)">
-        <i class="ti ti-layout-dashboard nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Dashboard</span>
-      </button>
+      <!-- SCROLLABLE NAV AREA — all groups scroll together if needed -->
+      <div class="sidebar-nav-area">
 
-      <!-- GROUP 2: Public website -->
-      <div class="sidebar-label">Public website</div>
-      <button class="nav-item" data-section="section-home" onclick="showSection('home', this)">
-        <i class="ti ti-home nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Home Page</span>
-      </button>
-      <button class="nav-item" data-section="section-clubs" onclick="showSection('clubs', this)">
-        <i class="ti ti-users-group nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Clubs &amp; Societies</span>
-      </button>
-      <button class="nav-item" data-section="section-acc" onclick="showSection('acc', this)">
-        <i class="ti ti-palette nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Arts &amp; Culture</span>
-      </button>
-      <button class="nav-item" data-section="section-events" onclick="showSection('events', this)">
-        <i class="ti ti-calendar-event nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Events</span>
-      </button>
-      <button class="nav-item" data-section="section-news" onclick="showSection('news', this)">
-        <i class="ti ti-news nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">News</span>
-      </button>
-      <button class="nav-item" data-section="section-resources" onclick="showSection('resources', this)">
-        <i class="ti ti-link nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Resources</span>
-      </button>
-      <button class="nav-item" data-section="section-emergency" onclick="showSection('emergency', this)">
-        <i class="ti ti-phone-call nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Emergency Contacts</span>
-      </button>
+        <!-- GROUP 1: Overview -->
+        <div class="sidebar-label">Overview</div>
+        <button class="nav-item active" data-section="section-dashboard" onclick="showSection('dashboard', this)">
+          <i class="ti ti-layout-dashboard nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Dashboard</span>
+        </button>
 
-      <!-- GROUP 3: Event management -->
-      <div class="sidebar-label">Event management</div>
-      <button class="nav-item" data-section="section-clubs-approval" onclick="showSection('clubs-approval', this)" id="clubsApprovalNavBtn">
-        <i class="ti ti-circle-check nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Club Approvals</span>
-        <span class="nav-badge" id="pendingClubsBadge" style="display:none;"></span>
-      </button>
-      <button class="nav-item" data-section="section-proposals" onclick="showSection('proposals', this)" id="proposalsNavBtn">
-        <i class="ti ti-send nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Event Proposals</span>
-        <span class="nav-badge" id="pendingProposalsBadge" style="display:none;"></span>
-      </button>
-      <button class="nav-item" data-section="section-team-overview" onclick="showSection('team-overview', this)" id="teamOverviewNavBtn" style="display:none;">
-        <i class="ti ti-chart-dots-3 nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Team Overview</span>
-      </button>
-      <button class="nav-item" data-section="section-my-events" onclick="showSection('my-events', this)" id="myEventsNavBtn" style="display:none;">
-        <i class="ti ti-target nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">Event Lead Portal</span>
-        <span class="nav-badge" id="myEventsBadge" style="display:none;"></span>
-      </button>
+        <!-- GROUP 2: Public website -->
+        <div class="sidebar-label">Public website</div>
+        <button class="nav-item" data-section="section-home" onclick="showSection('home', this)">
+          <i class="ti ti-home nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Home Page</span>
+        </button>
+        <button class="nav-item" data-section="section-clubs" onclick="showSection('clubs', this)">
+          <i class="ti ti-users-group nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Clubs &amp; Societies</span>
+        </button>
+        <button class="nav-item" data-section="section-acc" onclick="showSection('acc', this)">
+          <i class="ti ti-palette nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Arts &amp; Culture</span>
+        </button>
+        <button class="nav-item" data-section="section-events" onclick="showSection('events', this)">
+          <i class="ti ti-calendar-event nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Events</span>
+        </button>
+        <button class="nav-item" data-section="section-news" onclick="showSection('news', this)">
+          <i class="ti ti-news nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">News</span>
+        </button>
+        <button class="nav-item" data-section="section-resources" onclick="showSection('resources', this)">
+          <i class="ti ti-link nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Resources</span>
+        </button>
+        <button class="nav-item" data-section="section-emergency" onclick="showSection('emergency', this)">
+          <i class="ti ti-phone-call nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Emergency Contacts</span>
+        </button>
+
+        <!-- GROUP 3: Event management -->
+        <div class="sidebar-label">Event management</div>
+        <button class="nav-item" data-section="section-clubs-approval" onclick="showSection('clubs-approval', this)" id="clubsApprovalNavBtn">
+          <i class="ti ti-circle-check nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Club Approvals</span>
+          <span class="nav-badge" id="pendingClubsBadge" style="display:none;"></span>
+        </button>
+        <button class="nav-item" data-section="section-proposals" onclick="showSection('proposals', this)" id="proposalsNavBtn">
+          <i class="ti ti-send nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Event Proposals</span>
+          <span class="nav-badge" id="pendingProposalsBadge" style="display:none;"></span>
+        </button>
+        <button class="nav-item" data-section="section-team-overview" onclick="showSection('team-overview', this)" id="teamOverviewNavBtn" style="display:none;">
+          <i class="ti ti-chart-dots-3 nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Team Overview</span>
+        </button>
+        <button class="nav-item" data-section="section-my-events" onclick="showSection('my-events', this)" id="myEventsNavBtn" style="display:none;">
+          <i class="ti ti-target nav-icon" aria-hidden="true"></i>
+          <span class="nav-label">Event Lead Portal</span>
+          <span class="nav-badge" id="myEventsBadge" style="display:none;"></span>
+        </button>
+
+      </div><!-- /sidebar-nav-area -->
 
       <!-- GROUP 4: Administration + utility (pinned to bottom) -->
       <div class="sidebar-util-section">
