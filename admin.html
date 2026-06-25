@@ -157,7 +157,7 @@
 
     /* ── ADMIN SHELL ── */
     .admin-shell { display: none; }
-    .admin-shell.visible { display: flex; flex-direction: column; min-height: 100vh; }
+    .admin-shell.visible { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
     /* ── TOPBAR ── */
     .topbar {
@@ -364,6 +364,8 @@
     .admin-body {
       display: flex;
       flex: 1;
+      min-height: 0;       /* lets flex children shrink — critical for height math */
+      overflow: hidden;
     }
 
     /* ── SIDEBAR ── */
