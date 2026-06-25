@@ -384,7 +384,7 @@
 
     /* Brand header row */
     .sidebar-brand-row {
-      display: flex; align-items: center; gap: 9px;
+      display: flex; align-items: center;
       padding: 2px 4px; margin-bottom: 10px; flex-shrink: 0;
     }
     .sidebar-brand-icon {
@@ -393,29 +393,10 @@
       font-size: 12px; font-weight: 700; letter-spacing: -.5px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; font-family: 'Poppins', sans-serif;
+      cursor: pointer; transition: opacity .15s;
     }
-    .sidebar-brand-text { flex: 1; min-width: 0; overflow: hidden; }
-    .sidebar-brand-name {
-      font-size: 13px; font-weight: 700; color: var(--color-ink);
-      white-space: nowrap; overflow: hidden;
-      transition: opacity .15s;
-    }
-    .sidebar-brand-sub {
-      font-size: 10px; color: var(--color-hint); white-space: nowrap;
-      transition: opacity .15s;
-    }
-    .sidebar.collapsed .sidebar-brand-text { opacity: 0; pointer-events: none; }
-
-    /* Collapse toggle button */
-    .sidebar-toggle {
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 0.5px solid var(--color-border);
-      background: var(--color-surface);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--color-hint); font-size: 11px;
-      flex-shrink: 0; transition: background .12s;
-    }
-    .sidebar-toggle:hover { background: var(--color-bg); color: var(--color-ink); }
+    .sidebar-brand-icon:hover { opacity: .85; }
+    /* No brand text or toggle in sidebar — topbar carries the brand */
 
     /* Category labels */
     .sidebar-label {
@@ -2047,17 +2028,13 @@
     <!-- Sidebar -->
     <div class="sidebar" id="adminSidebar">
 
-      <!-- Brand header -->
+      <!-- Brand mark — clicking it always expands/collapses sidebar -->
       <div class="sidebar-brand-row">
-        <div class="sidebar-brand-icon" aria-hidden="true">LC</div>
-        <div class="sidebar-brand-text">
-          <div class="sidebar-brand-name">Life on Campus</div>
-          <div class="sidebar-brand-sub">Admin Panel</div>
-        </div>
-        <button class="sidebar-toggle" onclick="toggleSidebar()"
-          id="sidebarToggleBtn" aria-label="Collapse sidebar">
-          <i class="ti ti-chevron-left" id="sidebarToggleIcon"></i>
-        </button>
+        <div class="sidebar-brand-icon"
+          onclick="toggleSidebar()"
+          role="button" tabindex="0"
+          aria-label="Toggle sidebar"
+          onkeydown="if(event.key==='Enter')toggleSidebar()">LC</div>
       </div>
 
       <!-- GROUP 1: Overview -->
@@ -4180,10 +4157,9 @@ function toggleAdminSidebar(){
 /* Desktop sidebar collapse toggle */
 function toggleSidebar(){
   const sidebar = document.getElementById("adminSidebar");
-  const icon    = document.getElementById("sidebarToggleIcon");
-  const isCollapsed = sidebar.classList.toggle("collapsed");
-  if(icon) icon.className = isCollapsed ? "ti ti-chevron-right" : "ti ti-chevron-left";
-  try { localStorage.setItem("sidebarCollapsed", isCollapsed ? "1" : "0"); } catch(e){}
+  if(!sidebar) return;
+  sidebar.classList.toggle("collapsed");
+  try { localStorage.setItem("sidebarCollapsed", sidebar.classList.contains("collapsed") ? "1" : "0"); } catch(e){}
 }
 
 /* Smart toggle: desktop = collapse/expand, mobile = show overlay */
@@ -4199,10 +4175,7 @@ function handleSidebarToggle(){
 (function(){
   try {
     if(localStorage.getItem("sidebarCollapsed") === "1"){
-      const sb   = document.getElementById("adminSidebar");
-      const icon = document.getElementById("sidebarToggleIcon");
-      if(sb)   sb.classList.add("collapsed");
-      if(icon) icon.className = "ti ti-chevron-right";
+      document.getElementById("adminSidebar")?.classList.add("collapsed");
     }
   } catch(e){}
 })();
