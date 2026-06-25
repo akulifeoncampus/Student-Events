@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://studentexperience.github.io;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co https://studentexperience.github.io;">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,7 +11,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.21.0/dist/tabler-icons.min.css">
 
   <style>
     :root {
@@ -1806,7 +1805,7 @@
     <!-- LEFT ZONE: hamburger + brand -->
     <div class="topbar-left">
       <button class="admin-nav-toggle topbar-hamburger" onclick="handleSidebarToggle()" aria-label="Toggle navigation" aria-expanded="false">
-        <i class="ti ti-menu-2" aria-hidden="true"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M4 6l16 0" /> <path d="M4 12l16 0" /> <path d="M4 18l16 0" /></svg>
       </button>
       <span class="topbar-brand-name">Life on Campus</span>
     </div>
@@ -1814,7 +1813,7 @@
     <!-- CENTRE ZONE: search bar (always dead-centre) -->
     <div class="topbar-center">
       <div class="topbar-search" onclick="document.getElementById('topbarSearchInput').focus()">
-        <i class="ti ti-search" aria-hidden="true"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /> <path d="M21 21l-6 -6" /></svg>
         <input class="topbar-search-input" type="text" id="topbarSearchInput"
           placeholder="Search anything..."
           aria-label="Search admin panel" />
@@ -1827,14 +1826,14 @@
       <button class="topbar-icon-btn" id="adminChatBtn"
         title="Messages" aria-label="Open messages"
         onclick="toggleAdminChatPanel()" style="display:none;">
-        <i class="ti ti-message-2" aria-hidden="true"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M8 9h8" /> <path d="M8 13h6" /> <path d="M9 18h-3a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-3l-3 3l-3 -3" /></svg>
         <span class="notif-bell-badge" id="adminChatBadge"></span>
       </button>
 
       <button class="topbar-icon-btn" id="adminNotifBtn"
         title="Notifications" aria-label="Open notifications"
         onclick="toggleNotifPanel()">
-        <i class="ti ti-bell" aria-hidden="true"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /> <path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
         <span class="notif-bell-badge" id="adminNotifBadge"></span>
       </button>
 
@@ -1848,7 +1847,7 @@
           <div class="topbar-user-name" id="userEmail"></div>
           <span class="topbar-badge" id="topbarBadge"></span>
         </div>
-        <i class="ti ti-chevron-down topbar-chevron" aria-hidden="true"></i>
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6l6 -6" /></svg>
       </button>
     </div>
 
@@ -1859,12 +1858,12 @@
   <!-- User dropdown -->
   <div class="topbar-dropdown" id="userDropdown" role="menu" aria-label="User options">
     <button class="topbar-dropdown-item" onclick="openChangePassword(false)" role="menuitem">
-      <i class="ti ti-key" aria-hidden="true"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0" /> <path d="M15 9h.01" /></svg>
       <span>Change Password</span>
     </button>
     <div class="topbar-dropdown-divider"></div>
     <button class="topbar-dropdown-item topbar-dropdown-danger" onclick="handleLogout()" role="menuitem">
-      <i class="ti ti-logout" aria-hidden="true"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /> <path d="M9 12h12l-3 -3" /> <path d="M18 15l3 -3" /></svg>
       <span>Sign Out</span>
     </button>
   </div>
@@ -2049,59 +2048,59 @@
         <!-- GROUP 1: Overview -->
         <div class="sidebar-label">Overview</div>
         <button class="nav-item active" data-section="section-dashboard" onclick="showSection('dashboard', this)">
-          <i class="ti ti-layout-dashboard nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" /> <path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" /> <path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" /> <path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" /></svg>
           <span class="nav-label">Dashboard</span>
         </button>
 
         <!-- GROUP 2: Public website -->
         <div class="sidebar-label">Public website</div>
         <button class="nav-item" data-section="section-home" onclick="showSection('home', this)">
-          <i class="ti ti-home nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l-2 0l9 -9l9 9l-2 0" /> <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /> <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
           <span class="nav-label">Home Page</span>
         </button>
         <button class="nav-item" data-section="section-clubs" onclick="showSection('clubs', this)">
-          <i class="ti ti-users-group nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /> <path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /> <path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /> <path d="M17 10h2a2 2 0 0 1 2 2v1" /> <path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /> <path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
           <span class="nav-label">Clubs &amp; Societies</span>
         </button>
         <button class="nav-item" data-section="section-acc" onclick="showSection('acc', this)">
-          <i class="ti ti-palette nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25" /> <path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
           <span class="nav-label">Arts &amp; Culture</span>
         </button>
         <button class="nav-item" data-section="section-events" onclick="showSection('events', this)">
-          <i class="ti ti-calendar-event nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12" /> <path d="M16 3l0 4" /> <path d="M8 3l0 4" /> <path d="M4 11l16 0" /> <path d="M8 15h2v2h-2l0 -2" /></svg>
           <span class="nav-label">Events</span>
         </button>
         <button class="nav-item" data-section="section-news" onclick="showSection('news', this)">
-          <i class="ti ti-news nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11" /> <path d="M8 8l4 0" /> <path d="M8 12l4 0" /> <path d="M8 16l4 0" /></svg>
           <span class="nav-label">News</span>
         </button>
         <button class="nav-item" data-section="section-resources" onclick="showSection('resources', this)">
-          <i class="ti ti-link nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 15l6 -6" /> <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" /> <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" /></svg>
           <span class="nav-label">Resources</span>
         </button>
         <button class="nav-item" data-section="section-emergency" onclick="showSection('emergency', this)">
-          <i class="ti ti-phone-call nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" /> <path d="M15 7a2 2 0 0 1 2 2" /> <path d="M15 3a6 6 0 0 1 6 6" /></svg>
           <span class="nav-label">Emergency Contacts</span>
         </button>
 
         <!-- GROUP 3: Event management -->
         <div class="sidebar-label">Event management</div>
         <button class="nav-item" data-section="section-clubs-approval" onclick="showSection('clubs-approval', this)" id="clubsApprovalNavBtn">
-          <i class="ti ti-circle-check nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /> <path d="M9 12l2 2l4 -4" /></svg>
           <span class="nav-label">Club Approvals</span>
           <span class="nav-badge" id="pendingClubsBadge" style="display:none;"></span>
         </button>
         <button class="nav-item" data-section="section-proposals" onclick="showSection('proposals', this)" id="proposalsNavBtn">
-          <i class="ti ti-send nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14l11 -11" /> <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" /></svg>
           <span class="nav-label">Event Proposals</span>
           <span class="nav-badge" id="pendingProposalsBadge" style="display:none;"></span>
         </button>
         <button class="nav-item" data-section="section-team-overview" onclick="showSection('team-overview', this)" id="teamOverviewNavBtn" style="display:none;">
-          <i class="ti ti-chart-dots-3 nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /> <path d="M14 15a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /> <path d="M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /> <path d="M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /> <path d="M9 17l5 -1.5" /> <path d="M6.5 8.5l7.81 5.37" /> <path d="M7 7l8 -1" /></svg>
           <span class="nav-label">Team Overview</span>
         </button>
         <button class="nav-item" data-section="section-my-events" onclick="showSection('my-events', this)" id="myEventsNavBtn" style="display:none;">
-          <i class="ti ti-target nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0" /> <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>
           <span class="nav-label">Event Lead Portal</span>
           <span class="nav-badge" id="myEventsBadge" style="display:none;"></span>
         </button>
@@ -2112,12 +2111,12 @@
       <div class="sidebar-util-section">
         <div class="sidebar-label" id="settingsNavLabel" style="padding-top:0;">Administration</div>
         <button class="nav-item" id="adminsNavBtn" onclick="showSection('admins', this)">
-          <i class="ti ti-shield-lock nav-icon" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /> <path d="M11 11a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M12 12l0 2.5" /></svg>
           <span class="nav-label">Admins</span>
         </button>
         <div class="sidebar-util-divider"></div>
         <button class="sidebar-util-item" onclick="handleLogout()">
-          <i class="ti ti-logout" aria-hidden="true"></i>
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" aria-hidden="true"><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" /> <path d="M9 12h12l-3 -3" /> <path d="M18 15l3 -3" /></svg>
           <span class="nav-label">Sign out</span>
         </button>
       </div>
