@@ -2897,18 +2897,28 @@
           </button>
         </div>
 
-        <!-- Pipeline Search -->
-        <div style="margin-bottom:16px;position:relative;">
-          <input type="text" id="pipelineSearchInput"
-            placeholder="Search events by name, club, venue, category…"
-            oninput="filterPipeline(this.value)"
-            aria-label="Search pipeline events"
-            style="width:100%;padding:10px 42px 10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:'Poppins',sans-serif;font-size:var(--text-base);color:var(--color-ink);background:var(--color-surface);box-shadow:var(--shadow-sm);outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;"
+        <!-- Pipeline Search + Club Filter -->
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:200px;">
+            <input type="text" id="pipelineSearchInput"
+              placeholder="Search events by name, club, venue, category…"
+              oninput="filterPipeline()"
+              aria-label="Search pipeline events"
+              style="width:100%;padding:10px 42px 10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:'Poppins',sans-serif;font-size:var(--text-base);color:var(--color-ink);background:var(--color-surface);box-shadow:var(--shadow-sm);outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;"
+              onfocus="this.style.borderColor='var(--aku-navy)';this.style.boxShadow='0 0 0 3px var(--aku-navy-light)'"
+              onblur="this.style.borderColor='var(--color-border)';this.style.boxShadow='var(--shadow-sm)'"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-hint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+          <select id="pipelineClubFilter"
+            onchange="filterPipeline()"
+            aria-label="Filter by club"
+            style="padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:'Poppins',sans-serif;font-size:var(--text-base);color:var(--color-ink);background:var(--color-surface);box-shadow:var(--shadow-sm);outline:none;cursor:pointer;min-width:180px;transition:border-color .15s,box-shadow .15s;"
             onfocus="this.style.borderColor='var(--aku-navy)';this.style.boxShadow='0 0 0 3px var(--aku-navy-light)'"
-            onblur="this.style.borderColor='var(--color-border)';this.style.boxShadow='var(--shadow-sm)'"/>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-hint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
+            onblur="this.style.borderColor='var(--color-border)';this.style.boxShadow='var(--shadow-sm)'">
+            <option value="">All Clubs</option>
+          </select>
         </div>
 
         <!-- Today's Brief -->
@@ -6755,6 +6765,9 @@ async function loadMyAssignedEvents(){
   _pipelineIsAdminView = isAdminView;
   const searchEl = document.getElementById('pipelineSearchInput');
   if(searchEl) searchEl.value = '';
+  const clubEl = document.getElementById('pipelineClubFilter');
+  if(clubEl) clubEl.value = '';
+  populatePipelineClubDropdown(myList, campusList);
 
   // Build lanes
   const my     = buildPipelineLanes(myList,     todayMs);
@@ -6858,14 +6871,31 @@ function emptyLane(msg){
   return `<div style="text-align:center;padding:24px 12px;border:2px dashed var(--border);border-radius:12px;font-size:12px;color:var(--muted);">${msg}</div>`;
 }
 
-function filterPipeline(q){
-  if(!_pipelineTodayMs) return;
-  const term = q.trim().toLowerCase();
+function populatePipelineClubDropdown(myList, campusList){
+  const selectEl = document.getElementById('pipelineClubFilter');
+  if(!selectEl) return;
+  const combined = [...myList, ...campusList];
+  const clubs = [...new Set(
+    combined.map(p => p.club_name).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+  const current = selectEl.value;
+  selectEl.innerHTML = '<option value="">All Clubs</option>' +
+    clubs.map(c => `<option value="${c}"${c === current ? ' selected' : ''}>${c}</option>`).join('');
+}
 
-  const match = p => !term || [
-    p.event_name, p.club_name, p.proposed_venue,
-    p.category, p.assigned_to, p.campus, p.execution_status
-  ].some(v => (v || '').toLowerCase().includes(term));
+function filterPipeline(){
+  if(!_pipelineTodayMs) return;
+  const term = (document.getElementById('pipelineSearchInput')?.value || '').trim().toLowerCase();
+  const club = (document.getElementById('pipelineClubFilter')?.value || '').toLowerCase();
+
+  const match = p => {
+    const textOk = !term || [
+      p.event_name, p.club_name, p.proposed_venue,
+      p.category, p.assigned_to, p.campus, p.execution_status
+    ].some(v => (v || '').toLowerCase().includes(term));
+    const clubOk = !club || (p.club_name || '').toLowerCase() === club;
+    return textOk && clubOk;
+  };
 
   const filtered  = _pipelineMyList.filter(match);
   const filteredC = _pipelineCampusList.filter(match);
@@ -6877,7 +6907,7 @@ function filterPipeline(q){
 
   function sc(p, t, isMine){ try{ return pipelineCard(p, t, isMine); }catch(e){ return ''; } }
 
-  const none = term && filtered.length === 0 && filteredC.length === 0;
+  const none = (term || club) && filtered.length === 0 && filteredC.length === 0;
 
   set('laneThisWeek',       my.thisWeek.length      ? my.thisWeek.map(p      => sc(p, _pipelineTodayMs, !_pipelineIsAdminView)).join('') : emptyLane(none ? 'No matching events.' : 'Nothing urgent this week! 🎉'));
   set('laneUpcoming',       my.upcoming.length      ? my.upcoming.map(p      => sc(p, _pipelineTodayMs, !_pipelineIsAdminView)).join('') : emptyLane(none ? 'No matching events.' : 'No upcoming events.'));
