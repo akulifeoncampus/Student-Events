@@ -2897,6 +2897,20 @@
           </button>
         </div>
 
+        <!-- Pipeline Search -->
+        <div style="margin-bottom:16px;position:relative;">
+          <input type="text" id="pipelineSearchInput"
+            placeholder="Search events by name, club, venue, category…"
+            oninput="filterPipeline(this.value)"
+            aria-label="Search pipeline events"
+            style="width:100%;padding:10px 42px 10px 14px;border:1px solid var(--color-border);border-radius:var(--radius-md);font-family:'Poppins',sans-serif;font-size:var(--text-base);color:var(--color-ink);background:var(--color-surface);box-shadow:var(--shadow-sm);outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;"
+            onfocus="this.style.borderColor='var(--aku-navy)';this.style.boxShadow='0 0 0 3px var(--aku-navy-light)'"
+            onblur="this.style.borderColor='var(--color-border)';this.style.boxShadow='var(--shadow-sm)'"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-hint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+
         <!-- Today's Brief -->
         <div id="todaysBrief" style="margin-bottom:24px;"></div>
 
@@ -6639,6 +6653,10 @@ const EXECUTION_STATUS = {
 };
 
 /* ── Pipeline helpers — global scope, no closure issues ── */
+let _pipelineMyList      = [];
+let _pipelineCampusList  = [];
+let _pipelineTodayMs     = null;
+let _pipelineIsAdminView = false;
 const EXEC_DONE = ["completed","report_submitted","cancelled","postponed"];
 
 function getPipelineLane(p, todayMs){
@@ -6729,6 +6747,14 @@ async function loadMyAssignedEvents(){
   // Nav badge
   const badge = document.getElementById("myEventsBadge");
   if(badge){ badge.textContent = myList.length; badge.style.display = myList.length > 0 ? "inline-block" : "none"; }
+
+  // Cache for client-side search filtering
+  _pipelineMyList      = myList;
+  _pipelineCampusList  = campusList;
+  _pipelineTodayMs     = todayMs;
+  _pipelineIsAdminView = isAdminView;
+  const searchEl = document.getElementById('pipelineSearchInput');
+  if(searchEl) searchEl.value = '';
 
   // Build lanes
   const my     = buildPipelineLanes(myList,     todayMs);
@@ -6831,6 +6857,40 @@ function getTimeOfDay(){
 function emptyLane(msg){
   return `<div style="text-align:center;padding:24px 12px;border:2px dashed var(--border);border-radius:12px;font-size:12px;color:var(--muted);">${msg}</div>`;
 }
+
+function filterPipeline(q){
+  if(!_pipelineTodayMs) return;
+  const term = q.trim().toLowerCase();
+
+  const match = p => !term || [
+    p.event_name, p.club_name, p.proposed_venue,
+    p.category, p.assigned_to, p.campus, p.execution_status
+  ].some(v => (v || '').toLowerCase().includes(term));
+
+  const filtered  = _pipelineMyList.filter(match);
+  const filteredC = _pipelineCampusList.filter(match);
+
+  const my     = buildPipelineLanes(filtered,  _pipelineTodayMs);
+  const campus = buildPipelineLanes(filteredC, _pipelineTodayMs);
+
+  const set = (id, html) => { const el = document.getElementById(id); if(el) el.innerHTML = html; };
+
+  function sc(p, t, isMine){ try{ return pipelineCard(p, t, isMine); }catch(e){ return ''; } }
+
+  const none = term && filtered.length === 0 && filteredC.length === 0;
+
+  set('laneThisWeek',       my.thisWeek.length      ? my.thisWeek.map(p      => sc(p, _pipelineTodayMs, !_pipelineIsAdminView)).join('') : emptyLane(none ? 'No matching events.' : 'Nothing urgent this week! 🎉'));
+  set('laneUpcoming',       my.upcoming.length      ? my.upcoming.map(p      => sc(p, _pipelineTodayMs, !_pipelineIsAdminView)).join('') : emptyLane(none ? 'No matching events.' : 'No upcoming events.'));
+  set('laneCompleted',      my.completed.length     ? my.completed.map(p     => sc(p, _pipelineTodayMs, !_pipelineIsAdminView)).join('') : emptyLane(none ? 'No matching events.' : 'No completed events yet.'));
+  set('campusLaneThisWeek', campus.thisWeek.length  ? campus.thisWeek.map(p  => sc(p, _pipelineTodayMs, false)).join('') : emptyLane(none ? 'No matching events.' : 'Nothing this week.'));
+  set('campusLaneUpcoming', campus.upcoming.length  ? campus.upcoming.map(p  => sc(p, _pipelineTodayMs, false)).join('') : emptyLane(none ? 'No matching events.' : 'No upcoming campus events.'));
+  set('campusLaneCompleted',campus.completed.length ? campus.completed.map(p => sc(p, _pipelineTodayMs, false)).join('') : emptyLane(none ? 'No matching events.' : 'No completed events.'));
+
+  // Update lane counts
+  const ids = [['thisWeekCount',my.thisWeek.length],['upcomingCount',my.upcoming.length],['completedCount',my.completed.length]];
+  ids.forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.textContent=val; });
+}
+
 
 function switchPipelineTab(tab){
   const isMyTab = tab === "my";
@@ -8747,7 +8807,7 @@ function startAdminChatPolling(){
         adminChatMessages = data; renderAdminThread();
         const el = document.getElementById("adminChatMsgList");
         if(el) el.scrollTop = el.scrollHeight;
-        await markAdminChatRead(adminChatActiveClub);
+        markAdminChatRead(adminChatActiveClub);
       }
     } else {
       // No thread open — refresh conversation list
@@ -8775,7 +8835,6 @@ function showAdminChatList(){
   adminChatActiveClub       = null;
   adminActiveConversationId = null;
   document.getElementById("adminThreadParticipants").textContent = "";
-  loadAdminConversations();
 }
 
 async function loadAdminConversations(){
@@ -8878,7 +8937,7 @@ function switchAdminChatTab(tab, btn){
   if(isGroups){
     loadAdminGroupConversations();
   } else {
-    loadAdminConversations();
+    renderAdminConversations();
   }
 }
 
