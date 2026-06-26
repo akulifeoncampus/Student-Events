@@ -27,6 +27,9 @@
       --bg: #f3f4f6;
       --panel: #ffffff;
       --shadow: 0 6px 14px rgba(0,0,0,.10);
+      --aku-navy: #000060;
+      --aku-navy-light: rgba(0,0,96,.06);
+      --color-border: #e2e8f0;
 
       --b1:#F0F7FF; --a1:#D6E6FF;
       --b2:#F7F3FF; --a2:#E3DBFF;
@@ -48,8 +51,8 @@
     /* ── Topbar ── */
     .topbar {
       height: 56px;
-      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
-      border-bottom: none; box-shadow: 0 2px 12px rgba(37,99,235,.25);
+      background: var(--aku-navy);
+      box-shadow: 0 1px 0 rgba(255,255,255,.06);
       display: flex;
       align-items: center;
       padding: 0 18px;
@@ -64,10 +67,14 @@
       background: none;
       border: none;
       cursor: pointer;
-      padding: 4px 6px;
-      font-size: 22px;
+      padding: 6px;
       color: white;
+      border-radius: 6px;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
+    .nav-toggle:focus-visible { outline: 2px solid rgba(255,255,255,.5); outline-offset: 2px; }
 
     /* ── Shell ── */
     .shell {
@@ -79,30 +86,33 @@
     /* ── Left nav ── */
     .nav {
       background: var(--panel);
-      border-right: 1px solid var(--border);
+      border-right: 0.5px solid var(--color-border);
       padding: 16px 8px;
     }
     .nav a {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
       padding: 9px 12px;
-      margin: 2px 0;
+      margin: 1px 0;
       border-radius: 10px;
-      color: var(--ink);
+      color: var(--muted);
       text-decoration: none;
       font-size: 13px;
       font-weight: 500;
+      transition: background .15s, color .15s;
     }
-    .nav a:hover:not(.active) { background: #f9fafb; }
+    .nav a:hover:not(.active) { background: var(--bg); color: var(--ink); }
     .nav a.active {
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: var(--aku-navy-light);
+      color: var(--aku-navy);
       font-weight: 700;
-      border-left: 3px solid #2563eb;
+      border-left: 3px solid var(--aku-navy);
       padding-left: 9px;
-      border-radius: 0;
     }
+    .nav a.hub-link { color: #7c3aed; font-weight: 700; }
+    .nav a.hub-link:hover { background: #f5f3ff; }
+    .nav a:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; }
 
     /* ── Content ── */
     .content { padding: 22px; }
@@ -454,9 +464,9 @@
     /* ── Responsive — mobile standard ── */
     @media (max-width: 768px) {
       .shell { display: block; }
-      .nav { display: none; position: fixed; top: 56px; left: 0; width: 200px; height: calc(100vh - 56px); z-index: 99; box-shadow: 4px 0 20px rgba(0,0,0,.1); background: white; }
+      .nav { display: none; position: fixed; top: 56px; left: 0; width: 220px; height: calc(100vh - 56px); z-index: 99; box-shadow: 4px 0 20px rgba(0,0,0,.1); background: white; }
       .nav.open { display: block; }
-      .nav-toggle { display: block; }
+      .nav-toggle { display: flex; }
       .bottom-nav { display: block; }
       .content { padding: 12px 12px 80px; }
       .page-title { font-size: 20px; }
@@ -500,22 +510,23 @@
       position: fixed;
       left: 0; right: 0; bottom: 0;
       background: #ffffff;
-      border-top: 1px solid #e5e7eb;
+      border-top: 0.5px solid var(--color-border);
       padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-      box-shadow: 0 -4px 12px rgba(0,0,0,.08);
+      box-shadow: 0 -2px 8px rgba(0,0,0,.06);
       z-index: 9999;
     }
     .bottom-nav-inner { display: flex; align-items: center; }
     .bottom-nav-item {
       flex: 1;
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
       text-decoration: none; color: #9ca3af;
       font-size: 9px; font-weight: 600;
-      padding: 6px 2px;
+      padding: 8px 2px 6px;
+      transition: color .15s;
     }
-    .bottom-nav-item.active { color: #2563eb; }
+    .bottom-nav-item.active { color: var(--aku-navy); }
     .bottom-nav-item.hub { color: #7c3aed; }
-    .bottom-nav-item span:first-child { font-size: 18px; }
+    .bottom-nav-item:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: -2px; }
 
     @media (max-width: 1024px) {
       .bottom-nav { display: block; }
@@ -527,19 +538,67 @@
 
 <body>
   <header class="topbar">
-    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sideNav">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 6l16 0"/><path d="M4 12l16 0"/><path d="M4 18l16 0"/>
+      </svg>
+    </button>
     <div class="brand">Life on Campus</div>
   </header>
 
   <div class="shell">
-    <nav class="nav" id="sideNav">
-      <a href="index.html">📅 Events</a>
-      <a href="clubs.html" class="active">🎭 Clubs</a>
-      <a href="acc.html">🎨 ACC</a>
-      <a href="news.html">📰 News</a>
-      <a href="resources.html">🔗 Resources</a>
-      <a href="emergency-contacts.html">🚨 Emergency</a>
-      <a href="event-hub.html" style="color:#7c3aed;font-weight:700;">✦ Event Hub</a>
+    <nav class="nav" id="sideNav" role="navigation" aria-label="Main navigation">
+      <a href="index.html">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/>
+          <path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/><path d="M8 15h2v2h-2l0 -2"/>
+        </svg>
+        Events
+      </a>
+      <a href="clubs.html" class="active" aria-current="page">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/>
+          <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
+        </svg>
+        Clubs
+      </a>
+      <a href="acc.html">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/>
+          <path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+          <path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+        </svg>
+        ACC
+      </a>
+      <a href="news.html">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11"/>
+          <path d="M8 8l4 0"/><path d="M8 12l4 0"/><path d="M8 16l4 0"/>
+        </svg>
+        News
+      </a>
+      <a href="resources.html">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 15l6 -6"/>
+          <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/>
+          <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>
+        </svg>
+        Resources
+      </a>
+      <a href="emergency-contacts.html">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/>
+          <path d="M15 7a2 2 0 0 1 2 2"/><path d="M15 3a6 6 0 0 1 6 6"/>
+        </svg>
+        Emergency
+      </a>
+      <a href="event-hub.html" class="hub-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11"/>
+        </svg>
+        Event Hub
+      </a>
     </nav>
 
     <main class="content">
@@ -1021,15 +1080,59 @@ if("serviceWorker" in navigator){
 }
 </script>
 
-<nav class="bottom-nav">
+<nav class="bottom-nav" aria-label="Mobile navigation">
   <div class="bottom-nav-inner">
-    <a href="index.html" class="bottom-nav-item"><span>📅</span><span>Events</span></a>
-    <a href="clubs.html" class="bottom-nav-item active"><span>🎭</span><span>Clubs</span></a>
-    <a href="acc.html" class="bottom-nav-item"><span>🎨</span><span>ACC</span></a>
-    <a href="news.html" class="bottom-nav-item"><span>📰</span><span>News</span></a>
-    <a href="resources.html" class="bottom-nav-item"><span>🔗</span><span>Resources</span></a>
-    <a href="emergency-contacts.html" class="bottom-nav-item"><span>🚨</span><span>Emergency</span></a>
-    <a href="event-hub.html" class="bottom-nav-item hub"><span>✦</span><span>Hub</span></a>
+    <a href="index.html" class="bottom-nav-item" aria-label="Events">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/>
+        <path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/><path d="M8 15h2v2h-2l0 -2"/>
+      </svg>
+      <span>Events</span>
+    </a>
+    <a href="clubs.html" class="bottom-nav-item active" aria-label="Clubs" aria-current="page">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/>
+        <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
+      </svg>
+      <span>Clubs</span>
+    </a>
+    <a href="acc.html" class="bottom-nav-item" aria-label="Arts and Culture Centre">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/>
+        <path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+        <path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+      </svg>
+      <span>ACC</span>
+    </a>
+    <a href="news.html" class="bottom-nav-item" aria-label="News">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M16 6h3a1 1 0 0 1 1 1v11a2 2 0 0 1 -4 0v-13a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1v12a3 3 0 0 0 3 3h11"/>
+        <path d="M8 8l4 0"/><path d="M8 12l4 0"/><path d="M8 16l4 0"/>
+      </svg>
+      <span>News</span>
+    </a>
+    <a href="resources.html" class="bottom-nav-item" aria-label="Resources">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 15l6 -6"/>
+        <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"/>
+        <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"/>
+      </svg>
+      <span>Resources</span>
+    </a>
+    <a href="emergency-contacts.html" class="bottom-nav-item" aria-label="Emergency contacts">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2"/>
+        <path d="M15 7a2 2 0 0 1 2 2"/><path d="M15 3a6 6 0 0 1 6 6"/>
+      </svg>
+      <span>Emergency</span>
+    </a>
+    <a href="event-hub.html" class="bottom-nav-item hub" aria-label="Event Hub">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11"/>
+      </svg>
+      <span>Hub</span>
+    </a>
   </div>
 </nav>
 </body>
