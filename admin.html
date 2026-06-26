@@ -883,37 +883,69 @@
     .stat-sub { font-size: var(--text-sm); color: var(--color-hint); }
 
     /* ── ADMINS ── */
-    .admin-list {
-      background: white;
-      border-radius: 14px;
-      border: 1px solid var(--border);
+    /* ── ADMIN LIST ── */
+    .admin-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+
+    /* One group = one card (All Campuses, Pakistan, Kenya, etc.) */
+    .admin-group {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
     }
+    .admin-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--color-surface-2);
+      border-bottom: 0.5px solid var(--color-border);
+      border-left: 4px solid var(--aku-navy);
+    }
+    .admin-group-title {
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+    .admin-group-subtitle {
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+      margin-top: 1px;
+    }
+    .admin-group-count {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      background: var(--color-bg);
+      color: var(--color-muted);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      padding: 2px 9px;
+      flex-shrink: 0;
+    }
+
+    /* Individual admin row */
     .admin-item {
       display: flex;
       align-items: center;
-      padding: 14px 20px;
-      border-bottom: 1px solid #f3f4f6;
+      padding: 13px 20px;
+      border-bottom: 0.5px solid var(--color-border);
       gap: 14px;
     }
     .admin-item:last-child { border-bottom: none; }
+    .admin-item:hover { background: var(--color-surface-2); }
     .admin-avatar {
-      width: 36px; height: 36px;
+      width: 38px; height: 38px;
       border-radius: 50%;
-      background: var(--accent-light);
-      color: var(--accent);
       font-weight: 700;
       font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .admin-email { font-size: 14px; font-weight: 500; }
-    .admin-date { font-size: 12px; color: var(--muted); }
-    .admin-actions { margin-left: auto; }
+    .admin-name  { font-size: var(--text-base); font-weight: 600; color: var(--color-ink); }
+    .admin-email { font-size: var(--text-sm);   color: var(--color-muted); margin-top: 1px; }
+    .admin-date  { font-size: var(--text-xs);   color: var(--color-hint); }
+    .admin-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; }
 
     /* ── ADD ADMIN FORM ── */
     .add-admin-form {
@@ -1498,18 +1530,14 @@
     .lead-avatar {
       width: 40px; height: 40px;
       border-radius: 50%;
-      background: var(--grad, linear-gradient(135deg,#667eea,#764ba2));
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 700;
-      flex-shrink: 0;
+      background: var(--aku-navy);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; flex-shrink: 0;
     }
     .lead-card-events {
       display: none;
-      border-top: 1px solid var(--border);
+      border-top: 0.5px solid var(--color-border);
     }
     .lead-card-events.open { display: block; }
     .lead-event-row {
@@ -1517,8 +1545,9 @@
       align-items: center;
       gap: 12px;
       padding: 10px 18px;
-      border-bottom: 1px solid #f3f4f6;
-      font-size: 13px;
+      border-bottom: 0.5px solid var(--color-border);
+      font-size: var(--text-base);
+      color: var(--color-ink);
     }
     .lead-event-row:last-child { border-bottom: none; }
     .report-modal .modal { max-width: 760px; }
@@ -1540,29 +1569,29 @@
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
       font-weight: 600;
       cursor: pointer;
       font-family: 'Poppins', sans-serif;
-      background: white;
-      transition: all .15s;
+      background: var(--color-surface);
+      transition: border-color .15s, background .15s;
     }
-    .report-option input { accent-color: var(--accent); }
+    .report-option input { accent-color: var(--aku-navy); }
     .report-option:has(input:checked) {
-      border-color: var(--accent);
-      background: var(--accent-light);
-      color: var(--accent);
+      border-color: var(--aku-navy);
+      background: var(--aku-navy-light);
+      color: var(--aku-navy);
     }
     .report-output {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 12px;
+      background: var(--color-surface-2);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
       padding: 20px 24px;
-      font-size: 14px;
+      font-size: var(--text-md);
       line-height: 1.8;
-      color: var(--ink);
+      color: var(--color-ink);
       min-height: 200px;
       max-height: 440px;
       overflow-y: auto;
@@ -1570,8 +1599,8 @@
       display: none;
     }
     .report-output.visible { display: block; }
-    .report-output h2 { font-size: 16px; font-weight: 700; margin: 16px 0 6px; color: var(--accent); }
-    .report-output h3 { font-size: 14px; font-weight: 700; margin: 12px 0 4px; }
+    .report-output h2 { font-size: 15px; font-weight: 700; margin: 16px 0 6px; color: var(--aku-navy); }
+    .report-output h3 { font-size: var(--text-md); font-weight: 700; margin: 12px 0 4px; }
     .report-output p  { margin-bottom: 10px; }
     .report-output ul { padding-left: 18px; margin-bottom: 10px; }
     .report-output li { margin-bottom: 4px; }
@@ -1584,8 +1613,8 @@
     .report-generating.visible { display: block; }
     .report-spinner {
       width: 36px; height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
+      border: 3px solid var(--color-border);
+      border-top-color: var(--aku-navy);
       border-radius: 50%;
       animation: spin .8s linear infinite;
       margin: 0 auto 12px;
@@ -1644,81 +1673,107 @@
     }
     .attention-jump-btn:hover { background: #b91c1c; }
     .pipeline-card {
-      background: white;
-      border-radius: 14px;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
       overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
-      transition: all .2s ease;
+      border: 0.5px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .2s, transform .2s;
     }
     .pipeline-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,.1);
+      box-shadow: var(--shadow-md);
     }
     .pipeline-card-cover {
-      width: 100%;
-      height: 100px;
-      object-fit: cover;
+      width: 100%; height: 100px; object-fit: cover;
     }
     .pipeline-card-cover-placeholder {
-      width: 100%;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 100%; height: 100px;
+      display: flex; align-items: center; justify-content: center;
       font-size: 28px;
     }
     .pipeline-card-body { padding: 12px 14px; }
     .pipeline-card-name {
-      font-size: 13px;
+      font-size: var(--text-base);
       font-weight: 700;
-      color: var(--ink);
+      color: var(--color-ink);
       margin-bottom: 3px;
       line-height: 1.3;
     }
     .pipeline-card-club {
-      font-size: 11px;
-      color: var(--muted);
+      font-size: var(--text-xs);
+      color: var(--color-muted);
       margin-bottom: 8px;
     }
     .pipeline-card-meta {
-      font-size: 11px;
-      color: var(--muted);
+      font-size: var(--text-xs);
+      color: var(--color-muted);
       display: flex;
       flex-direction: column;
       gap: 2px;
       margin-bottom: 10px;
     }
     .pipeline-card-exec-btns {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
+      display: flex; gap: 4px; flex-wrap: wrap;
     }
     .pipeline-exec-btn {
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
       font-weight: 600;
       cursor: pointer;
-      border: 1px solid var(--border);
-      background: white;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-ink);
       font-family: 'Poppins', sans-serif;
-      transition: all .12s;
+      transition: background .12s, border-color .12s;
     }
-    .pipeline-exec-btn:hover { opacity: .8; }
+    .pipeline-exec-btn:hover { background: var(--color-bg); }
     .pipeline-exec-btn.active { border-color: transparent; }
 
     /* Today's Brief */
     .todays-brief {
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
-      border-radius: 18px;
+      background: var(--aku-navy);
+      border-radius: var(--radius-lg);
       padding: 22px 26px;
-      color: white;
-      box-shadow: 0 8px 32px rgba(49,46,129,.35);
+      color: #fff;
+      box-shadow: var(--shadow-md);
     }
+
+    /* Attention Banner */
+    .attention-banner {
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex; align-items: flex-start;
+      gap: 14px; flex-wrap: wrap;
+    }
+    .attention-banner.urgent { background: var(--color-danger-bg); border: 1px solid #fca5a5; }
+    .attention-banner.clear  { background: var(--color-success-bg); border: 1px solid #bbf7d0; }
+    .attention-banner-icon  { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .attention-banner-body  { flex: 1; min-width: 0; }
+    .attention-banner-title { font-size: var(--text-md); font-weight: 700; margin-bottom: 6px; }
+    .attention-banner.urgent .attention-banner-title { color: #991b1b; }
+    .attention-banner.clear  .attention-banner-title { color: #166534; }
+    .attention-item {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 12px; margin-bottom: 5px;
+    }
+    .attention-item:last-child { margin-bottom: 0; }
+    .attention-item-text { display: flex; align-items: center; gap: 8px; font-size: var(--text-base); color: var(--color-ink); }
+    .attention-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); flex-shrink: 0; }
+    .attention-jump-btn {
+      padding: 4px 14px; background: var(--color-danger); color: #fff;
+      border: none; border-radius: var(--radius-sm);
+      font-family: 'Poppins', sans-serif; font-size: var(--text-xs); font-weight: 600;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: opacity .12s;
+    }
+    .attention-jump-btn:hover { opacity: .85; }
     .brief-greeting {
-      font-size: 18px;
-      font-weight: 800;
+      font-size: var(--text-lg);
+      font-weight: 700;
       margin-bottom: 8px;
     }
     .brief-items {
@@ -5690,63 +5745,114 @@ function renderAdmins(list){
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-text">No admins found.</div></div>`;
     return;
   }
-  el.innerHTML = list.map(a => {
-    const rawCampus = a.permissions?.campus || a.campus || ["All"];
-    const campuses  = Array.isArray(rawCampus) ? rawCampus : [rawCampus];
-    const campusLabel = campuses.includes("All") ? "All Campuses" : campuses.join(", ");
-    const isSuperAdmin = a.role === "super_admin";
-    const isEventLead  = a.role === "event_lead";
-    const isVP         = a.role === "vice_provost";
-    const isMMC        = a.role === "manager_marketing_comms";
-    const isSMG        = a.role === "senior_manager_global";
+
+  const ROLE_LABELS = {
+    super_admin:"Super Admin", admin:"Admin", event_lead:"Event Lead",
+    vice_provost:"Vice Provost", manager_marketing_comms:"MM&C",
+    senior_manager_global:"Sr. Manager — Global"
+  };
+  const GLOBAL_ROLES = new Set(["super_admin","vice_provost","manager_marketing_comms","senior_manager_global"]);
+  const CAMPUS_MAP   = [
+    { city:"Karachi",       country:"Pakistan", label:"Karachi Campus"       },
+    { city:"Nairobi",       country:"Kenya",    label:"Nairobi Campus"       },
+    { city:"Kampala",       country:"Uganda",   label:"Kampala Campus"       },
+    { city:"Dar es Salaam", country:"Tanzania", label:"Dar es Salaam Campus" },
+  ];
+  const CAMPUS_ACCENTS = {
+    Pakistan:"#2563eb", Kenya:"#059669", Uganda:"#d97706", Tanzania:"#7c3aed"
+  };
+  // Role sort priority
+  const ROLE_ORDER = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms","admin","event_lead"];
+  const sorted = [...list].sort((a,b)=>{
+    return (ROLE_ORDER.indexOf(a.role)+1||99)-(ROLE_ORDER.indexOf(b.role)+1||99);
+  });
+
+  function getCampuses(a){
+    const raw = a.permissions?.campus || a.campus || ["All"];
+    return Array.isArray(raw) ? raw : [raw];
+  }
+
+  function renderItem(a){
+    const campuses     = getCampuses(a);
+    const isGlobal     = GLOBAL_ROLES.has(a.role) || campuses.includes("All");
     const isMe         = a.email === currentUser.email;
-    const ROLE_LABELS  = {
-      super_admin: "Super Admin", admin: "Admin", event_lead: "Event Lead",
-      vice_provost: "Vice Provost", manager_marketing_comms: "MM&C",
-      senior_manager_global: "Sr. Manager - Global"
-    };
+    const isSuperAdmin = a.role === "super_admin";
     const roleLabel    = ROLE_LABELS[a.role] || "Admin";
-    const avatarBg     = isSuperAdmin ? "#fef3c7"
-                       : isEventLead  ? "#f0fdf4"
-                       : isVP         ? "#f5f3ff"
-                       : isMMC        ? "#fdf4ff"
-                       : isSMG        ? "#ecfeff"
-                       : "var(--accent-light)";
-    const avatarColor  = isSuperAdmin ? "#92400e"
-                       : isEventLead  ? "#15803d"
-                       : isVP         ? "#6d28d9"
-                       : isMMC        ? "#a21caf"
-                       : isSMG        ? "#0e7490"
-                       : "var(--accent)";
+    // Avatar colours match role-badge stops
+    const avatarStyle  = {
+      super_admin:"background:#fffbeb;color:#78350f",
+      vice_provost:"background:#f5f3ff;color:#5b21b6",
+      manager_marketing_comms:"background:#fdf4ff;color:#86198f",
+      senior_manager_global:"background:#ecfeff;color:#164e63",
+      event_lead:"background:#f0fdf4;color:#166534",
+      admin:"background:var(--aku-navy-light);color:var(--aku-navy)"
+    }[a.role] || "background:var(--aku-navy-light);color:var(--aku-navy)";
+
+    const perms = isSuperAdmin || isGlobal ? "Full Access" :
+      [
+        a.permissions?.manage_events!==false?"Events":"",
+        a.permissions?.manage_clubs !==false?"Clubs" :"",
+        a.permissions?.manage_news  !==false?"News"  :"",
+        a.permissions?.manage_forms !==false?"Forms"  :"",
+      ].filter(Boolean).join(" · ") || "No permissions";
+
+    // Format a readable display name from email
+    const displayName = a.email.split("@")[0]
+      .replace(/[._-]+/g," ")
+      .replace(/\b\w/g, c=>c.toUpperCase());
+
     return `
       <div class="admin-item">
-        <div class="admin-avatar" style="background:${avatarBg};color:${avatarColor}">
+        <div class="admin-avatar" style="${avatarStyle}">
           ${a.email[0].toUpperCase()}
         </div>
         <div style="flex:1;min-width:0;">
+          <div class="admin-name">${esc(displayName)}</div>
           <div class="admin-email">${esc(a.email)}</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
-            <span class="role-badge ${a.role || 'admin'}">${roleLabel}</span>
-            <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;">📍 ${esc(campusLabel)}</span>
-            ${!isSuperAdmin ? `
-              <span style="font-size:10px;color:var(--muted);">
-                ${[
-                  a.permissions?.manage_events !== false ? "Events" : "",
-                  a.permissions?.manage_clubs  !== false ? "Clubs"  : "",
-                  a.permissions?.manage_news   !== false ? "News"   : "",
-                  a.permissions?.manage_forms  !== false ? "Forms"  : "",
-                ].filter(Boolean).join(" · ") || "No permissions"}
-              </span>` : '<span style="font-size:10px;color:var(--muted);">Full Access</span>'}
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+            <span class="role-badge ${a.role||"admin"}">${roleLabel}</span>
+            <span style="font-size:var(--text-xs);color:var(--color-hint);">${perms}</span>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;">Added ${new Date(a.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+          <div style="font-size:var(--text-xs);color:var(--color-hint);margin-top:3px;">
+            Added ${new Date(a.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+          </div>
         </div>
-        <div class="admin-actions" style="display:flex;gap:8px;flex-shrink:0;">
+        <div class="admin-actions">
           ${!isMe ? `<button class="btn btn-secondary btn-sm" onclick="openPermissionsModal('${a.id}','${esc(a.email)}')">⚙️ Permissions</button>` : ""}
-          ${!isMe && currentRole === "super_admin" ? `<button class="btn btn-secondary btn-sm" onclick="openResetPasswordModal('${a.id}','${esc(a.email)}')" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;">🔑 Reset Password</button>` : ""}
-          ${!isMe ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete('admin','${a.id}','${esc(a.email)}')">Remove</button>` : `<span style="font-size:12px;color:var(--muted);">You</span>`}
+          ${!isMe && currentRole==="super_admin" ? `<button class="btn btn-secondary btn-sm" style="background:#fff7ed;color:#c2410c;border-color:#fed7aa;" onclick="openResetPasswordModal('${a.id}','${esc(a.email)}')">🔑 Reset</button>` : ""}
+          ${!isMe ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete('admin','${a.id}','${esc(a.email)}')">Remove</button>` : `<span style="font-size:var(--text-xs);color:var(--color-muted);">You</span>`}
         </div>
       </div>`;
-  }).join("");
+  }
+
+  function renderGroup(title, subtitle, items, accent){
+    if(!items.length) return "";
+    return `
+      <div class="admin-group">
+        <div class="admin-group-header" style="border-left-color:${accent};">
+          <div>
+            <div class="admin-group-title">${title}</div>
+            ${subtitle ? `<div class="admin-group-subtitle">${subtitle}</div>` : ""}
+          </div>
+          <span class="admin-group-count">${items.length} ${items.length===1?"person":"people"}</span>
+        </div>
+        ${items.map(renderItem).join("")}
+      </div>`;
+  }
+
+  const globalPeople  = sorted.filter(a => GLOBAL_ROLES.has(a.role) || getCampuses(a).includes("All"));
+  const campusPeople  = sorted.filter(a => !GLOBAL_ROLES.has(a.role) && !getCampuses(a).includes("All"));
+
+  el.innerHTML = [
+    renderGroup("All Campuses", "Cross-campus roles — oversight access", globalPeople, "var(--aku-navy)"),
+    ...CAMPUS_MAP.map(({city,country,label}) =>
+      renderGroup(
+        country, label,
+        campusPeople.filter(a => getCampuses(a).includes(city)),
+        CAMPUS_ACCENTS[country] || "var(--aku-navy)"
+      )
+    )
+  ].join("");
 }
 
 function handlePermRoleChange(sel){
