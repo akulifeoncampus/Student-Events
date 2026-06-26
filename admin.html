@@ -8747,7 +8747,7 @@ function startAdminChatPolling(){
         adminChatMessages = data; renderAdminThread();
         const el = document.getElementById("adminChatMsgList");
         if(el) el.scrollTop = el.scrollHeight;
-        markAdminChatRead(adminChatActiveClub);
+        await markAdminChatRead(adminChatActiveClub);
       }
     } else {
       // No thread open — refresh conversation list
@@ -8877,7 +8877,7 @@ function switchAdminChatTab(tab, btn){
   if(isGroups){
     loadAdminGroupConversations();
   } else {
-    renderAdminConversations();
+    loadAdminConversations();
   }
 }
 
