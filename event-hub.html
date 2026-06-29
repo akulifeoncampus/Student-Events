@@ -1726,11 +1726,13 @@
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="sound_osep" style="width:14px;height:14px;accent-color:#2563eb;" /> 🔊 Sound System (OSEP)</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="sound_lh" style="width:14px;height:14px;accent-color:#2563eb;" /> 🔊 Sound System (incl. LH)</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="projector" style="width:14px;height:14px;accent-color:#2563eb;" /> 📽️ Projector</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="projector_screen" style="width:14px;height:14px;accent-color:#2563eb;" /> 🖥️ Projector Screen</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="laptop" style="width:14px;height:14px;accent-color:#2563eb;" /> 💻 Laptop</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="mep" style="width:14px;height:14px;accent-color:#2563eb;" /> ⚡ MEP (Electrician on Call)</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="security" style="width:14px;height:14px;accent-color:#2563eb;" /> 🛡️ Security Guard</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="housekeeping" style="width:14px;height:14px;accent-color:#2563eb;" /> 🧹 Housekeeping</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="refreshments" style="width:14px;height:14px;accent-color:#2563eb;" /> 🍽️ Refreshments</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="refreshment_coupons" style="width:14px;height:14px;accent-color:#2563eb;" /> 🎫 Refreshment Coupons</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="outside_vendors" style="width:14px;height:14px;accent-color:#2563eb;" /> 🏪 Permission for Outside Vendors</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;"><input type="checkbox" name="support" value="vouchers" style="width:14px;height:14px;accent-color:#2563eb;" /> 🎟️ Vouchers</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px;">
@@ -1758,7 +1760,17 @@
         </div>
       </div>
 
-      <!-- Section 8: Disclaimer -->
+      <!-- Section 8: Event Registration Form -->
+      <div class="form-section-title">🔗 Event Registration Form <span style="font-weight:400;font-size:12px;color:var(--muted);">(optional)</span></div>
+      <div class="form-grid">
+        <div class="field full">
+          <label for="fRegistrationFormUrl">Registration Form Link</label>
+          <input id="fRegistrationFormUrl" type="url" placeholder="e.g. https://forms.google.com/…" aria-describedby="regFormHint" />
+          <div id="regFormHint" style="font-size:11px;color:var(--muted);margin-top:4px;">Please share the link of your event registration form only if your event requires registration.</div>
+        </div>
+      </div>
+
+      <!-- Section 9: Disclaimer -->
       <div class="form-section-title">📋 Disclaimer *</div>
       <div style="border:1.5px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:4px;">
         <div style="background:#eff6ff;padding:14px 16px;border-bottom:1px solid #bfdbfe;">
@@ -3606,6 +3618,7 @@ function openProposalModal(id = null){
   document.getElementById("fImageUrl").value      = "";
   document.getElementById("fImagePreview").innerHTML = "📸 Click to upload cover image";
   document.getElementById("fImageFile").value     = "";
+  document.getElementById("fRegistrationFormUrl").value = "";
   document.getElementById("fDisclaimer").checked  = false;
   document.getElementById("transportNo").checked  = true;
   document.getElementById("transportNote").style.display = "none";
@@ -3656,6 +3669,7 @@ function openProposalModal(id = null){
       document.getElementById("fAttendance").value    = p.expected_attendance || "";
       document.getElementById("fDescription").value   = p.description         || "";
       document.getElementById("fImageUrl").value      = p.cover_image         || "";
+      document.getElementById("fRegistrationFormUrl").value = p.registration_form_url || "";
       document.getElementById("fDisclaimer").checked  = p.disclaimer_accepted || false;
       if(p.campus && campusSel.disabled === false) campusSel.value = p.campus;
       if(p.transport_required){
@@ -3916,6 +3930,7 @@ async function submitProposal(){
     support_required:     supportObj,
     purchase_items:       purchaseItems || null,
     event_type:           eventType || null,
+    registration_form_url: document.getElementById("fRegistrationFormUrl").value.trim() || null,
     disclaimer_accepted:  disclaimer,
     updated_at:           new Date().toISOString(),
   };
