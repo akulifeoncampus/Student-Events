@@ -7640,16 +7640,17 @@ async function updateProposalStatus(status){
   // Auto-publish to events table when approved
   if(status === "approved" && p){
     const { data: newEvent } = await sb.from("events").insert({
-      name:        p.event_name,
-      organiser:   p.club_name,
-      category:    p.category,
-      event_date:  p.proposed_date,
-      start_time:  p.proposed_time,
-      venue:       p.proposed_venue,
-      campus:      p.campus,
-      cover_image: p.cover_image,
-      description: p.description  || null,
-      audience:    p.audience     || null,
+      name:                 p.event_name,
+      organiser:            p.club_name,
+      category:             p.category,
+      event_date:           p.proposed_date,
+      start_time:           p.proposed_time,
+      venue:                p.proposed_venue,
+      campus:               p.campus,
+      cover_image:          p.cover_image,
+      description:          p.description          || null,
+      audience:             p.audience             || null,
+      registration_form_url: p.registration_form_url || null,
     }).select().single();
     if(newEvent){
       await sb.from("event_proposals").update({ published_event_id: newEvent.id }).eq("id", id);
