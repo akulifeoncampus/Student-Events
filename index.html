@@ -612,6 +612,20 @@
     }
     .notify-btn:hover { background: #dbeafe; border-color: #93c5fd; }
     .notify-btn.active { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
+    /* Bell icon: show bell-off by default, bell-on when active */
+    .notify-btn .icon-bell-off { display: block; }
+    .notify-btn .icon-bell-on  { display: none; }
+    .notify-btn.active .icon-bell-off { display: none; }
+    .notify-btn.active .icon-bell-on  { display: block; }
+    /* Registration link strip on card */
+    .reg-link {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 10px; padding: 7px 10px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 8px; font-size: 11.5px; font-weight: 700;
+      color: #1d4ed8; text-decoration: none; cursor: pointer;
+    }
+    .reg-link:hover { background: #dbeafe; }
     .fomo-icon { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     /* Mobile filter toggle button */
@@ -1763,13 +1777,18 @@ document.addEventListener("DOMContentLoaded", () => {
           </button>
           <div class="card-actions">
             ${e.id && e.date ? `<button class="add-to-cal-btn" onclick="downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : ""}
-            ${e.id ? `<button class="notify-btn ${isNotified ? 'active' : ''}" id="notify-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotified ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : ""}
+            ${e.id ? `<button class="notify-btn ${isNotified ? 'active' : ''}" id="notify-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotified ? 'Stop reminders' : 'Remind me'}" aria-label="${isNotified ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon icon-bell-off" viewBox="0 0 24 24"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.794 13.456l-2.794 -2.456v-1a6 6 0 0 0 -9.927 -4.54"/><path d="M6.087 6.089a6 6 0 0 0 -.087 .911v5l-3 3h13.5"/><line x1="3" y1="3" x2="21" y2="21"/></svg><svg class="fomo-icon icon-bell-on" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : ""}
           </div>
         </div>` : "";
 
       // Description snippet
       const descHtml = e.description
         ? `<div class="event-desc">${escapeHtml(e.description.length > 90 ? e.description.substring(0,90)+"…" : e.description)}</div>`
+        : "";
+
+      // Registration link (only if club submitted a registration form URL)
+      const regLinkHtml = e.registration_form_url
+        ? `<a class="reg-link" href="${escapeHtml(e.registration_form_url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="Registration required — open registration form">📋 Registration required — <strong>Register here</strong> →</a>`
         : "";
 
       // Cover: real image → use it; missing → pick from curated student activity pool
@@ -1793,6 +1812,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${timeLine}
             ${venueLine}
             ${descHtml}
+            ${regLinkHtml}
           </div>
           <div onclick="event.stopPropagation()">
             ${interestedHtml}
@@ -1903,6 +1923,13 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="event-modal-row">
         <span class="event-modal-row-icon">🏫</span>
         <div><div class="event-modal-label">Campus</div>${escapeHtml(e.campus)}</div>
+      </div>`);
+    if(e.registration_form_url) rows.push(`
+      <div class="event-modal-row">
+        <span class="event-modal-row-icon">📋</span>
+        <div><div class="event-modal-label">Registration</div>
+          <a href="${escapeHtml(e.registration_form_url)}" target="_blank" rel="noopener noreferrer" style="color:#1d4ed8;font-weight:700;text-decoration:none;">Registration required — Register here →</a>
+        </div>
       </div>`);
 
     document.getElementById("eventModalMeta").innerHTML = rows.join("");
@@ -2167,6 +2194,7 @@ document.addEventListener("DOMContentLoaded", () => {
       date:      r.event_date ? (() => { const d = new Date(r.event_date); d.setHours(0,0,0,0); return d; })() : null,
       image:     (r.cover_image|| "").trim(),
       interested: r.interested_count || 0,
+      registration_form_url: (r.registration_form_url || "").trim(),
       _sortTime: parseTimeToMinutes(r.start_time || ""),
     })).filter(e => e.name && e.date)
       .sort((a, b) => {
