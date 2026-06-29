@@ -1870,21 +1870,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if(e.image){
       cover.src = e.image;
       cover.style.display = "block";
-      if(coverWrap) coverWrap.style.cssText = "position:relative;";
+      if(coverWrap){
+        coverWrap.style.cssText = "position:relative;";
+        const ph = coverWrap.querySelector(".modal-cover-ph");
+        if(ph) ph.remove();
+      }
     } else {
       cover.style.display = "none";
-      // Styled gradient placeholder using campus colour
       if(coverWrap){
+        coverWrap.style.cssText = "position:relative;";
         const emoji = {"Sports":"🏆","Cultural":"🎭","Academic":"🔬","Workshop/Session":"💡","Meeting":"📋"}[e.category] || "🎓";
-        coverWrap.innerHTML = `
-          <div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,${campusColor}dd,${campusColor});position:relative;">
-            <div style="font-size:52px;">${emoji}</div>
-            <div style="color:rgba(255,255,255,.85);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(e.category||"Event")}</div>
-            <div style="position:absolute;bottom:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-end;">
-              ${e.campus ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.3);color:white;">📍 ${escapeHtml(e.campus)}</div>` : '<div></div>'}
-              ${e.audience ? `<div style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.3);color:white;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👥 ${escapeHtml(e.audience)}</div>` : ''}
-            </div>
-          </div>`;
+        const ph = coverWrap.querySelector(".modal-cover-ph");
+        if(ph) ph.remove();
+        const newPh = document.createElement("div");
+        newPh.className = "modal-cover-ph";
+        newPh.style.cssText = `height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,${campusColor}dd,${campusColor});`;
+        newPh.innerHTML = `<div style="font-size:52px;">${emoji}</div><div style="color:rgba(255,255,255,.85);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(e.category||"Event")}</div>`;
+        coverWrap.insertBefore(newPh, coverWrap.firstChild);
       }
     }
 
