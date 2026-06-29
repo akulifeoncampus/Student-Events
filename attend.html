@@ -191,11 +191,12 @@
         <div class="progress-dot" id="dot2"></div>
         <div class="progress-dot" id="dot3"></div>
         <div class="progress-dot" id="dot4"></div>
+        <div class="progress-dot" id="dot5"></div>
       </div>
 
       <!-- Step 1: Who are you? -->
       <div id="step1">
-        <div class="step-label">Step 1 of 4</div>
+        <div class="step-label">Step 1 of 5</div>
         <div class="step-question" id="step1Question">You are a…</div>
         <div class="type-grid" role="group" aria-label="Attendee type">
           <button class="type-btn" onclick="selectType('student')" aria-label="Student">
@@ -220,7 +221,7 @@
 
       <!-- Step 2: Entity (students only) -->
       <div id="step2" style="display:none;">
-        <div class="step-label">Step 2 of 4</div>
+        <div class="step-label">Step 2 of 5</div>
         <div class="step-question">Which faculty or school?</div>
         <div class="field-group">
           <label class="field-label" for="selEntity">Your entity</label>
@@ -234,7 +235,7 @@
 
       <!-- Step 3: Level (students only) -->
       <div id="step3" style="display:none;">
-        <div class="step-label">Step 3 of 4</div>
+        <div class="step-label">Step 3 of 5</div>
         <div class="step-question">Your level of education?</div>
         <div class="field-group">
           <label class="field-label" for="selLevel">Level</label>
@@ -252,7 +253,7 @@
 
       <!-- Step 4: Program (students only) -->
       <div id="step4" style="display:none;">
-        <div class="step-label">Step 4 of 4</div>
+        <div class="step-label">Step 4 of 5</div>
         <div class="step-question">Your programme?</div>
         <div class="field-group">
           <label class="field-label" for="selProgram">Programme</label>
@@ -260,6 +261,14 @@
             <option value="">— Select your programme —</option>
           </select>
         </div>
+        <button class="btn-primary" onclick="goToStep5()">Next →</button>
+        <button class="btn-back" onclick="goToStep3()">← Back</button>
+      </div>
+
+      <!-- Step 5: Gender (students only) -->
+      <div id="step5" style="display:none;">
+        <div class="step-label">Step 5 of 5</div>
+        <div class="step-question">Your gender?</div>
         <div class="field-group">
           <label class="field-label" for="selGender">Gender</label>
           <select class="field-select" id="selGender" aria-required="true">
@@ -270,7 +279,7 @@
           </select>
         </div>
         <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
-        <button class="btn-back" onclick="goToStep3()">← Back</button>
+        <button class="btn-back" onclick="goToStep4()">← Back</button>
       </div>
 
     </div>
@@ -511,7 +520,7 @@ function showInactive(msg, title){
    STEP NAVIGATION
 ══════════════════════════════════════════════════════════════ */
 function updateDots(step){
-  [1,2,3,4].forEach(i => {
+  [1,2,3,4,5].forEach(i => {
     const dot = document.getElementById(`dot${i}`);
     dot.classList.remove("active","done");
     if(i < step)  dot.classList.add("done");
@@ -520,7 +529,7 @@ function updateDots(step){
 }
 
 function showStep(n){
-  [1,2,3,4].forEach(i => {
+  [1,2,3,4,5].forEach(i => {
     const el = document.getElementById(`step${i}`);
     if(el) el.style.display = i === n ? "block" : "none";
   });
@@ -539,6 +548,13 @@ function goToStep4(){
   if(!entity || !level){ return; }
   populatePrograms(eventData.campus, entity, level);
   showStep(4);
+}
+function goToStep5(){
+  if(!document.getElementById("selProgram").value){
+    document.getElementById("selProgram").focus();
+    return;
+  }
+  showStep(5);
 }
 
 /* ══════════════════════════════════════════════════════════════
