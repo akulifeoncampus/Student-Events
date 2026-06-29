@@ -260,6 +260,15 @@
             <option value="">— Select your programme —</option>
           </select>
         </div>
+        <div class="field-group">
+          <label class="field-label" for="selGender">Gender</label>
+          <select class="field-select" id="selGender" aria-required="true">
+            <option value="">— Select your gender —</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Prefer Not Say">Prefer Not Say</option>
+          </select>
+        </div>
         <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
         <button class="btn-back" onclick="goToStep3()">← Back</button>
       </div>
@@ -613,8 +622,9 @@ async function submitCheckin(){
   const entity  = attendeeType === "student" ? document.getElementById("selEntity").value  : null;
   const level   = attendeeType === "student" ? document.getElementById("selLevel").value   : null;
   const program = attendeeType === "student" ? document.getElementById("selProgram").value : null;
+  const gender  = attendeeType === "student" ? document.getElementById("selGender").value  : null;
 
-  if(attendeeType === "student" && (!entity || !level || !program)){
+  if(attendeeType === "student" && (!entity || !level || !program || !gender)){
     if(btn){ btn.disabled = false; btn.textContent = "Check In ✓"; }
     return;
   }
@@ -627,6 +637,7 @@ async function submitCheckin(){
     entity:          entity   || null,
     education_level: level    || null,
     program:         program  || null,
+    gender:          gender   || null,
     device_hash:     deviceFingerprint,
   };
 
