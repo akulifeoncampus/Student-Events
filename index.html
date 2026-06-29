@@ -1876,17 +1876,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if(ph) ph.remove();
       }
     } else {
-      cover.style.display = "none";
+      const idx = allEvents.findIndex(x => x.id === e.id);
+      cover.src = getActivityImage(e.category, idx >= 0 ? idx : 0);
+      cover.style.display = "block";
       if(coverWrap){
         coverWrap.style.cssText = "position:relative;";
-        const emoji = {"Sports":"🏆","Cultural":"🎭","Academic":"🔬","Workshop/Session":"💡","Meeting":"📋"}[e.category] || "🎓";
         const ph = coverWrap.querySelector(".modal-cover-ph");
         if(ph) ph.remove();
-        const newPh = document.createElement("div");
-        newPh.className = "modal-cover-ph";
-        newPh.style.cssText = `height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,${campusColor}dd,${campusColor});`;
-        newPh.innerHTML = `<div style="font-size:52px;">${emoji}</div><div style="color:rgba(255,255,255,.85);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(e.category||"Event")}</div>`;
-        coverWrap.insertBefore(newPh, coverWrap.firstChild);
       }
     }
 
