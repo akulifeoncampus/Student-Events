@@ -4298,6 +4298,15 @@ function getDisplayName(email){
 }
 
 function showAdminPanel(){
+  // ── Executive Dashboard redirect (Phase 1) ──
+  // 4 senior roles see the new dashboard.html instead of the admin dashboard.
+  // Honour deep-links from dashboard.html: if URL has a hash (e.g. #section-clubs), do NOT redirect.
+  const SENIOR_DASHBOARD_ROLES = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms"];
+  if(SENIOR_DASHBOARD_ROLES.includes(currentRole) && !location.hash){
+    window.location.replace("dashboard.html");
+    return;
+  }
+
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("adminShell").classList.add("visible");
   document.getElementById("userEmail").textContent = getDisplayName(currentUser.email);
@@ -4441,6 +4450,22 @@ function showAdminPanel(){
   startRealtimeSubscriptions();
 
   if(isSuper) loadAdmins();
+
+  // ── Deep-link handler (Phase 1) ──
+  // If user arrived via admin.html#section-xxx (e.g. clicked a sidebar link from dashboard.html),
+  // switch to that section instead of the default Dashboard tab.
+  // If user arrived via admin.html#change-password (from dashboard.html user dropdown),
+  // open the change-password modal.
+  if(location.hash && location.hash.startsWith("#section-")){
+    const targetSection = location.hash.replace("#section-", "");
+    const btn = document.querySelector(`.nav-item[data-section="section-${targetSection}"]`);
+    if(btn && btn.style.display !== "none"){
+      // Use setTimeout so all other init in showAdminPanel completes first
+      setTimeout(() => showSection(targetSection, btn), 0);
+    }
+  } else if(location.hash === "#change-password"){
+    setTimeout(() => openChangePassword(false), 200);
+  }
 }
 
 function applyActionPermission(permKey, selectors){
@@ -4489,6 +4514,15 @@ function handleSidebarToggle(){
 })();
 
 function showSection(name, btn){
+  // ── Executive Dashboard redirect (Phase 1) ──
+  // If a senior role clicks the Dashboard tab, send them to dashboard.html.
+  if(name === "dashboard"){
+    const SENIOR_DASHBOARD_ROLES = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms"];
+    if(SENIOR_DASHBOARD_ROLES.includes(currentRole)){
+      window.location.href = "dashboard.html";
+      return;
+    }
+  }
   // Close mobile sidebar when navigating
   if(window.innerWidth <= 768){
     document.getElementById("adminSidebar")?.classList.remove("open");
