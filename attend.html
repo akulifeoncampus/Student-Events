@@ -193,18 +193,19 @@
     <div class="card">
 
       <!-- Progress dots -->
-      <div class="progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="6">
+      <div class="progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="7">
         <div class="progress-dot active" id="dot1"></div>
         <div class="progress-dot" id="dot2"></div>
         <div class="progress-dot" id="dot3"></div>
         <div class="progress-dot" id="dot4"></div>
         <div class="progress-dot" id="dot5"></div>
         <div class="progress-dot" id="dot6"></div>
+        <div class="progress-dot" id="dot7"></div>
       </div>
 
       <!-- Step 1: Who are you? -->
       <div id="step1">
-        <div class="step-label">Step 1 of 6</div>
+        <div class="step-label">Step 1 of 7</div>
         <div class="step-question" id="step1Question">You are a…</div>
         <div class="type-grid" role="group" aria-label="Attendee type">
           <button class="type-btn" onclick="selectType('student')" aria-label="Student">
@@ -229,7 +230,7 @@
 
       <!-- Step 2: Entity (students only) -->
       <div id="step2" style="display:none;">
-        <div class="step-label">Step 2 of 6</div>
+        <div class="step-label">Step 2 of 7</div>
         <div class="step-question">Which faculty or school?</div>
         <div class="field-group">
           <label class="field-label" for="selEntity">Your entity</label>
@@ -243,7 +244,7 @@
 
       <!-- Step 3: Level (students only) -->
       <div id="step3" style="display:none;">
-        <div class="step-label">Step 3 of 6</div>
+        <div class="step-label">Step 3 of 7</div>
         <div class="step-question">Your level of education?</div>
         <div class="field-group">
           <label class="field-label" for="selLevel">Level</label>
@@ -261,7 +262,7 @@
 
       <!-- Step 4: Program (students only) -->
       <div id="step4" style="display:none;">
-        <div class="step-label">Step 4 of 6</div>
+        <div class="step-label">Step 4 of 7</div>
         <div class="step-question">Your programme?</div>
         <div class="field-group">
           <label class="field-label" for="selProgram">Programme</label>
@@ -275,7 +276,7 @@
 
       <!-- Step 5: Gender (students only) -->
       <div id="step5" style="display:none;">
-        <div class="step-label">Step 5 of 6</div>
+        <div class="step-label">Step 5 of 7</div>
         <div class="step-question">Your gender?</div>
         <div class="field-group">
           <label class="field-label" for="selGender">Gender</label>
@@ -290,20 +291,28 @@
         <button class="btn-back" onclick="goToStep4()">← Back</button>
       </div>
 
-      <!-- Step 6: Name & Student ID (students only) -->
+      <!-- Step 6: Name (students only) -->
       <div id="step6" style="display:none;">
-        <div class="step-label">Step 6 of 6</div>
-        <div class="step-question">Your details</div>
+        <div class="step-label">Step 6 of 7</div>
+        <div class="step-question">Your name?</div>
         <div class="field-group">
           <label class="field-label" for="inpName">Your Name</label>
           <input class="field-input" type="text" id="inpName" aria-required="true" autocomplete="name">
         </div>
+        <button class="btn-primary" onclick="goToStep7()" id="btnStep6Next">Next →</button>
+        <button class="btn-back" onclick="goToStep5()">← Back</button>
+      </div>
+
+      <!-- Step 7: Student ID (students only) -->
+      <div id="step7" style="display:none;">
+        <div class="step-label">Step 7 of 7</div>
+        <div class="step-question">Your Student ID?</div>
         <div class="field-group">
           <label class="field-label" for="inpStudentId">Student ID</label>
           <input class="field-input" type="number" id="inpStudentId" aria-required="true" inputmode="numeric">
         </div>
         <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
-        <button class="btn-back" onclick="goToStep5()">← Back</button>
+        <button class="btn-back" onclick="goToStep6()">← Back</button>
       </div>
 
     </div>
@@ -593,7 +602,7 @@ function showInactive(msg, title){
    STEP NAVIGATION
 ══════════════════════════════════════════════════════════════ */
 function updateDots(step){
-  [1,2,3,4,5,6].forEach(i => {
+  [1,2,3,4,5,6,7].forEach(i => {
     const dot = document.getElementById(`dot${i}`);
     dot.classList.remove("active","done");
     if(i < step)  dot.classList.add("done");
@@ -602,7 +611,7 @@ function updateDots(step){
 }
 
 function showStep(n){
-  [1,2,3,4,5,6].forEach(i => {
+  [1,2,3,4,5,6,7].forEach(i => {
     const el = document.getElementById(`step${i}`);
     if(el) el.style.display = i === n ? "block" : "none";
   });
@@ -635,6 +644,13 @@ function goToStep6(){
     return;
   }
   showStep(6);
+}
+function goToStep7(){
+  if(!document.getElementById("inpName").value.trim()){
+    document.getElementById("inpName").focus();
+    return;
+  }
+  showStep(7);
 }
 
 /* ══════════════════════════════════════════════════════════════
