@@ -2385,7 +2385,7 @@
               <span class="stat-label">Total Events</span>
             </div>
             <div class="stat-value" id="statEvents">—</div>
-            <div class="stat-sub">In the database</div>
+            <div class="stat-sub">Closed + Held + Upcoming + Under Prep</div>
           </div>
           <div class="stat-card" style="--card-accent:#059669;">
             <div class="stat-card-header">
@@ -2393,7 +2393,39 @@
               <span class="stat-label">Upcoming Events</span>
             </div>
             <div class="stat-value" id="statUpcoming">—</div>
-            <div class="stat-sub">From today onwards</div>
+            <div class="stat-sub">Approved, prep not started yet</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#2563eb;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12" /> <path d="M6 20h12" /> <path d="M6 4v4a6 6 0 0 0 12 0v-4" /> <path d="M6 20v-4a6 6 0 0 1 12 0v4" /></svg></span>
+              <span class="stat-label">Under Preparation</span>
+            </div>
+            <div class="stat-value" id="statUnderPrep">—</div>
+            <div class="stat-sub">Prep underway or rescheduled</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#15803d;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5a1 1 0 0 1 1 -1h12.5a.5 .5 0 0 1 .5 .5v.36a1 1 0 0 1 -.36 .76l-4.5 3.93l4.5 3.93a1 1 0 0 1 .36 .76v.36a.5 .5 0 0 1 -.5 .5h-13.5" /> <path d="M5 21v-16" /></svg></span>
+              <span class="stat-label">Events Held</span>
+            </div>
+            <div class="stat-value" id="statHeld">—</div>
+            <div class="stat-sub">Took place, report pending</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#7c3aed;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" /> <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /> <path d="M8 11v-4a4 4 0 1 1 8 0v4" /></svg></span>
+              <span class="stat-label">Closed</span>
+            </div>
+            <div class="stat-value" id="statClosed">—</div>
+            <div class="stat-sub">Held + report submitted</div>
+          </div>
+          <div class="stat-card" style="--card-accent:#b91c1c;">
+            <div class="stat-card-header">
+              <span class="stat-card-icon"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.7 5.7l12.6 12.6" /> <path d="M12 3a9 9 0 1 1 0 18a9 9 0 0 1 0 -18z" /></svg></span>
+              <span class="stat-label">Cancelled</span>
+            </div>
+            <div class="stat-value" id="statCancelled">—</div>
+            <div class="stat-sub">Not counted in Total Events</div>
           </div>
           <div class="stat-card" style="--card-accent:#0891b2;">
             <div class="stat-card-header">
@@ -4626,6 +4658,25 @@ function downloadChart(canvasId, label){
   img.src = chartDataUrl;
 }
 
+/* ── Unified Event Status Bucketing ──
+   Used by the Dashboard, Campus Summary cards, and Team Overview so the
+   numbers always add up the same way everywhere:
+     Total Events = Closed + Held + Upcoming + Under Preparation
+   Cancelled events are tracked separately and are NOT part of that total.
+*/
+function classifyEventBucket(executionStatus, eventDateStr, todayStr){
+  const ex = executionStatus || null;
+  if(ex === "cancelled")        return "cancelled";
+  if(ex === "report_submitted") return "closed";
+  if(ex === "completed")        return "held";
+  if(ex === "in_progress")      return "underprep";
+  if(ex === "postponed")        return "underprep"; // rescheduled — still being worked on
+  if(ex === "pending")          return "upcoming";
+  // No linked proposal (a manually-added event) — bucket by date instead
+  if(eventDateStr && eventDateStr < todayStr) return "held";
+  return "upcoming";
+}
+
 async function loadDashboard(){
   const today = new Date().toISOString().split("T")[0];
 
@@ -4646,6 +4697,7 @@ async function loadDashboard(){
     { data: interestData },
     { count: pendingProposalsCount },
     { count: pendingClubsCount },
+    { data: eventStatusData },
   ] = await Promise.all([
     byCampus(sb.from("clubs").select("*",         { count:"exact", head:true })),
     byCampus(sb.from("events").select("*",        { count:"exact", head:true })),
@@ -4655,22 +4707,36 @@ async function loadDashboard(){
     sb.from("push_subscriptions").select("*", { count:"exact", head:true }), // global count
     byCampus(sb.from("events").select("event_date").gte("event_date", today)),
     byCampus(sb.from("clubs").select("campus")),
-    byCampus(sb.from("events").select("campus, event_date, category")),
+    byCampus(sb.from("events").select("id, campus, event_date, category")),
     byCampus(sb.from("events").select("interested_count")),
     byCampus(sb.from("event_proposals").select("*", { count:"exact", head:true }).in("status", ["submitted","needs_info"])),
     byCampus(sb.from("club_accounts").select("*",   { count:"exact", head:true }).eq("status","pending")),
+    byCampus(sb.from("event_proposals").select("published_event_id, execution_status").not("published_event_id","is",null)),
   ]);
+
+  // Map each published event to its execution status (Closed/Held/Upcoming/Under Preparation/Cancelled)
+  const statusByEventId = {};
+  (eventStatusData || []).forEach(p => { if(p.published_event_id) statusByEventId[p.published_event_id] = p.execution_status; });
+  const bucketCounts = { closed:0, held:0, underprep:0, upcoming:0, cancelled:0 };
+  (eventsData || []).forEach(e => {
+    bucketCounts[classifyEventBucket(statusByEventId[e.id], e.event_date, today)]++;
+  });
+  const totalEventsCount = bucketCounts.closed + bucketCounts.held + bucketCounts.underprep + bucketCounts.upcoming;
 
   const totalInterests = (interestData || []).reduce((sum, e) => sum + (e.interested_count || 0), 0);
 
   document.getElementById("statClubs").textContent       = clubCount       ?? "—";
   document.getElementById("statOnboarded").textContent   = onboardedCount  ?? "—";
-  document.getElementById("statEvents").textContent      = eventCount      ?? "—";
+  document.getElementById("statEvents").textContent      = totalEventsCount;
   document.getElementById("statAdmins").textContent      = adminCount      ?? "—";
   document.getElementById("statNews").textContent        = newsCount       ?? "—";
-  document.getElementById("statUpcoming").textContent    = upcomingData?.length ?? "—";
+  document.getElementById("statUpcoming").textContent    = bucketCounts.upcoming;
   document.getElementById("statSubscribers").textContent = subscriberCount ?? "—";
   document.getElementById("statInterests").textContent   = totalInterests  || "—";
+  document.getElementById("statClosed").textContent      = bucketCounts.closed;
+  document.getElementById("statHeld").textContent        = bucketCounts.held;
+  document.getElementById("statUnderPrep").textContent   = bucketCounts.underprep;
+  document.getElementById("statCancelled").textContent   = bucketCounts.cancelled;
 
   renderAttentionBanner(pendingProposalsCount || 0, pendingClubsCount || 0);
 
@@ -4681,17 +4747,26 @@ async function loadDashboard(){
     const campusGrid = document.getElementById("campusStatsGrid");
     if(campusGrid){
       campusGrid.innerHTML = CAMPUSES.map(c => {
-        const clubs    = (allClubsData || []).filter(x => x.campus === c).length;
-        const events   = (eventsData   || []).filter(x => x.campus === c).length;
-        const upcoming = (eventsData   || []).filter(x => x.campus === c && x.event_date >= today).length;
-        const color    = CAMPUS_COLORS[c] || "#555";
+        const clubs = (allClubsData || []).filter(x => x.campus === c).length;
+        const cb = { closed:0, held:0, underprep:0, upcoming:0 };
+        (eventsData || []).filter(x => x.campus === c).forEach(e => {
+          const bucket = classifyEventBucket(statusByEventId[e.id], e.event_date, today);
+          if(bucket !== "cancelled") cb[bucket]++;
+        });
+        const total = cb.closed + cb.held + cb.underprep + cb.upcoming;
+        const color = CAMPUS_COLORS[c] || "#555";
         return `
-          <div class="stat-card" style="border-top:4px solid ${color};">
+          <div class="stat-card" style="border-top:4px solid ${color};" role="group" aria-label="${c} campus statistics">
             <div class="stat-label" style="color:${color};">📍 ${c}</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
               <div><div style="font-size:22px;font-weight:700;">${clubs}</div><div style="font-size:11px;color:var(--muted);">Clubs</div></div>
-              <div><div style="font-size:22px;font-weight:700;">${events}</div><div style="font-size:11px;color:var(--muted);">Events</div></div>
-              <div><div style="font-size:22px;font-weight:700;">${upcoming}</div><div style="font-size:11px;color:var(--muted);">Upcoming</div></div>
+              <div><div style="font-size:22px;font-weight:700;">${total}</div><div style="font-size:11px;color:var(--muted);">Total Events</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid #e5e7eb;">
+              <div><div style="font-size:15px;font-weight:700;color:#0891b2;">${cb.upcoming}</div><div style="font-size:10px;color:var(--muted);">Upcoming</div></div>
+              <div><div style="font-size:15px;font-weight:700;color:#2563eb;">${cb.underprep}</div><div style="font-size:10px;color:var(--muted);">Under Prep</div></div>
+              <div><div style="font-size:15px;font-weight:700;color:#15803d;">${cb.held}</div><div style="font-size:10px;color:var(--muted);">Held</div></div>
+              <div><div style="font-size:15px;font-weight:700;color:#7c3aed;">${cb.closed}</div><div style="font-size:10px;color:var(--muted);">Closed</div></div>
             </div>
           </div>`;
       }).join("");
@@ -6195,7 +6270,7 @@ async function doDelete(type, id){
   if(error){ showToast("Delete failed: " + error.message, "error"); return; }
   showToast("Deleted successfully.");
   if(type === "club")      { loadClubs();  loadDashboard(); }
-  if(type === "event")     { loadEvents(); loadDashboard(); loadMyAssignedEvents(); buildPivotTable(); }
+  if(type === "event")     { loadEvents(); loadDashboard(); loadMyAssignedEvents(); buildPivotTable(); loadTeamOverview(); }
   if(type === "admin")     { loadAdmins(); loadDashboard(); }
   if(type === "news")      { loadNews(); }
   if(type === "form")      { loadForms(); }
@@ -6813,26 +6888,33 @@ async function loadMyAssignedEvents(){
 
   // Mini Dashboard — matches execution status buttons exactly
   const dashEl = document.getElementById("leadDashboard");
-  if(dashEl) dashEl.innerHTML = [
-    { num: myList.length,
+  if(dashEl){
+    const mdUpcoming  = myList.filter(p => (p.execution_status||"pending") === "pending").length;
+    const mdUnderPrep = myList.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
+    const mdHeld      = myList.filter(p => (p.execution_status||"pending") === "completed").length;
+    const mdClosed    = myList.filter(p => (p.execution_status||"pending") === "report_submitted").length;
+    const mdCancelled = myList.filter(p => (p.execution_status||"pending") === "cancelled").length;
+    dashEl.innerHTML = [
+    { num: mdUpcoming + mdUnderPrep + mdHeld + mdClosed,
       label:"Total Assigned",      color:"#7c3aed", icon:"📌" },
-    { num: myList.filter(p=>  (p.execution_status||"pending") === "in_progress").length,
-      label:"Preparation Underway",color:"#2563eb", icon:"▶️" },
-    { num: myList.filter(p=>  (p.execution_status||"pending") === "completed").length,
+    { num: mdUpcoming,
+      label:"Upcoming",            color:"#0891b2", icon:"📅" },
+    { num: mdUnderPrep,
+      label:"Under Preparation",   color:"#2563eb", icon:"▶️" },
+    { num: mdHeld,
       label:"Event Held",          color:"#15803d", icon:"🎉" },
-    { num: myList.filter(p=>  (p.execution_status||"pending") === "report_submitted").length,
+    { num: mdClosed,
       label:"Event Closed",        color:"#7c3aed", icon:"🔒" },
-    { num: myList.filter(p=>  (p.execution_status||"pending") === "postponed").length,
-      label:"Rescheduled",         color:"#c2410c", icon:"⏸️" },
-    { num: myList.filter(p=>  (p.execution_status||"pending") === "cancelled").length,
+    { num: mdCancelled,
       label:"Cancelled",           color:"#b91c1c", icon:"🚫" },
     { num: campusList.length,
       label:"Campus Events",       color:"#d97706", icon:"👥" },
-  ].map(s=>`
+    ].map(s=>`
     <div style="background:white;border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);border-top:3px solid ${s.color};">
       <div style="font-size:22px;font-weight:800;color:${s.color};">${s.num}</div>
       <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;">${s.icon} ${s.label}</div>
     </div>`).join("");
+  }
 
   // Render lanes
   console.log("[Pipeline] Lanes - thisWeek:", my.thisWeek.length, "upcoming:", my.upcoming.length, "completed:", my.completed.length);
@@ -9566,15 +9648,23 @@ async function loadTeamOverview(){
     return new Date(p.proposed_date) < today;
   }).length;
 
+  // Same bucketing as Dashboard/Campus cards: Upcoming(pending) + UnderPrep(in_progress+postponed) + Held + Closed = Total Assigned
+  const teamUpcoming  = count("pending");
+  const teamUnderPrep = count("in_progress") + count("postponed");
+  const teamHeld      = count("completed");
+  const teamClosed    = count("report_submitted");
+  const teamCancelled = count("cancelled");
+  const teamTotal     = teamUpcoming + teamUnderPrep + teamHeld + teamClosed;
+
   // ── Summary stat cards — matches execution status buttons ──
   document.getElementById("teamStatCards").innerHTML = [
     { num:filteredLeads.length,          label:"Team Members",         color:"#7c3aed", icon:"👥" },
-    { num:allProposals.length,           label:"Total Assigned",        color:"#2563eb", icon:"📌" },
-    { num:count("in_progress"),          label:"Preparation Underway",  color:"#2563eb", icon:"▶️" },
-    { num:count("completed"),            label:"Event Held",            color:"#15803d", icon:"🎉" },
-    { num:count("report_submitted"),     label:"Event Closed",          color:"#7c3aed", icon:"🔒" },
-    { num:count("postponed"),            label:"Rescheduled",           color:"#c2410c", icon:"⏸️" },
-    { num:count("cancelled"),            label:"Cancelled",             color:"#b91c1c", icon:"🚫" },
+    { num:teamTotal,                     label:"Total Assigned",        color:"#2563eb", icon:"📌" },
+    { num:teamUpcoming,                  label:"Upcoming",              color:"#0891b2", icon:"📅" },
+    { num:teamUnderPrep,                 label:"Under Preparation",     color:"#2563eb", icon:"▶️" },
+    { num:teamHeld,                      label:"Event Held",            color:"#15803d", icon:"🎉" },
+    { num:teamClosed,                    label:"Event Closed",          color:"#7c3aed", icon:"🔒" },
+    { num:teamCancelled,                 label:"Cancelled",             color:"#b91c1c", icon:"🚫" },
     { num:totalOverdue,                  label:"Overdue (No Report)",   color:"#dc2626", icon:"⚠️" },
   ].map(s=>`
     <div style="background:white;border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid ${s.color};">
@@ -9600,9 +9690,11 @@ async function loadTeamOverview(){
         const db = b.proposed_date || "9999";
         return da.localeCompare(db); // closest date first
       });
-    const prep     = myEvents.filter(p => (p.execution_status||"pending") === "in_progress").length;
+    const upcoming = myEvents.filter(p => (p.execution_status||"pending") === "pending").length;
+    const prep     = myEvents.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
     const held     = myEvents.filter(p => (p.execution_status||"pending") === "completed").length;
     const closed   = myEvents.filter(p => (p.execution_status||"pending") === "report_submitted").length;
+    const assignedTotal = upcoming + prep + held + closed; // matches Total Assigned definition (Cancelled excluded)
     const overdue  = myEvents.filter(p => {
       if(!p.proposed_date || DONE.includes(p.execution_status||"pending")) return false;
       return new Date(p.proposed_date) < today;
@@ -9638,7 +9730,8 @@ async function loadTeamOverview(){
             <div style="font-size:12px;color:var(--muted);">📍 ${campus}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">📌 ${myEvents.length}</span>
+            <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">📌 ${assignedTotal}</span>
+            ${upcoming> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#ecfeff;color:#0891b2;">📅 ${upcoming}</span>` : ""}
             ${prep   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#eff6ff;color:#2563eb;">▶️ ${prep}</span>` : ""}
             ${held   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f0fdf4;color:#15803d;">🎉 ${held}</span>` : ""}
             ${closed > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">🔒 ${closed}</span>` : ""}
