@@ -728,7 +728,11 @@
 const SUPABASE_URL = "https://dgzuqvffnbfybngoadse.supabase.co";
 const SUPABASE_KEY = "sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true }
+  auth: {
+    storageKey: "aku-admin-session",   // ← MUST match admin.html so session is shared
+    autoRefreshToken: true,
+    persistSession: true
+  }
 });
 
 /* ════════════════════════════════════════════════════════════════════════
