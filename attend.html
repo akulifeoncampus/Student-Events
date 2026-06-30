@@ -92,6 +92,13 @@
     .field-select:focus { outline: none; border-color: #2563eb; }
     .field-select:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
 
+    .field-input {
+      width: 100%; padding: 13px 14px; border: 1.5px solid #e5e7eb;
+      border-radius: 10px; font-family: inherit; font-size: 14px;
+      color: #111827; background: white;
+    }
+    .field-input:focus { outline: none; border-color: #2563eb; }
+
     /* ── Action buttons ── */
     .btn-primary {
       width: 100%; padding: 15px; border-radius: 12px;
@@ -186,17 +193,18 @@
     <div class="card">
 
       <!-- Progress dots -->
-      <div class="progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="4">
+      <div class="progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="6">
         <div class="progress-dot active" id="dot1"></div>
         <div class="progress-dot" id="dot2"></div>
         <div class="progress-dot" id="dot3"></div>
         <div class="progress-dot" id="dot4"></div>
         <div class="progress-dot" id="dot5"></div>
+        <div class="progress-dot" id="dot6"></div>
       </div>
 
       <!-- Step 1: Who are you? -->
       <div id="step1">
-        <div class="step-label">Step 1 of 5</div>
+        <div class="step-label">Step 1 of 6</div>
         <div class="step-question" id="step1Question">You are a…</div>
         <div class="type-grid" role="group" aria-label="Attendee type">
           <button class="type-btn" onclick="selectType('student')" aria-label="Student">
@@ -221,7 +229,7 @@
 
       <!-- Step 2: Entity (students only) -->
       <div id="step2" style="display:none;">
-        <div class="step-label">Step 2 of 5</div>
+        <div class="step-label">Step 2 of 6</div>
         <div class="step-question">Which faculty or school?</div>
         <div class="field-group">
           <label class="field-label" for="selEntity">Your entity</label>
@@ -235,7 +243,7 @@
 
       <!-- Step 3: Level (students only) -->
       <div id="step3" style="display:none;">
-        <div class="step-label">Step 3 of 5</div>
+        <div class="step-label">Step 3 of 6</div>
         <div class="step-question">Your level of education?</div>
         <div class="field-group">
           <label class="field-label" for="selLevel">Level</label>
@@ -253,7 +261,7 @@
 
       <!-- Step 4: Program (students only) -->
       <div id="step4" style="display:none;">
-        <div class="step-label">Step 4 of 5</div>
+        <div class="step-label">Step 4 of 6</div>
         <div class="step-question">Your programme?</div>
         <div class="field-group">
           <label class="field-label" for="selProgram">Programme</label>
@@ -267,7 +275,7 @@
 
       <!-- Step 5: Gender (students only) -->
       <div id="step5" style="display:none;">
-        <div class="step-label">Step 5 of 5</div>
+        <div class="step-label">Step 5 of 6</div>
         <div class="step-question">Your gender?</div>
         <div class="field-group">
           <label class="field-label" for="selGender">Gender</label>
@@ -278,8 +286,24 @@
             <option value="Prefer Not Say">Prefer Not Say</option>
           </select>
         </div>
-        <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
+        <button class="btn-primary" onclick="goToStep6()" id="btnStep5Next">Next →</button>
         <button class="btn-back" onclick="goToStep4()">← Back</button>
+      </div>
+
+      <!-- Step 6: Name & Student ID (students only) -->
+      <div id="step6" style="display:none;">
+        <div class="step-label">Step 6 of 6</div>
+        <div class="step-question">Your details</div>
+        <div class="field-group">
+          <label class="field-label" for="inpName">Your Name</label>
+          <input class="field-input" type="text" id="inpName" aria-required="true" autocomplete="name">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="inpStudentId">Student ID</label>
+          <input class="field-input" type="number" id="inpStudentId" aria-required="true" inputmode="numeric">
+        </div>
+        <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
+        <button class="btn-back" onclick="goToStep5()">← Back</button>
       </div>
 
     </div>
@@ -423,6 +447,33 @@ let eventId    = null;
 let eventData  = null;
 let attendeeType = null;
 let deviceFingerprint = null;
+let doneKey    = null;
+
+/* ══════════════════════════════════════════════════════════════
+   DEVICE ID HELPERS
+   (localStorage + cookie fallback — some iPhone browsers (e.g.
+   Private Browsing, in-app browsers like WhatsApp/Instagram) reset
+   or isolate localStorage, which let the same phone check in more
+   than once. Using both storage methods, plus a server-side check
+   in init(), makes the "one check-in per phone" rule far more
+   reliable on iPhone while not changing anything for Android.)
+══════════════════════════════════════════════════════════════ */
+function safeLocalGet(key){
+  try { return localStorage.getItem(key); } catch(e){ return null; }
+}
+function safeLocalSet(key, value){
+  try { localStorage.setItem(key, value); } catch(e){ /* storage unavailable, ignore */ }
+}
+function getCookie(name){
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+function setCookie(name, value, days){
+  try {
+    const expires = new Date(Date.now() + days * 86400000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  } catch(e){ /* cookies unavailable, ignore */ }
+}
 
 /* ══════════════════════════════════════════════════════════════
    INIT
@@ -433,18 +484,20 @@ let deviceFingerprint = null;
   eventId = params.get("e");
   if(!eventId){ return showError("No event ID found in this link."); }
 
-  // 2. Device fingerprint
+  // 2. Device fingerprint (checked via localStorage AND cookie)
   const fpKey = `lc_fp_${eventId}`;
-  deviceFingerprint = localStorage.getItem(fpKey);
+  doneKey = `lc_done_${eventId}`;
+  deviceFingerprint = safeLocalGet(fpKey) || getCookie(fpKey);
   if(!deviceFingerprint){
     const bytes = new Uint8Array(12);
     crypto.getRandomValues(bytes);
     deviceFingerprint = Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
-    localStorage.setItem(fpKey, deviceFingerprint);
   }
+  safeLocalSet(fpKey, deviceFingerprint);
+  setCookie(fpKey, deviceFingerprint, 365);
 
-  // 3. Already checked in?
-  if(localStorage.getItem(`lc_done_${eventId}`)){
+  // 3. Already checked in? (local flag first — fastest, no network needed)
+  if(safeLocalGet(doneKey) || getCookie(doneKey)){
     return showScreen("screenDuplicate");
   }
 
@@ -492,10 +545,30 @@ let deviceFingerprint = null;
     }
   }
 
-  // 8. Populate entity dropdown for this campus
+  // 8. Server-side duplicate check (backup for when a phone's local
+  //    storage got reset, e.g. Private Browsing or an in-app browser)
+  try {
+    const dupRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/event_attendance?event_id=eq.${encodeURIComponent(eventId)}&device_hash=eq.${encodeURIComponent(deviceFingerprint)}&select=id&limit=1`,
+      { headers: { "apikey": SUPABASE_KEY, "Accept": "application/json" } }
+    );
+    if(dupRes.ok){
+      const dupData = await dupRes.json();
+      if(Array.isArray(dupData) && dupData.length > 0){
+        safeLocalSet(doneKey, "1");
+        setCookie(doneKey, "1", 365);
+        return showScreen("screenDuplicate");
+      }
+    }
+  } catch(e){
+    // If this check fails (e.g. offline), fall through — the local
+    // flag is still the primary guard against duplicate check-ins.
+  }
+
+  // 9. Populate entity dropdown for this campus
   populateEntities(event.campus);
 
-  // 9. Show the form
+  // 10. Show the form
   showScreen("screenForm");
 })();
 
@@ -520,7 +593,7 @@ function showInactive(msg, title){
    STEP NAVIGATION
 ══════════════════════════════════════════════════════════════ */
 function updateDots(step){
-  [1,2,3,4,5].forEach(i => {
+  [1,2,3,4,5,6].forEach(i => {
     const dot = document.getElementById(`dot${i}`);
     dot.classList.remove("active","done");
     if(i < step)  dot.classList.add("done");
@@ -529,7 +602,7 @@ function updateDots(step){
 }
 
 function showStep(n){
-  [1,2,3,4,5].forEach(i => {
+  [1,2,3,4,5,6].forEach(i => {
     const el = document.getElementById(`step${i}`);
     if(el) el.style.display = i === n ? "block" : "none";
   });
@@ -555,6 +628,13 @@ function goToStep5(){
     return;
   }
   showStep(5);
+}
+function goToStep6(){
+  if(!document.getElementById("selGender").value){
+    document.getElementById("selGender").focus();
+    return;
+  }
+  showStep(6);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -635,12 +715,14 @@ async function submitCheckin(){
   const btn = document.getElementById("btnSubmit") || document.querySelector(".btn-primary");
   if(btn){ btn.disabled = true; btn.textContent = "Checking in…"; }
 
-  const entity  = attendeeType === "student" ? document.getElementById("selEntity").value  : null;
-  const level   = attendeeType === "student" ? document.getElementById("selLevel").value   : null;
-  const program = attendeeType === "student" ? document.getElementById("selProgram").value : null;
-  const gender  = attendeeType === "student" ? document.getElementById("selGender").value  : null;
+  const entity     = attendeeType === "student" ? document.getElementById("selEntity").value     : null;
+  const level      = attendeeType === "student" ? document.getElementById("selLevel").value       : null;
+  const program    = attendeeType === "student" ? document.getElementById("selProgram").value     : null;
+  const gender     = attendeeType === "student" ? document.getElementById("selGender").value      : null;
+  const studentName= attendeeType === "student" ? document.getElementById("inpName").value.trim() : null;
+  const studentId  = attendeeType === "student" ? document.getElementById("inpStudentId").value.trim() : null;
 
-  if(attendeeType === "student" && (!entity || !level || !program || !gender)){
+  if(attendeeType === "student" && (!entity || !level || !program || !gender || !studentName || !studentId)){
     if(btn){ btn.disabled = false; btn.textContent = "Check In ✓"; }
     return;
   }
@@ -650,10 +732,12 @@ async function submitCheckin(){
     event_name:      eventData.event_name,
     campus:          eventData.campus,
     attendee_type:   attendeeType,
-    entity:          entity   || null,
-    education_level: level    || null,
-    program:         program  || null,
-    gender:          gender   || null,
+    entity:          entity      || null,
+    education_level: level       || null,
+    program:         program     || null,
+    gender:          gender      || null,
+    student_name:    studentName || null,
+    student_id:      studentId   || null,
     device_hash:     deviceFingerprint,
   };
 
@@ -673,8 +757,9 @@ async function submitCheckin(){
       throw new Error(errText);
     }
 
-    // Mark as done locally to prevent duplicate submissions
-    localStorage.setItem(`lc_done_${eventId}`, "1");
+    // Mark as done locally (localStorage + cookie) to prevent duplicate submissions
+    safeLocalSet(doneKey, "1");
+    setCookie(doneKey, "1", 365);
 
     // Show confirmation
     showScreen("screenDone");
