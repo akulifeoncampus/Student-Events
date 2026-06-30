@@ -1955,7 +1955,129 @@
       .topbar-user-name { display: none; }
       .topbar-search-kbd { display: none; }
       .topbar-search { width: 180px; }
-      .topbar-brand-name { display: none; }
+    /* ═══════════════════════════════════════════════════════════════
+       EXECUTIVE DASHBOARD — Phase 1
+       Used only when the dashboard section renders for senior roles
+       (super_admin, vice_provost, senior_manager_global, manager_marketing_comms).
+       ═══════════════════════════════════════════════════════════════ */
+    .filter-strip {
+      background: var(--color-surface);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filter-label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    .filter-date-input {
+      padding: 7px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-family: 'Poppins', sans-serif;
+      font-size: var(--text-base);
+      color: var(--color-ink);
+      background: #fff;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .filter-date-input:focus {
+      border-color: var(--aku-navy);
+      box-shadow: 0 0 0 3px var(--aku-navy-light);
+    }
+    .filter-date-separator {
+      color: var(--color-hint);
+      font-size: var(--text-base);
+    }
+    .filter-chip {
+      padding: 6px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-size: var(--text-base);
+      font-weight: 500;
+      color: var(--color-ink);
+      cursor: pointer;
+      transition: background .12s, border-color .12s, color .12s;
+    }
+    .filter-chip:hover { background: var(--color-bg); }
+    .filter-chip.active {
+      background: var(--aku-navy);
+      color: #fff;
+      border-color: var(--aku-navy);
+      font-weight: 600;
+    }
+    .filter-chip:focus-visible {
+      outline: 2px solid var(--aku-navy);
+      outline-offset: 2px;
+    }
+    .filter-clear-btn {
+      margin-left: auto;
+      padding: 7px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-muted);
+      cursor: pointer;
+      transition: background .12s, color .12s;
+    }
+    .filter-clear-btn:hover {
+      background: var(--color-bg);
+      color: var(--color-ink);
+    }
+    .filter-summary {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      padding: 4px 0 18px;
+    }
+    .dash-placeholder {
+      background: var(--color-surface);
+      border: 0.5px dashed var(--color-border-2);
+      border-radius: var(--radius-lg);
+      padding: 60px 40px;
+      text-align: center;
+      color: var(--color-muted);
+    }
+    .dash-placeholder-icon {
+      width: 48px; height: 48px;
+      margin: 0 auto 16px;
+      color: var(--color-hint);
+    }
+    .dash-placeholder-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+      margin-bottom: 6px;
+    }
+    .dash-placeholder-text {
+      font-size: var(--text-base);
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    @media (max-width: 768px) {
+      .filter-strip { padding: 14px; gap: 14px; }
+      .filter-clear-btn { margin-left: 0; }
     }
   </style>
 </head>
@@ -2347,6 +2469,58 @@
 
       <!-- ── DASHBOARD ── -->
       <div class="section active" id="section-dashboard">
+
+        <!-- ─────────────────────────────────────────────────
+             EXECUTIVE DASHBOARD VIEW — Phase 1
+             Shown only for: super_admin, vice_provost,
+             senior_manager_global, manager_marketing_comms.
+             Toggled by initExecutiveDashboardView() in showAdminPanel.
+             ───────────────────────────────────────────────── -->
+        <div id="executiveDashboardView" style="display:none;">
+
+          <div class="section-header">
+            <div>
+              <div class="section-title">Executive Dashboard</div>
+              <div class="section-subtitle">Live insights across all campuses</div>
+            </div>
+          </div>
+
+          <!-- Filter strip: date range (event_date) + campus chips -->
+          <div class="filter-strip" role="region" aria-label="Dashboard filters">
+            <div class="filter-group">
+              <span class="filter-label">Date range</span>
+              <input class="filter-date-input" id="execFilterDateFrom" type="date" aria-label="From date" onchange="onExecDateFilterChange()" />
+              <span class="filter-date-separator" aria-hidden="true">→</span>
+              <input class="filter-date-input" id="execFilterDateTo" type="date" aria-label="To date" onchange="onExecDateFilterChange()" />
+            </div>
+            <div class="filter-group" role="group" aria-label="Campus filter">
+              <span class="filter-label">Campus</span>
+              <button class="filter-chip active" data-campus="all"           onclick="onExecCampusFilterChange('all', this)"           aria-pressed="true">All</button>
+              <button class="filter-chip"        data-campus="Karachi"       onclick="onExecCampusFilterChange('Karachi', this)"       aria-pressed="false">Karachi</button>
+              <button class="filter-chip"        data-campus="Nairobi"       onclick="onExecCampusFilterChange('Nairobi', this)"       aria-pressed="false">Nairobi</button>
+              <button class="filter-chip"        data-campus="Kampala"       onclick="onExecCampusFilterChange('Kampala', this)"       aria-pressed="false">Kampala</button>
+              <button class="filter-chip"        data-campus="Dar es Salaam" onclick="onExecCampusFilterChange('Dar es Salaam', this)" aria-pressed="false">Dar es Salaam</button>
+            </div>
+            <button class="filter-clear-btn" onclick="clearAllExecFilters()" aria-label="Clear all filters">Clear filters</button>
+          </div>
+
+          <div class="filter-summary" id="execFilterSummary" aria-live="polite">Showing data for: All time · All campuses</div>
+
+          <!-- Phase 2+ will replace this placeholder with cards, charts and datasheet. -->
+          <div class="dash-placeholder">
+            <svg class="dash-placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 7v5l3 3" /></svg>
+            <div class="dash-placeholder-title">Dashboard foundation ready</div>
+            <div class="dash-placeholder-text">
+              Phase 1 complete: filters are working. Cards, charts, and the live datasheet will appear here in the next phases.
+            </div>
+          </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────
+             CAMPUS ADMIN DASHBOARD VIEW (existing — unchanged)
+             Shown only for: admin (campus admin) and event_lead.
+             ───────────────────────────────────────────────── -->
+        <div id="campusAdminDashboardView">
         <div class="section-header">
           <div>
             <div class="section-title">Dashboard</div>
@@ -2604,6 +2778,7 @@
           </div>
         </div>
 
+        </div><!-- /campusAdminDashboardView -->
       </div>
 
       <!-- ── CLUBS ── -->
@@ -4298,15 +4473,6 @@ function getDisplayName(email){
 }
 
 function showAdminPanel(){
-  // ── Executive Dashboard redirect (Phase 1) ──
-  // 4 senior roles see the new dashboard.html instead of the admin dashboard.
-  // Honour deep-links from dashboard.html: if URL has a hash (e.g. #section-clubs), do NOT redirect.
-  const SENIOR_DASHBOARD_ROLES = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms"];
-  if(SENIOR_DASHBOARD_ROLES.includes(currentRole) && !location.hash){
-    window.location.replace("dashboard.html");
-    return;
-  }
-
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("adminShell").classList.add("visible");
   document.getElementById("userEmail").textContent = getDisplayName(currentUser.email);
@@ -4388,7 +4554,10 @@ function showAdminPanel(){
   applyActionPermission("download_charts", document.querySelectorAll(".chart-download-btn"));
 
   // ── Load data based on permissions ──
-  if(!isEventLead && hasPermission("view_dashboard")) loadDashboard();
+  // Executive Dashboard (Phase 1): the 4 senior roles get the new view; everyone else keeps the existing campus dashboard.
+  initExecutiveDashboardView();
+  const isExecRole = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms"].includes(currentRole);
+  if(!isEventLead && !isExecRole && hasPermission("view_dashboard")) loadDashboard();
   if(hasPermission("manage_clubs"))    { loadClubs(); loadACC(); }
   if(hasPermission("manage_events"))   loadEvents();
   if(hasPermission("manage_news"))     loadNews();
@@ -4450,22 +4619,6 @@ function showAdminPanel(){
   startRealtimeSubscriptions();
 
   if(isSuper) loadAdmins();
-
-  // ── Deep-link handler (Phase 1) ──
-  // If user arrived via admin.html#section-xxx (e.g. clicked a sidebar link from dashboard.html),
-  // switch to that section instead of the default Dashboard tab.
-  // If user arrived via admin.html#change-password (from dashboard.html user dropdown),
-  // open the change-password modal.
-  if(location.hash && location.hash.startsWith("#section-")){
-    const targetSection = location.hash.replace("#section-", "");
-    const btn = document.querySelector(`.nav-item[data-section="section-${targetSection}"]`);
-    if(btn && btn.style.display !== "none"){
-      // Use setTimeout so all other init in showAdminPanel completes first
-      setTimeout(() => showSection(targetSection, btn), 0);
-    }
-  } else if(location.hash === "#change-password"){
-    setTimeout(() => openChangePassword(false), 200);
-  }
 }
 
 function applyActionPermission(permKey, selectors){
@@ -4514,15 +4667,6 @@ function handleSidebarToggle(){
 })();
 
 function showSection(name, btn){
-  // ── Executive Dashboard redirect (Phase 1) ──
-  // If a senior role clicks the Dashboard tab, send them to dashboard.html.
-  if(name === "dashboard"){
-    const SENIOR_DASHBOARD_ROLES = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms"];
-    if(SENIOR_DASHBOARD_ROLES.includes(currentRole)){
-      window.location.href = "dashboard.html";
-      return;
-    }
-  }
   // Close mobile sidebar when navigating
   if(window.innerWidth <= 768){
     document.getElementById("adminSidebar")?.classList.remove("open");
@@ -4547,6 +4691,94 @@ function showToast(msg, type = "success"){
   t.textContent = msg;
   t.className = `toast ${type} show`;
   setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ EXECUTIVE DASHBOARD — Phase 1 ══
+   For super_admin, vice_provost, senior_manager_global, manager_marketing_comms.
+   Phase 1 = shell + filters only. Cards/charts/datasheet come in later phases.
+   ════════════════════════════════════════════════════════════════════════ */
+const EXECUTIVE_DASHBOARD_ROLES = ["super_admin","vice_provost","senior_manager_global","manager_marketing_comms"];
+
+// Filter state — Phase 2+ will read from this when loading cards/charts/datasheet.
+window.dashboardFilters = {
+  dateFrom: null,   // "YYYY-MM-DD" or null (no lower bound)
+  dateTo:   null,   // "YYYY-MM-DD" or null (no upper bound)
+  campus:   "all"   // "all" or one of the 4 campus names
+};
+
+/* Toggle which dashboard view shows based on the current role. */
+function initExecutiveDashboardView(){
+  const execView   = document.getElementById("executiveDashboardView");
+  const campusView = document.getElementById("campusAdminDashboardView");
+  if(!execView || !campusView) return;
+  const isExec = EXECUTIVE_DASHBOARD_ROLES.includes(currentRole);
+  execView.style.display   = isExec ? "block" : "none";
+  campusView.style.display = isExec ? "none"  : "block";
+}
+
+/* Date filter changed (either input). Auto-swap if From > To. */
+function onExecDateFilterChange(){
+  const fromEl = document.getElementById("execFilterDateFrom");
+  const toEl   = document.getElementById("execFilterDateTo");
+  let from = fromEl.value || null;
+  let to   = toEl.value   || null;
+  if(from && to && from > to){
+    [from, to] = [to, from];
+    fromEl.value = from;
+    toEl.value   = to;
+  }
+  window.dashboardFilters.dateFrom = from;
+  window.dashboardFilters.dateTo   = to;
+  updateExecFilterSummary();
+  notifyExecFilterChange();
+}
+
+/* Campus chip clicked — only one can be active at a time. */
+function onExecCampusFilterChange(campus, btn){
+  document.querySelectorAll("#executiveDashboardView .filter-chip").forEach(c => {
+    c.classList.remove("active");
+    c.setAttribute("aria-pressed", "false");
+  });
+  btn.classList.add("active");
+  btn.setAttribute("aria-pressed", "true");
+  window.dashboardFilters.campus = campus;
+  updateExecFilterSummary();
+  notifyExecFilterChange();
+}
+
+/* Reset to defaults (All time, All campuses). */
+function clearAllExecFilters(){
+  document.getElementById("execFilterDateFrom").value = "";
+  document.getElementById("execFilterDateTo").value   = "";
+  window.dashboardFilters = { dateFrom: null, dateTo: null, campus: "all" };
+  document.querySelectorAll("#executiveDashboardView .filter-chip").forEach(c => {
+    const isAll = c.dataset.campus === "all";
+    c.classList.toggle("active", isAll);
+    c.setAttribute("aria-pressed", isAll ? "true" : "false");
+  });
+  updateExecFilterSummary();
+  notifyExecFilterChange();
+}
+
+/* Update the "Showing data for: …" line under the filter strip. */
+function updateExecFilterSummary(){
+  const el = document.getElementById("execFilterSummary");
+  if(!el) return;
+  const f = window.dashboardFilters;
+  const dateLabel   = (!f.dateFrom && !f.dateTo) ? "All time"
+                    : (f.dateFrom && f.dateTo)   ? `${f.dateFrom} → ${f.dateTo}`
+                    : (f.dateFrom)               ? `From ${f.dateFrom}`
+                    :                              `Up to ${f.dateTo}`;
+  const campusLabel = (f.campus === "all") ? "All campuses" : f.campus;
+  el.textContent = `Showing data for: ${dateLabel} · ${campusLabel}`;
+}
+
+/* In later phases, cards/charts/datasheet will listen for this event. */
+function notifyExecFilterChange(){
+  document.dispatchEvent(new CustomEvent("dashboard:filters-changed", {
+    detail: { ...window.dashboardFilters }
+  }));
 }
 
 /* ══ DASHBOARD ══ */
@@ -4712,6 +4944,9 @@ function classifyEventBucket(executionStatus, eventDateStr, todayStr){
 }
 
 async function loadDashboard(){
+  // Executive Dashboard roles use their own view — skip the campus dashboard loader.
+  if(EXECUTIVE_DASHBOARD_ROLES.includes(currentRole)) return;
+
   const today = new Date().toISOString().split("T")[0];
 
   // For campus admins, restrict all queries to their campus
