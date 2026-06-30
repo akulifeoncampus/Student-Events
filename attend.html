@@ -250,10 +250,6 @@
           <label class="field-label" for="selLevel">Level</label>
           <select class="field-select" id="selLevel" aria-required="true">
             <option value="">— Select your level —</option>
-            <option value="Undergraduate">Undergraduate</option>
-            <option value="Graduate">Graduate</option>
-            <option value="Post-Graduate">Post-Graduate</option>
-            <option value="PhD">PhD</option>
           </select>
         </div>
         <button class="btn-primary" onclick="goToStep4()" id="btnStep3Next">Next →</button>
@@ -351,44 +347,35 @@ const CAMPUS_DATA = {
   "Karachi": {
     entities: [
       "Medical College",
-      "School of Nursing and Midwifery (SONAM)",
-      "Faculty of Arts and Sciences (FAS)",
-      "Institute for Educational Development (IED)",
-      "Postgraduate Medical Education",
+      "School of Nursing and Midwifery",
+      "Faculty of Arts and Sciences",
+      "Institute of Educational Development",
       "Other / Not Listed"
     ],
     programs: {
       "Medical College": {
-        "Undergraduate": ["MBBS"],
-        "Graduate":      ["MD Residency","FCPS","Fellowship Programme"],
-        "Post-Graduate": ["MMed","MSc (Medical Sciences)"],
-        "PhD":           ["PhD Medicine"]
+        "Undergraduate":  ["Associate of Science in Dental Hygiene (ASDH)","Bachelor of Medicine, Bachelor of Surgery (MBBS)"],
+        "Graduate":       ["Master of Philosophy in Biological and Biomedical Sciences (MPhil-BBS)","Master of Health Policy and Management (MHPM)","Master of Science in Epidemiology and Biostatistics (MSc – Epi&Bio)","Master of Sciences in Public Health (MSPH)","Master of Health Professions Education (MHPE)","Master of Bioethics (MBE)","Master of Science in Health Care Management (MSHM)","Master of Early Child Development (MECD)","Master of Science in Health Data Science (MSHDS)"],
+        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
       },
-      "School of Nursing and Midwifery (SONAM)": {
-        "Undergraduate": ["BScN (4-year)","Post-RN BScN"],
-        "Graduate":      ["MScN"],
-        "Post-Graduate": ["MScN (Advanced)"]
+      "School of Nursing and Midwifery": {
+        "Undergraduate":  ["Bachelor of Science in Nursing (BScN)","Post-RN Bachelor of Science in Nursing (Post-RN BScN)"],
+        "Graduate":       ["Master of Science in Nursing (MScN)"],
+        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
       },
-      "Faculty of Arts and Sciences (FAS)": {
-        "Undergraduate": ["BSc Economics","BSc Social Development","BA","Other BSc / BA"],
-        "Graduate":      ["MSc","MA"],
-        "Post-Graduate": ["MPhil"],
-        "PhD":           ["PhD"]
+      "Faculty of Arts and Sciences": {
+        "Undergraduate":  ["Bachelor of Studies in Arts & Sciences (BS)"],
+        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
       },
-      "Institute for Educational Development (IED)": {
-        "Graduate":      ["MEd","MA Education","PGDE"],
-        "Post-Graduate": ["EdD","MPhil Education"],
-        "PhD":           ["PhD Education"]
-      },
-      "Postgraduate Medical Education": {
-        "Graduate":      ["MPH","MSc","MBA Healthcare"],
-        "Post-Graduate": ["Postgraduate Diploma","Fellowship"]
+      "Institute of Educational Development": {
+        "Undergraduate":  ["Bachelor of Education (B.Ed.)"],
+        "Graduate":       ["Master of Philosophy in Education (MPhil – Edu)"],
+        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
       },
       "Other / Not Listed": {
-        "Undergraduate": ["Other"],
-        "Graduate":      ["Other"],
-        "Post-Graduate": ["Other"],
-        "PhD":           ["Other"]
+        "Undergraduate":  ["Other"],
+        "Graduate":       ["Other"],
+        "Post Graduate":  ["Other"]
       }
     }
   },
@@ -681,6 +668,20 @@ function populateEntities(campus){
   });
 }
 
+function populateLevels(campus, entity){
+  const sel = document.getElementById("selLevel");
+  sel.innerHTML = `<option value="">— Select your level —</option>`;
+
+  const campus_data = CAMPUS_DATA[campus] || CAMPUS_DATA["Karachi"];
+  const levels = Object.keys(campus_data.programs?.[entity] || {});
+
+  levels.forEach(l => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = l;
+    sel.appendChild(opt);
+  });
+}
+
 function populatePrograms(campus, entity, level){
   const sel = document.getElementById("selProgram");
   sel.innerHTML = `<option value="">— Select your programme —</option>`;
@@ -699,8 +700,8 @@ function populatePrograms(campus, entity, level){
    FORM VALIDATION BEFORE PROCEEDING
 ══════════════════════════════════════════════════════════════ */
 document.getElementById("selEntity").addEventListener("change", function(){
-  // Reset level and program when entity changes
-  document.getElementById("selLevel").value = "";
+  // Populate level options for the chosen entity, and reset programme
+  populateLevels(eventData.campus, this.value);
   document.getElementById("selProgram").innerHTML = `<option value="">— Select your programme —</option>`;
 });
 
