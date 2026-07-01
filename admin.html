@@ -2320,6 +2320,136 @@
       .exec-cat-donut-wrap { margin: 0 auto; }
     }
 
+    /* ═══════════════════════════════════════════════════════════════
+       PHASE 4 — ENGAGEMENT + GENDER + CATEGORY×CAMPUS
+       Reuses .exec-chart-card / .exec-charts-grid-2col from Phase 3.
+       Adds: heatmap, clickable hints, gender donut, small helpers.
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* Click hint used on any chart that supports cross-filter drilldown */
+    .exec-clickable-hint {
+      font-size: 11px;
+      color: var(--color-hint);
+      font-style: italic;
+      margin-top: 3px;
+    }
+
+    /* Clickable by-campus tiles + campus bars — visual affordance */
+    .exec-campus-tile[data-clickable="1"] {
+      cursor: pointer;
+    }
+    .exec-campus-tile[data-clickable="1"]:hover {
+      border-color: var(--tile-accent, var(--aku-navy));
+    }
+    .exec-campus-tile[data-clickable="1"]:focus-visible {
+      outline: 2px solid var(--aku-navy);
+      outline-offset: 2px;
+    }
+
+    /* ── Gender donut layout (smaller than the category donut) ── */
+    .exec-gender-layout {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .exec-gender-donut-wrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+    }
+    .exec-gender-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Category × Campus heatmap ── */
+    .exec-heatmap-wrap {
+      overflow-x: auto;
+      padding: 4px 0 8px;
+    }
+    .exec-heatmap {
+      display: grid;
+      gap: 4px;
+      min-width: 480px;
+    }
+    .exec-heatmap-corner,
+    .exec-heatmap-col-hd,
+    .exec-heatmap-row-hd,
+    .exec-heatmap-cell {
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 32px;
+    }
+    .exec-heatmap-corner {
+      background: transparent;
+    }
+    .exec-heatmap-col-hd {
+      font-weight: 700;
+      color: var(--color-ink);
+      background: var(--color-surface-2);
+      border: 0.5px solid var(--color-border);
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .exec-heatmap-col-hd:hover { background: var(--color-bg); }
+    .exec-heatmap-col-hd:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; }
+    .exec-heatmap-row-hd {
+      font-weight: 500;
+      color: var(--color-ink);
+      background: var(--color-surface-2);
+      border: 0.5px solid var(--color-border);
+      justify-content: flex-start;
+      text-align: left;
+    }
+    .exec-heatmap-cell {
+      background: var(--cell-bg, var(--color-surface));
+      color: var(--cell-fg, var(--color-ink));
+      font-weight: 700;
+      border: 0.5px solid var(--color-border);
+      transition: transform .12s;
+      position: relative;
+    }
+    .exec-heatmap-cell[data-clickable="1"] { cursor: pointer; }
+    .exec-heatmap-cell[data-clickable="1"]:hover { transform: scale(1.05); z-index: 1; box-shadow: var(--shadow-sm); }
+    .exec-heatmap-cell[data-clickable="1"]:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; z-index: 1; }
+    .exec-heatmap-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--color-muted);
+      font-size: 13px;
+      background: var(--color-surface-2);
+      border-radius: var(--radius-md);
+    }
+    .exec-heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      font-size: 11.5px;
+      color: var(--color-muted);
+    }
+    .exec-heatmap-legend-scale {
+      flex: 0 0 160px;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, rgba(0,0,96,0.06), rgba(0,0,96,0.95));
+    }
+
+    @media (max-width: 900px) {
+      .exec-gender-layout { grid-template-columns: 1fr; }
+      .exec-gender-donut-wrap { margin: 0 auto; }
+    }
+
     @media (max-width: 768px) {
       .filter-strip { padding: 14px; gap: 14px; }
       .filter-clear-btn { margin-left: 0; }
@@ -2888,6 +3018,7 @@
               <div class="exec-chart-header">
                 <h3 class="exec-chart-title" id="execChartByCampusTitle">Total Events by Campus</h3>
                 <div class="exec-chart-takeaway" id="execChartByCampusTake" aria-live="polite">Loading…</div>
+                <div class="exec-clickable-hint">Click a bar to filter every chart by that campus.</div>
               </div>
               <div class="exec-chart-canvas-wrap" style="height:260px;">
                 <canvas id="execChartByCampus" role="img" aria-label="Events by campus"></canvas>
@@ -2955,12 +3086,139 @@
             </div>
           </div>
 
-          <!-- Phase 4+ will replace this placeholder with engagement charts and the datasheet -->
+          <!-- ═══════════════════════════════════════════════════════════════
+               PHASE 4 — STUDENT ENGAGEMENT CHARTS
+               Row A: Top Entities (bar) + Top Programs (bar)
+               Row B: Entity Engagement Scatter + Engagement Score (bar)
+               ═══════════════════════════════════════════════════════════════ -->
+          <div class="exec-section-divider">Student Engagement</div>
+
+          <div class="exec-charts-grid-2col">
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartTopEntitiesTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartTopEntitiesTitle">Top Entities by Attendance</h3>
+                <div class="exec-chart-takeaway" id="execChartTopEntitiesTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:300px;">
+                <canvas id="execChartTopEntities" role="img" aria-label="Top entities by attendance"></canvas>
+              </div>
+            </div>
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartTopProgramsTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartTopProgramsTitle">Top Programs by Attendance</h3>
+                <div class="exec-chart-takeaway" id="execChartTopProgramsTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:300px;">
+                <canvas id="execChartTopPrograms" role="img" aria-label="Top programs by attendance"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="exec-charts-grid-2col">
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartEngageScatterTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartEngageScatterTitle">Entity Engagement — Breadth vs Depth</h3>
+                <div class="exec-chart-takeaway" id="execChartEngageScatterTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:300px;">
+                <canvas id="execChartEngageScatter" role="img" aria-label="Entity engagement scatter chart"></canvas>
+              </div>
+            </div>
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartEngageScoreTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartEngageScoreTitle">Engagement Score by Entity</h3>
+                <div class="exec-chart-takeaway" id="execChartEngageScoreTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:300px;">
+                <canvas id="execChartEngageScore" role="img" aria-label="Engagement score by entity"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══════════════════════════════════════════════════════════════
+               PHASE 4 — GENDER & CATEGORY INSIGHTS
+               Row A: Gender donut + Gender × Category (100% stacked bar)
+               Row B: Avg Attendance by Category (bar, full-width)
+               ═══════════════════════════════════════════════════════════════ -->
+          <div class="exec-section-divider">Gender &amp; Category Insights</div>
+
+          <div class="exec-charts-grid-2col">
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartGenderTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartGenderTitle">Gender Split</h3>
+                <div class="exec-chart-takeaway" id="execChartGenderTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-gender-layout">
+                <div class="exec-gender-donut-wrap">
+                  <canvas id="execChartGender" role="img" aria-label="Gender split donut chart"></canvas>
+                  <div class="exec-donut-center" id="execChartGenderCenter" aria-hidden="true"></div>
+                </div>
+                <ul class="exec-gender-list" id="execChartGenderList" role="list">
+                  <li class="exec-cat-empty">Loading…</li>
+                </ul>
+              </div>
+            </div>
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartGenderCatTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartGenderCatTitle">Gender by Event Category</h3>
+                <div class="exec-chart-takeaway" id="execChartGenderCatTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:320px;">
+                <canvas id="execChartGenderCat" role="img" aria-label="Gender split by event category"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="exec-chart-card" role="region" aria-labelledby="execChartAvgCatTitle">
+            <div class="exec-chart-header">
+              <h3 class="exec-chart-title" id="execChartAvgCatTitle">Average Attendance by Event Category</h3>
+              <div class="exec-chart-takeaway" id="execChartAvgCatTake" aria-live="polite">Loading…</div>
+            </div>
+            <div class="exec-chart-canvas-wrap" style="height:280px;">
+              <canvas id="execChartAvgCat" role="img" aria-label="Average attendance per event by category"></canvas>
+            </div>
+          </div>
+
+          <!-- ═══════════════════════════════════════════════════════════════
+               PHASE 4 — CROSS-CUTTING VIEWS (Category × Campus)
+               Both views only make sense when comparing across campuses,
+               so they hide when a specific campus is picked.
+               ═══════════════════════════════════════════════════════════════ -->
+          <div class="exec-section-divider" id="execCatCampusDivider">Category × Campus</div>
+
+          <div class="exec-chart-card" id="execChartHeatmapCard" role="region" aria-labelledby="execChartHeatmapTitle">
+            <div class="exec-chart-header">
+              <h3 class="exec-chart-title" id="execChartHeatmapTitle">Attendance Heatmap — Category × Campus</h3>
+              <div class="exec-chart-takeaway" id="execChartHeatmapTake" aria-live="polite">Loading…</div>
+              <div class="exec-clickable-hint">Click a column header or a cell to filter every chart by that campus.</div>
+            </div>
+            <div class="exec-heatmap-wrap">
+              <div id="execChartHeatmap" role="table" aria-label="Attendance heatmap by category and campus"></div>
+            </div>
+            <div class="exec-heatmap-legend" aria-hidden="true">
+              <span>Fewer</span>
+              <span class="exec-heatmap-legend-scale"></span>
+              <span>More</span>
+            </div>
+          </div>
+
+          <div class="exec-chart-card" id="execChartClusteredCard" role="region" aria-labelledby="execChartClusteredTitle">
+            <div class="exec-chart-header">
+              <h3 class="exec-chart-title" id="execChartClusteredTitle">Attendance by Category — Grouped by Campus</h3>
+              <div class="exec-chart-takeaway" id="execChartClusteredTake" aria-live="polite">Loading…</div>
+              <div class="exec-clickable-hint">Same data as the heatmap, shown as bars for direct comparison.</div>
+            </div>
+            <div class="exec-chart-canvas-wrap" style="height:340px;">
+              <canvas id="execChartClustered" role="img" aria-label="Clustered bar chart of attendance by category and campus"></canvas>
+            </div>
+          </div>
+
+          <!-- Phase 5+ will replace this placeholder with the live datasheet, inclusivity panel, and PDF export -->
           <div class="dash-placeholder">
-            <svg class="dash-placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h6a4 4 0 0 1 4 4v2" /></svg>
-            <div class="dash-placeholder-title">Engagement charts coming in Phase 4</div>
+            <svg class="dash-placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 0" /><path d="M4 8l16 0" /><path d="M4 12l16 0" /><path d="M4 16l16 0" /><path d="M4 20l16 0" /></svg>
+            <div class="dash-placeholder-title">Live datasheet coming in Phase 5</div>
             <div class="dash-placeholder-text">
-              Phase 3 complete: event insight charts are live. Top entities and programs by attendance, engagement scatter, gender breakdown and the category heatmap will appear here in the next phase.
+              Phase 4 complete: engagement, gender, and cross-cutting category charts are live. The searchable live datasheet, inclusivity panel, and PDF export will appear here in the final phase.
             </div>
           </div>
         </div>
@@ -5308,7 +5566,7 @@ async function execFetchAttendance(eventIds){
   for(let i = 0; i < eventIds.length; i += CHUNK){
     const slice = eventIds.slice(i, i + CHUNK);
     const { data, error } = await sb.from("event_attendance")
-      .select("student_id, event_id")
+      .select("student_id, event_id, entity, program, gender")
       .not("student_id", "is", null)
       .in("event_id", slice);
     if(error) throw error;
@@ -5465,13 +5723,44 @@ async function loadExecutiveDashboard(){
     renderEventsByMonthChart(fEvents, f.dateFrom, f.dateTo);
     renderEventsByCategoryChart(fEvents, proposals);
 
+    // ── Phase 4 renders — attendance-driven engagement & gender charts ──
+    // fAttendance is already filtered to events in campus (computed above for repeat-rate).
+    renderTopEntitiesChart(fAttendance);
+    renderTopProgramsChart(fAttendance);
+    renderEngagementScatterChart(fAttendance);
+    renderEngagementScoreChart(fAttendance);
+    renderGenderChart(fAttendance);
+    renderGenderByCategoryChart(fAttendance, fEvents, proposals);
+    renderAvgAttendanceByCategoryChart(fEvents, fAttendance, proposals);
+
+    // ── Phase 4: Category × Campus (heatmap + clustered bar) ──
+    // Only meaningful when comparing across campuses, so hide when a specific campus is picked.
+    const heatmapCard   = document.getElementById("execChartHeatmapCard");
+    const clusteredCard = document.getElementById("execChartClusteredCard");
+    const catCampusDiv  = document.getElementById("execCatCampusDivider");
+    if(heatmapCard)   heatmapCard.style.display   = isAllCampuses ? "" : "none";
+    if(clusteredCard) clusteredCard.style.display = isAllCampuses ? "" : "none";
+    if(catCampusDiv)  catCampusDiv.style.display  = isAllCampuses ? "" : "none";
+
+    if(isAllCampuses){
+      // Use unfiltered eventsInRange + attendanceInRange since the whole point is to compare all 4 campuses
+      renderCategoryCampusHeatmap(attendanceInRange, eventsInRange, proposals);
+      renderCategoryCampusClusteredBar(attendanceInRange, eventsInRange, proposals);
+    } else {
+      destroyExecChart("clustered");
+    }
+
   } catch(err){
     console.error("[Executive Dashboard] load failed:", err);
     execShowCardsLoading(false);
     // Show "—" so user knows something failed, without breaking the layout
     ["execStatClubs","execStatOnboarded","execStatEvents","execStatUpcoming","execStatUnique","execStatRepeat"]
       .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = "—"; });
-    ["execChartByCampusTake","execChartByMonthTake","execChartByCategoryTake"]
+    ["execChartByCampusTake","execChartByMonthTake","execChartByCategoryTake",
+     "execChartTopEntitiesTake","execChartTopProgramsTake",
+     "execChartEngageScatterTake","execChartEngageScoreTake",
+     "execChartGenderTake","execChartGenderCatTake","execChartAvgCatTake",
+     "execChartHeatmapTake","execChartClusteredTake"]
       .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = "Couldn't load chart data — please try again."; });
   }
 }
@@ -5501,8 +5790,13 @@ function renderExecByCampusTiles({ clubs, onboarded, events, upcoming, selectedC
     const e   = events.filter(x => x.campus === campus).length;
     const u   = upcoming.filter(x => x.campus === campus).length;
     const color = EXEC_CAMPUS_COLORS[campus] || "#000060";
+    // Only make tiles clickable when the user could actually change something (i.e. viewing "All")
+    const clickable = (selectedCampus === "all");
+    const clickAttr = clickable
+      ? `data-clickable="1" role="button" tabindex="0" aria-label="Filter dashboard by ${execEscapeHtml(campus)}" onclick="execFilterByCampus('${execEscapeHtml(campus).replace(/'/g, "\\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();execFilterByCampus('${execEscapeHtml(campus).replace(/'/g, "\\'")}');}"`
+      : "";
     return `
-      <div class="exec-campus-tile" style="--tile-accent:${color};">
+      <div class="exec-campus-tile" style="--tile-accent:${color};" ${clickAttr}>
         <div class="exec-campus-name">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" /></svg>
           ${execEscapeHtml(campus)}
@@ -5679,9 +5973,21 @@ function renderEventsByCampusChart(events){
       responsive: true,
       maintainAspectRatio: false,
       animation: EXEC_CHART_ANIM,
+      // Cross-filter: click any bar to filter every chart by that campus
+      onClick: (evt, elements, chart) => {
+        if(elements && elements.length > 0){
+          const campusName = chart.data.labels[elements[0].index];
+          if(campusName) execFilterByCampus(campusName);
+        }
+      },
+      onHover: (evt, elements) => {
+        if(evt.native && evt.native.target){
+          evt.native.target.style.cursor = (elements && elements.length > 0) ? 'pointer' : 'default';
+        }
+      },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} event${ctx.parsed.x === 1 ? '' : 's'}` } }
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} event${ctx.parsed.x === 1 ? '' : 's'} — click to filter` } }
       },
       scales: {
         x: {
@@ -5921,6 +6227,751 @@ function renderEventsByMonthByCampusCharts(events, dateFrom, dateTo){
         }
       }
     });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ EXECUTIVE DASHBOARD — Phase 4: engagement, gender, category × campus ══
+   Also introduces the "cross-filter drilldown" helper used by tiles/charts.
+   ════════════════════════════════════════════════════════════════════════ */
+
+// Gender palette — Male/Female/Prefer Not Say/Not Specified.
+const EXEC_GENDER_PALETTE = {
+  "Male":            EXEC_PALETTE.navy,       // #000060
+  "Female":          EXEC_PALETTE.terracotta, // #C86F5B
+  "Prefer Not Say":  EXEC_PALETTE.sage,       // #6B8E7B
+  "Not Specified":   "#94a3b8"                // muted
+};
+const EXEC_GENDER_ORDER = ["Male","Female","Prefer Not Say","Not Specified"];
+
+// Fixed order for category-vs-campus displays, matching the proposal form order.
+// Any category not in this list is appended at the end alphabetically.
+const EXEC_CATEGORY_ORDER = [
+  "Recreational/Social","Sports","Competition","Workshop/Session",
+  "Orientation","Meeting","Welfare","Other"
+];
+
+/* ── Cross-filter: click a campus bar or tile → update the chip → reload everything.
+   This is safe to call from any chart's onClick or a tile onclick. ── */
+function execFilterByCampus(campusName){
+  if(!campusName || !EXEC_CAMPUSES.includes(campusName)) return;
+  const chip = document.querySelector(`#executiveDashboardView .filter-chip[data-campus="${campusName.replace(/"/g,'\\"')}"]`);
+  if(chip){
+    onExecCampusFilterChange(campusName, chip);
+    // Scroll top of dashboard so the filter change is visible
+    const filterStrip = document.querySelector("#executiveDashboardView .filter-strip");
+    if(filterStrip && filterStrip.scrollIntoView){
+      filterStrip.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
+// Sort categories in stable form-order first, then any unknowns alphabetically.
+function execSortCategories(cats){
+  const known   = EXEC_CATEGORY_ORDER.filter(c => cats.includes(c));
+  const unknown = cats.filter(c => !EXEC_CATEGORY_ORDER.includes(c)).sort();
+  return [...known, ...unknown];
+}
+
+// Normalize a possibly-missing string ("", null, undefined) into a display label.
+function execNormalizeLabel(value, fallback){
+  const s = (value === null || value === undefined) ? "" : String(value).trim();
+  return s || fallback;
+}
+
+// Build a map: eventId → { category, campus } from the loaded proposals + events lookup.
+function execBuildEventMeta(events, proposals){
+  const catByEventId = {};
+  proposals.forEach(p => {
+    if(p.published_event_id && p.category) catByEventId[p.published_event_id] = p.category;
+  });
+  const meta = {};
+  events.forEach(e => {
+    meta[e.id] = { campus: e.campus || null, category: catByEventId[e.id] || null };
+  });
+  return meta;
+}
+
+/* ── Chart: Top Entities by Attendance (horizontal ranked bar, top 10) ── */
+function renderTopEntitiesChart(attendance){
+  const canvas = document.getElementById("execChartTopEntities");
+  const takeEl = document.getElementById("execChartTopEntitiesTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("topEntities");
+
+  const counts = {};
+  attendance.forEach(a => {
+    const label = execNormalizeLabel(a.entity, "Not Specified");
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  const ranked = Object.entries(counts)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a,b) => b.value - a.value)
+    .slice(0, 10);
+  const total = attendance.length;
+
+  if(ranked.length === 0){
+    takeEl.textContent = "No attendance recorded in this range.";
+  } else {
+    const top = ranked[0];
+    const pct = total > 0 ? (top.value / total) * 100 : 0;
+    takeEl.textContent = `${top.label} leads with ${execFormatNumber(top.value)} check-in${top.value === 1 ? '' : 's'} (${pct.toFixed(pct < 10 ? 1 : 0)}% of total).`;
+  }
+  canvas.setAttribute("aria-label", `Top entities by attendance: ${takeEl.textContent}`);
+
+  window._execCharts.topEntities = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ranked.map(r => r.label),
+      datasets: [{
+        data: ranked.map(r => r.value),
+        backgroundColor: EXEC_PALETTE.navy,
+        borderRadius: 4,
+        borderSkipped: false,
+        barPercentage: 0.75,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ` ${execFormatNumber(ctx.parsed.x)} check-in${ctx.parsed.x === 1 ? '' : 's'}` } }
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { color: EXEC_PALETTE.muted, precision: 0 }, grid: { color: EXEC_PALETTE.gridline }, border: { display: false } },
+        y: { ticks: { color: EXEC_PALETTE.ink }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+}
+
+/* ── Chart: Top Programs by Attendance (horizontal ranked bar, top 10) ── */
+function renderTopProgramsChart(attendance){
+  const canvas = document.getElementById("execChartTopPrograms");
+  const takeEl = document.getElementById("execChartTopProgramsTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("topPrograms");
+
+  const counts = {};
+  attendance.forEach(a => {
+    const label = execNormalizeLabel(a.program, "Not Specified");
+    counts[label] = (counts[label] || 0) + 1;
+  });
+  const ranked = Object.entries(counts)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a,b) => b.value - a.value)
+    .slice(0, 10);
+  const total = attendance.length;
+
+  if(ranked.length === 0){
+    takeEl.textContent = "No attendance recorded in this range.";
+  } else {
+    const top = ranked[0];
+    const pct = total > 0 ? (top.value / total) * 100 : 0;
+    takeEl.textContent = `${top.label} leads with ${execFormatNumber(top.value)} check-in${top.value === 1 ? '' : 's'} (${pct.toFixed(pct < 10 ? 1 : 0)}% of total).`;
+  }
+  canvas.setAttribute("aria-label", `Top programs by attendance: ${takeEl.textContent}`);
+
+  window._execCharts.topPrograms = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ranked.map(r => r.label),
+      datasets: [{
+        data: ranked.map(r => r.value),
+        backgroundColor: EXEC_PALETTE.ochre,
+        borderRadius: 4,
+        borderSkipped: false,
+        barPercentage: 0.75,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ` ${execFormatNumber(ctx.parsed.x)} check-in${ctx.parsed.x === 1 ? '' : 's'}` } }
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { color: EXEC_PALETTE.muted, precision: 0 }, grid: { color: EXEC_PALETTE.gridline }, border: { display: false } },
+        y: { ticks: { color: EXEC_PALETTE.ink }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+}
+
+/* ── Chart: Entity Engagement Scatter (breadth vs depth)
+   x = # unique events attended by students from that entity
+   y = total attendance count from that entity
+   bubble radius scales with avg turnout per event = y / x                 */
+function renderEngagementScatterChart(attendance){
+  const canvas = document.getElementById("execChartEngageScatter");
+  const takeEl = document.getElementById("execChartEngageScatterTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("engageScatter");
+
+  // Group attendance by entity → { totalAttendance, uniqueEvents }
+  const byEntity = {};
+  attendance.forEach(a => {
+    const key = execNormalizeLabel(a.entity, "Not Specified");
+    if(!byEntity[key]) byEntity[key] = { total: 0, events: new Set() };
+    byEntity[key].total += 1;
+    if(a.event_id) byEntity[key].events.add(a.event_id);
+  });
+
+  const points = Object.entries(byEntity).map(([entity, d]) => {
+    const events = d.events.size;
+    const avg    = events > 0 ? d.total / events : 0;
+    return { entity, x: events, y: d.total, avg };
+  });
+
+  // Scale bubble radius: 5–22px based on avg (per-event turnout).
+  const maxAvg = Math.max(...points.map(p => p.avg), 1);
+  points.forEach(p => {
+    p.r = 5 + Math.round((p.avg / maxAvg) * 17);
+  });
+
+  if(points.length === 0){
+    takeEl.textContent = "No attendance recorded in this range.";
+  } else {
+    const topByAvg = points.slice().sort((a,b) => b.avg - a.avg)[0];
+    takeEl.textContent = `Highest average turnout: ${topByAvg.entity} — ${topByAvg.avg.toFixed(1)} students per event they attended.`;
+  }
+  canvas.setAttribute("aria-label", `Entity engagement scatter: ${takeEl.textContent}`);
+
+  window._execCharts.engageScatter = new Chart(canvas, {
+    type: 'bubble',
+    data: {
+      datasets: [{
+        label: 'Entity',
+        data: points,
+        backgroundColor: 'rgba(0, 0, 96, 0.55)',
+        borderColor: EXEC_PALETTE.navy,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0].raw.entity,
+            label: (ctx) => [
+              ` Events attended: ${ctx.raw.x}`,
+              ` Total attendance: ${execFormatNumber(ctx.raw.y)}`,
+              ` Avg per event: ${ctx.raw.avg.toFixed(1)}`
+            ]
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          title: { display: true, text: 'Events attended (breadth)', color: EXEC_PALETTE.muted, font: { size: 11 } },
+          ticks: { color: EXEC_PALETTE.muted, precision: 0 },
+          grid: { color: EXEC_PALETTE.gridline },
+          border: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Total attendance (depth)', color: EXEC_PALETTE.muted, font: { size: 11 } },
+          ticks: { color: EXEC_PALETTE.muted, precision: 0 },
+          grid: { color: EXEC_PALETTE.gridline },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/* ── Chart: Engagement Score by Entity
+   Score = total attendance ÷ # unique events attended (avg turnout per event).
+   Top 10 ranked, horizontal bar.                                          */
+function renderEngagementScoreChart(attendance){
+  const canvas = document.getElementById("execChartEngageScore");
+  const takeEl = document.getElementById("execChartEngageScoreTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("engageScore");
+
+  const byEntity = {};
+  attendance.forEach(a => {
+    const key = execNormalizeLabel(a.entity, "Not Specified");
+    if(!byEntity[key]) byEntity[key] = { total: 0, events: new Set() };
+    byEntity[key].total += 1;
+    if(a.event_id) byEntity[key].events.add(a.event_id);
+  });
+
+  const ranked = Object.entries(byEntity)
+    .map(([label, d]) => ({ label, value: d.events.size > 0 ? d.total / d.events.size : 0 }))
+    .filter(r => r.value > 0)
+    .sort((a,b) => b.value - a.value)
+    .slice(0, 10);
+
+  if(ranked.length === 0){
+    takeEl.textContent = "No attendance recorded in this range.";
+  } else {
+    const top = ranked[0];
+    takeEl.textContent = `${top.label} has the highest score: ${top.value.toFixed(1)} students per event on average.`;
+  }
+  canvas.setAttribute("aria-label", `Engagement score by entity: ${takeEl.textContent}`);
+
+  window._execCharts.engageScore = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ranked.map(r => r.label),
+      datasets: [{
+        data: ranked.map(r => r.value),
+        backgroundColor: EXEC_PALETTE.sage,
+        borderRadius: 4,
+        borderSkipped: false,
+        barPercentage: 0.75,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x.toFixed(1)} students per event` } }
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { color: EXEC_PALETTE.muted }, grid: { color: EXEC_PALETTE.gridline }, border: { display: false } },
+        y: { ticks: { color: EXEC_PALETTE.ink }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+}
+
+/* ── Chart: Gender Split (donut + ranked list) ── */
+function renderGenderChart(attendance){
+  const canvas   = document.getElementById("execChartGender");
+  const takeEl   = document.getElementById("execChartGenderTake");
+  const listEl   = document.getElementById("execChartGenderList");
+  const centerEl = document.getElementById("execChartGenderCenter");
+  if(!canvas || !takeEl || !listEl) return;
+  destroyExecChart("gender");
+
+  const counts = {};
+  attendance.forEach(a => {
+    const label = execNormalizeLabel(a.gender, "Not Specified");
+    counts[label] = (counts[label] || 0) + 1;
+  });
+
+  const ordered = EXEC_GENDER_ORDER
+    .filter(g => counts[g] > 0)
+    .map(g => ({ label: g, value: counts[g] }));
+  // Include any unknown gender values (shouldn't happen, but future-proof)
+  Object.keys(counts).forEach(g => {
+    if(!EXEC_GENDER_ORDER.includes(g)) ordered.push({ label: g, value: counts[g] });
+  });
+
+  const total = ordered.reduce((a, r) => a + r.value, 0);
+  const colors = ordered.map(o => EXEC_GENDER_PALETTE[o.label] || "#94a3b8");
+
+  if(total === 0){
+    takeEl.textContent = "No attendance recorded in this range.";
+    listEl.innerHTML = '<li class="exec-cat-empty">No data.</li>';
+    if(centerEl) centerEl.innerHTML = "";
+  } else {
+    const top = ordered.slice().sort((a,b) => b.value - a.value)[0];
+    const pct = (top.value / total) * 100;
+    takeEl.textContent = `${top.label} accounts for ${pct.toFixed(pct < 10 ? 1 : 0)}% of check-ins in this range.`;
+
+    listEl.innerHTML = ordered.map((r, i) => {
+      const p     = (r.value / total) * 100;
+      const pStr  = p.toFixed(p < 10 ? 1 : 0);
+      const color = EXEC_GENDER_PALETTE[r.label] || "#94a3b8";
+      return `
+        <li class="exec-cat-item">
+          <span class="exec-cat-dot" style="background:${color};" aria-hidden="true"></span>
+          <span class="exec-cat-label">${execEscapeHtml(r.label)}</span>
+          <span class="exec-cat-value">${execFormatNumber(r.value)}</span>
+          <span class="exec-cat-pct">${pStr}%</span>
+        </li>`;
+    }).join("");
+    if(centerEl){
+      centerEl.innerHTML = `
+        <div class="exec-donut-total">${execFormatNumber(total)}</div>
+        <div class="exec-donut-label">check-ins</div>`;
+    }
+  }
+  canvas.setAttribute("aria-label", `Gender split: ${takeEl.textContent}`);
+
+  window._execCharts.gender = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ordered.map(r => r.label),
+      datasets: [{
+        data: ordered.map(r => r.value),
+        backgroundColor: colors,
+        borderColor: '#fff',
+        borderWidth: 3,
+        hoverOffset: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const p = total > 0 ? (ctx.parsed / total) * 100 : 0;
+              return ` ${ctx.label}: ${ctx.parsed} (${p.toFixed(p < 10 ? 1 : 0)}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ── Chart: Gender × Event Category (100% stacked horizontal bar) ── */
+function renderGenderByCategoryChart(attendance, events, proposals){
+  const canvas = document.getElementById("execChartGenderCat");
+  const takeEl = document.getElementById("execChartGenderCatTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("genderCat");
+
+  const meta = execBuildEventMeta(events, proposals);
+
+  // Group attendance by category → gender counts
+  const byCat = {};
+  attendance.forEach(a => {
+    const cat = meta[a.event_id]?.category;
+    if(!cat) return; // only include categorised events
+    const gen = execNormalizeLabel(a.gender, "Not Specified");
+    if(!byCat[cat]) byCat[cat] = {};
+    byCat[cat][gen] = (byCat[cat][gen] || 0) + 1;
+  });
+
+  const categories = execSortCategories(Object.keys(byCat));
+  const genders    = EXEC_GENDER_ORDER.filter(g => categories.some(c => (byCat[c][g] || 0) > 0));
+
+  // For each gender, build a % dataset (0–100) per category
+  const datasets = genders.map(g => ({
+    label: g,
+    data: categories.map(c => {
+      const catCounts = byCat[c];
+      const catTotal  = Object.values(catCounts).reduce((a,b) => a+b, 0);
+      const val       = catCounts[g] || 0;
+      return catTotal > 0 ? (val / catTotal) * 100 : 0;
+    }),
+    backgroundColor: EXEC_GENDER_PALETTE[g] || "#94a3b8",
+    borderColor: '#fff',
+    borderWidth: 1,
+    borderRadius: 2,
+    borderSkipped: false
+  }));
+
+  if(categories.length === 0){
+    takeEl.textContent = "No categorised attendance recorded in this range.";
+  } else {
+    // Find the category with the biggest gender skew from 50/50 for the takeaway
+    let skewCat = null, skewGen = null, skewPct = 0;
+    categories.forEach(c => {
+      const cnts = byCat[c];
+      const tot  = Object.values(cnts).reduce((a,b) => a+b, 0);
+      if(tot === 0) return;
+      Object.entries(cnts).forEach(([g, v]) => {
+        const p = (v / tot) * 100;
+        if(p > skewPct){ skewPct = p; skewGen = g; skewCat = c; }
+      });
+    });
+    if(skewCat){
+      takeEl.textContent = `${skewCat} skews most toward ${skewGen} (${skewPct.toFixed(skewPct < 10 ? 1 : 0)}%).`;
+    } else {
+      takeEl.textContent = "Attendance breakdown by gender across categories.";
+    }
+  }
+  canvas.setAttribute("aria-label", `Gender by category: ${takeEl.textContent}`);
+
+  window._execCharts.genderCat = new Chart(canvas, {
+    type: 'bar',
+    data: { labels: categories, datasets },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: EXEC_PALETTE.ink, boxWidth: 12, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.x.toFixed(ctx.parsed.x < 10 ? 1 : 0)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          beginAtZero: true, max: 100,
+          ticks: { color: EXEC_PALETTE.muted, callback: (v) => v + '%' },
+          grid: { color: EXEC_PALETTE.gridline },
+          border: { display: false }
+        },
+        y: {
+          stacked: true,
+          ticks: { color: EXEC_PALETTE.ink },
+          grid: { display: false },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/* ── Chart: Average Attendance by Event Category (horizontal ranked bar) ── */
+function renderAvgAttendanceByCategoryChart(events, attendance, proposals){
+  const canvas = document.getElementById("execChartAvgCat");
+  const takeEl = document.getElementById("execChartAvgCatTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("avgCat");
+
+  const meta = execBuildEventMeta(events, proposals);
+  // For each event, count attendance
+  const attCountByEvent = {};
+  attendance.forEach(a => {
+    attCountByEvent[a.event_id] = (attCountByEvent[a.event_id] || 0) + 1;
+  });
+
+  // Group by category: sum attendance ÷ count of events in that category (only events in range)
+  const byCat = {};
+  events.forEach(e => {
+    const cat = meta[e.id]?.category;
+    if(!cat) return;
+    if(!byCat[cat]) byCat[cat] = { attendance: 0, eventCount: 0 };
+    byCat[cat].eventCount += 1;
+    byCat[cat].attendance += (attCountByEvent[e.id] || 0);
+  });
+
+  const ranked = Object.entries(byCat)
+    .map(([label, d]) => ({ label, value: d.eventCount > 0 ? d.attendance / d.eventCount : 0 }))
+    .sort((a,b) => b.value - a.value);
+
+  if(ranked.length === 0){
+    takeEl.textContent = "No categorised events in this range.";
+  } else {
+    const top = ranked[0];
+    takeEl.textContent = `${top.label} draws the highest turnout: ${top.value.toFixed(1)} students per event.`;
+  }
+  canvas.setAttribute("aria-label", `Average attendance by category: ${takeEl.textContent}`);
+
+  window._execCharts.avgCat = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ranked.map(r => r.label),
+      datasets: [{
+        data: ranked.map(r => r.value),
+        backgroundColor: EXEC_PALETTE.terracotta,
+        borderRadius: 4,
+        borderSkipped: false,
+        barPercentage: 0.75,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x.toFixed(1)} students per event` } }
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { color: EXEC_PALETTE.muted }, grid: { color: EXEC_PALETTE.gridline }, border: { display: false } },
+        y: { ticks: { color: EXEC_PALETTE.ink }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+}
+
+/* ── Heatmap: Attendance by Category × Campus (HTML/CSS grid)
+   Rows = categories. Columns = 4 campuses. Cell shade = attendance count.
+   Column headers + cells are clickable → filter by that campus.          */
+function renderCategoryCampusHeatmap(attendance, events, proposals){
+  const container = document.getElementById("execChartHeatmap");
+  const takeEl    = document.getElementById("execChartHeatmapTake");
+  if(!container || !takeEl) return;
+
+  const meta = execBuildEventMeta(events, proposals);
+  const grid = {}; // { category: { campus: count } }
+
+  attendance.forEach(a => {
+    const m = meta[a.event_id];
+    if(!m || !m.category || !m.campus) return;
+    if(!grid[m.category]) grid[m.category] = {};
+    grid[m.category][m.campus] = (grid[m.category][m.campus] || 0) + 1;
+  });
+
+  const categories = execSortCategories(Object.keys(grid));
+
+  if(categories.length === 0){
+    takeEl.textContent = "No categorised attendance across campuses in this range.";
+    container.innerHTML = `<div class="exec-heatmap-empty">No data to display for the selected filters.</div>`;
+    return;
+  }
+
+  // Find hotspot
+  let maxCount = 0, hotCat = null, hotCampus = null;
+  categories.forEach(c => {
+    EXEC_CAMPUSES.forEach(k => {
+      const v = grid[c]?.[k] || 0;
+      if(v > maxCount){ maxCount = v; hotCat = c; hotCampus = k; }
+    });
+  });
+  takeEl.textContent = maxCount > 0
+    ? `Hotspot: ${hotCat} at ${hotCampus} with ${execFormatNumber(maxCount)} check-ins.`
+    : "No categorised attendance across campuses in this range.";
+
+  // Build the grid HTML.
+  // Grid columns: [row header] [Karachi] [Nairobi] [Kampala] [Dar es Salaam]
+  const colCount = 1 + EXEC_CAMPUSES.length;
+  const cornerHTML = `<div class="exec-heatmap-corner" role="columnheader" aria-hidden="true"></div>`;
+  const colHeaders = EXEC_CAMPUSES.map(campus => {
+    return `<div class="exec-heatmap-col-hd"
+              role="columnheader"
+              tabindex="0"
+              aria-label="Filter dashboard by ${execEscapeHtml(campus)}"
+              onclick="execFilterByCampus('${execEscapeHtml(campus).replace(/'/g,"\\'")}')"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();execFilterByCampus('${execEscapeHtml(campus).replace(/'/g,"\\'")}');}"
+            >${execEscapeHtml(campus)}</div>`;
+  }).join("");
+
+  const rowsHTML = categories.map(cat => {
+    const rowHead = `<div class="exec-heatmap-row-hd" role="rowheader">${execEscapeHtml(cat)}</div>`;
+    const cells = EXEC_CAMPUSES.map(campus => {
+      const count     = grid[cat]?.[campus] || 0;
+      const intensity = maxCount > 0 ? (count / maxCount) : 0;
+      // Navy background with alpha, dark text on light, light text on dark
+      const alpha = 0.06 + intensity * 0.89;
+      const bg    = `rgba(0, 0, 96, ${alpha.toFixed(3)})`;
+      const fg    = intensity > 0.6 ? "#ffffff" : "#0f172a";
+      const isEmpty = count === 0;
+      const label = `${cat} at ${campus}: ${count} check-ins. Click to filter by ${campus}.`;
+      return `<div class="exec-heatmap-cell"
+                role="cell"
+                ${isEmpty ? '' : 'data-clickable="1" tabindex="0"'}
+                aria-label="${execEscapeHtml(label)}"
+                style="--cell-bg:${bg};--cell-fg:${fg};"
+                ${isEmpty ? '' : `onclick="execFilterByCampus('${execEscapeHtml(campus).replace(/'/g,"\\'")}')"`}
+                ${isEmpty ? '' : `onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();execFilterByCampus('${execEscapeHtml(campus).replace(/'/g,"\\'")}');}"`}
+              >${count > 0 ? execFormatNumber(count) : ""}</div>`;
+    }).join("");
+    return rowHead + cells;
+  }).join("");
+
+  container.style.gridTemplateColumns = `180px repeat(${EXEC_CAMPUSES.length}, minmax(80px, 1fr))`;
+  container.innerHTML = cornerHTML + colHeaders + rowsHTML;
+}
+
+/* ── Clustered Bar: Attendance by Category, grouped by Campus ── */
+function renderCategoryCampusClusteredBar(attendance, events, proposals){
+  const canvas = document.getElementById("execChartClustered");
+  const takeEl = document.getElementById("execChartClusteredTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("clustered");
+
+  const meta = execBuildEventMeta(events, proposals);
+  const grid = {}; // { category: { campus: count } }
+
+  attendance.forEach(a => {
+    const m = meta[a.event_id];
+    if(!m || !m.category || !m.campus) return;
+    if(!grid[m.category]) grid[m.category] = {};
+    grid[m.category][m.campus] = (grid[m.category][m.campus] || 0) + 1;
+  });
+
+  const categories = execSortCategories(Object.keys(grid));
+
+  if(categories.length === 0){
+    takeEl.textContent = "No categorised attendance across campuses in this range.";
+  } else {
+    // Find the (campus, category) hotspot for the takeaway
+    let maxCount = 0, hotCat = null, hotCampus = null;
+    categories.forEach(c => {
+      EXEC_CAMPUSES.forEach(k => {
+        const v = grid[c]?.[k] || 0;
+        if(v > maxCount){ maxCount = v; hotCat = c; hotCampus = k; }
+      });
+    });
+    takeEl.textContent = maxCount > 0
+      ? `Biggest single group: ${hotCat} at ${hotCampus} with ${execFormatNumber(maxCount)} check-ins.`
+      : "No attendance recorded across campuses.";
+  }
+  canvas.setAttribute("aria-label", `Clustered bars by category and campus: ${takeEl.textContent}`);
+
+  const datasets = EXEC_CAMPUSES.map(campus => ({
+    label: campus,
+    data: categories.map(c => grid[c]?.[campus] || 0),
+    backgroundColor: EXEC_CAMPUS_COLORS[campus] || EXEC_PALETTE.navy,
+    borderRadius: 3,
+    borderSkipped: false,
+    barPercentage: 0.85,
+    categoryPercentage: 0.75
+  }));
+
+  window._execCharts.clustered = new Chart(canvas, {
+    type: 'bar',
+    data: { labels: categories, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      onClick: (evt, elements, chart) => {
+        if(elements && elements.length > 0){
+          const campusName = chart.data.datasets[elements[0].datasetIndex].label;
+          if(campusName) execFilterByCampus(campusName);
+        }
+      },
+      onHover: (evt, elements) => {
+        if(evt.native && evt.native.target){
+          evt.native.target.style.cursor = (elements && elements.length > 0) ? 'pointer' : 'default';
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { color: EXEC_PALETTE.ink, boxWidth: 12, font: { size: 11 } }
+          // Legend keeps default toggle-series behaviour so users can hide/show a campus for comparison.
+        },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${execFormatNumber(ctx.parsed.y)} check-ins — click bar to filter` } }
+      },
+      scales: {
+        x: {
+          ticks: { color: EXEC_PALETTE.muted, autoSkip: false, maxRotation: 35, minRotation: 0 },
+          grid: { display: false },
+          border: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: EXEC_PALETTE.muted, precision: 0 },
+          grid: { color: EXEC_PALETTE.gridline },
+          border: { display: false }
+        }
+      }
+    }
   });
 }
 
