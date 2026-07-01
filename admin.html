@@ -2175,6 +2175,151 @@
       0%   { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       PHASE 3 — CHART CARDS
+       Editorial-clean style: no gradients, no shadows on data,
+       thin gridlines, restrained palette. Auto-generated takeaways.
+       ═══════════════════════════════════════════════════════════════ */
+    .exec-charts-grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .exec-chart-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .exec-charts-grid-2col > .exec-chart-card { margin-bottom: 0; }
+    .exec-chart-header { margin-bottom: 16px; }
+    .exec-chart-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+    .exec-chart-takeaway {
+      font-size: 12.5px;
+      color: var(--color-muted);
+      line-height: 1.4;
+      min-height: 18px;
+    }
+    .exec-chart-canvas-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    /* ── Category donut layout ── */
+    .exec-cat-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+    .exec-cat-donut-wrap {
+      position: relative;
+      width: 240px;
+      height: 240px;
+    }
+    .exec-donut-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .exec-donut-total {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--color-ink);
+      line-height: 1;
+    }
+    .exec-donut-label {
+      font-size: 11px;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
+    .exec-cat-rank-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .exec-cat-item {
+      display: grid;
+      grid-template-columns: 12px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      transition: background 0.12s;
+    }
+    .exec-cat-item:hover { background: var(--color-surface-2); }
+    .exec-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .exec-cat-label { font-size: 13px; color: var(--color-ink); font-weight: 500; }
+    .exec-cat-value { font-size: 13px; font-weight: 700; color: var(--color-ink); }
+    .exec-cat-pct { font-size: 11.5px; color: var(--color-muted); font-weight: 500; min-width: 42px; text-align: right; }
+    .exec-cat-empty { padding: 12px; color: var(--color-muted); font-size: 13px; list-style: none; }
+
+    /* ── Small multiples: 4 mini line charts (one per campus) ── */
+    .exec-small-multiples {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .exec-small-multiples-header {
+      grid-column: 1 / -1;
+    }
+    .exec-small-multiple {
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--color-surface-2);
+      border-left: 3px solid var(--tile-accent, var(--aku-navy));
+    }
+    .exec-sm-name {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--color-ink);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .exec-sm-total {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--tile-accent, var(--aku-navy));
+    }
+
+    /* Responsive collapse for charts on smaller screens */
+    @media (max-width: 900px) {
+      .exec-charts-grid-2col { grid-template-columns: 1fr; }
+      .exec-cat-layout { grid-template-columns: 1fr; }
+      .exec-cat-donut-wrap { margin: 0 auto; }
+    }
+
     @media (max-width: 768px) {
       .filter-strip { padding: 14px; gap: 14px; }
       .filter-clear-btn { margin-left: 0; }
@@ -2725,12 +2870,97 @@
             <!-- Tiles are rendered by renderExecByCampus() -->
           </div>
 
-          <!-- Phase 3+ will replace this placeholder with charts + datasheet -->
+          <!-- ═══════════════════════════════════════════════════════════════
+               PHASE 3 — EVENT INSIGHT CHARTS
+               Four charts:
+                 1. Total Events by Campus       (horizontal bar) — hidden when a specific campus is selected
+                 2. Events by Month              (area line + peak highlight)
+                 3. Events by Category           (donut + ranked list)
+                 4. Events by Month × Campus     (small multiples — 4 mini line charts) — hidden when a specific campus is selected
+               Rendered by renderExec* functions inside loadExecutiveDashboard().
+               ═══════════════════════════════════════════════════════════════ -->
+          <div class="exec-section-divider">Event Insights</div>
+
+          <!-- Row 1: Events by Campus + Events by Month -->
+          <div class="exec-charts-grid-2col">
+
+            <div class="exec-chart-card" id="execChartByCampusCard" role="region" aria-labelledby="execChartByCampusTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartByCampusTitle">Total Events by Campus</h3>
+                <div class="exec-chart-takeaway" id="execChartByCampusTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:260px;">
+                <canvas id="execChartByCampus" role="img" aria-label="Events by campus"></canvas>
+              </div>
+            </div>
+
+            <div class="exec-chart-card" role="region" aria-labelledby="execChartByMonthTitle">
+              <div class="exec-chart-header">
+                <h3 class="exec-chart-title" id="execChartByMonthTitle">Events by Month</h3>
+                <div class="exec-chart-takeaway" id="execChartByMonthTake" aria-live="polite">Loading…</div>
+              </div>
+              <div class="exec-chart-canvas-wrap" style="height:260px;">
+                <canvas id="execChartByMonth" role="img" aria-label="Events by month"></canvas>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Row 2: Events by Category (donut + ranked list) -->
+          <div class="exec-chart-card" role="region" aria-labelledby="execChartByCategoryTitle">
+            <div class="exec-chart-header">
+              <h3 class="exec-chart-title" id="execChartByCategoryTitle">Events by Category</h3>
+              <div class="exec-chart-takeaway" id="execChartByCategoryTake" aria-live="polite">Loading…</div>
+            </div>
+            <div class="exec-cat-layout">
+              <div class="exec-cat-donut-wrap">
+                <canvas id="execChartByCategory" role="img" aria-label="Events by category"></canvas>
+                <div class="exec-donut-center" id="execChartCategoryCenter" aria-hidden="true"></div>
+              </div>
+              <ul class="exec-cat-rank-list" id="execChartCategoryList" role="list">
+                <li class="exec-cat-empty">Loading…</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Row 3: Events by Month × Campus (small multiples) -->
+          <div class="exec-small-multiples" id="execChartSmallMultiplesRow" role="region" aria-labelledby="execSmallMultiplesTitle">
+            <div class="exec-small-multiples-header exec-chart-header">
+              <h3 class="exec-chart-title" id="execSmallMultiplesTitle">Events by Month — by Campus</h3>
+              <div class="exec-chart-takeaway">Same monthly window, compared across all four campuses.</div>
+            </div>
+            <div class="exec-small-multiple" style="--tile-accent:#2563eb;">
+              <div class="exec-sm-name"><span>Karachi</span> <span class="exec-sm-total" id="execChartSmallTotal_Karachi">—</span></div>
+              <div class="exec-chart-canvas-wrap" style="height:100px;">
+                <canvas id="execChartSmall_Karachi" role="img" aria-label="Karachi monthly events"></canvas>
+              </div>
+            </div>
+            <div class="exec-small-multiple" style="--tile-accent:#16a34a;">
+              <div class="exec-sm-name"><span>Nairobi</span> <span class="exec-sm-total" id="execChartSmallTotal_Nairobi">—</span></div>
+              <div class="exec-chart-canvas-wrap" style="height:100px;">
+                <canvas id="execChartSmall_Nairobi" role="img" aria-label="Nairobi monthly events"></canvas>
+              </div>
+            </div>
+            <div class="exec-small-multiple" style="--tile-accent:#f59e0b;">
+              <div class="exec-sm-name"><span>Kampala</span> <span class="exec-sm-total" id="execChartSmallTotal_Kampala">—</span></div>
+              <div class="exec-chart-canvas-wrap" style="height:100px;">
+                <canvas id="execChartSmall_Kampala" role="img" aria-label="Kampala monthly events"></canvas>
+              </div>
+            </div>
+            <div class="exec-small-multiple" style="--tile-accent:#9333ea;">
+              <div class="exec-sm-name"><span>Dar es Salaam</span> <span class="exec-sm-total" id="execChartSmallTotal_Dar_es_Salaam">—</span></div>
+              <div class="exec-chart-canvas-wrap" style="height:100px;">
+                <canvas id="execChartSmall_Dar_es_Salaam" role="img" aria-label="Dar es Salaam monthly events"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase 4+ will replace this placeholder with engagement charts and the datasheet -->
           <div class="dash-placeholder">
-            <svg class="dash-placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h3v6h-3z" /><path d="M9 8h3v10h-3z" /><path d="M15 4h3v14h-3z" /></svg>
-            <div class="dash-placeholder-title">Charts coming in Phase 3</div>
+            <svg class="dash-placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M3 21v-2a4 4 0 0 1 4 -4h6a4 4 0 0 1 4 4v2" /></svg>
+            <div class="dash-placeholder-title">Engagement charts coming in Phase 4</div>
             <div class="dash-placeholder-text">
-              Phase 2 complete: overall cards and by-campus tiles are live. Event charts, engagement charts, and the searchable datasheet will appear here in the next phases.
+              Phase 3 complete: event insight charts are live. Top entities and programs by attendance, engagement scatter, gender breakdown and the category heatmap will appear here in the next phase.
             </div>
           </div>
         </div>
@@ -5116,7 +5346,7 @@ async function loadExecutiveDashboard(){
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), todayStr, f.dateTo),
-      sb.from("event_proposals").select("event_type, published_event_id").not("published_event_id", "is", null)
+      sb.from("event_proposals").select("event_type, category, published_event_id").not("published_event_id", "is", null)
     ]);
 
     const allClubs       = clubsRes.data       || [];
@@ -5213,12 +5443,36 @@ async function loadExecutiveDashboard(){
       selectedCampus: campus
     });
 
+    // ── Render Phase 3 charts ──
+    // Toggle chart visibility: charts that compare campuses are hidden when a specific campus is picked.
+    const isAllCampuses  = (campus === "all");
+    const byCampusCard   = document.getElementById("execChartByCampusCard");
+    const smallMulRow    = document.getElementById("execChartSmallMultiplesRow");
+    if(byCampusCard) byCampusCard.style.display = isAllCampuses ? "" : "none";
+    if(smallMulRow)  smallMulRow.style.display  = isAllCampuses ? "" : "none";
+
+    // Comparative charts (only when viewing all campuses)
+    if(isAllCampuses){
+      renderEventsByCampusChart(eventsInRange);
+      renderEventsByMonthByCampusCharts(eventsInRange, f.dateFrom, f.dateTo);
+    } else {
+      // Destroy any lingering instances so they don't hold on to stale data
+      destroyExecChart("byCampus");
+      EXEC_CAMPUSES.forEach(c => destroyExecChart("small_" + c));
+    }
+
+    // Charts that respect the campus filter
+    renderEventsByMonthChart(fEvents, f.dateFrom, f.dateTo);
+    renderEventsByCategoryChart(fEvents, proposals);
+
   } catch(err){
     console.error("[Executive Dashboard] load failed:", err);
     execShowCardsLoading(false);
     // Show "—" so user knows something failed, without breaking the layout
     ["execStatClubs","execStatOnboarded","execStatEvents","execStatUpcoming","execStatUnique","execStatRepeat"]
       .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = "—"; });
+    ["execChartByCampusTake","execChartByMonthTake","execChartByCategoryTake"]
+      .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = "Couldn't load chart data — please try again."; });
   }
 }
 
@@ -5284,6 +5538,390 @@ function execEscapeHtml(s){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ EXECUTIVE DASHBOARD — Phase 3: Event Insight Charts ══
+   Four charts, editorial-clean style, Chart.js v4.
+   ════════════════════════════════════════════════════════════════════════ */
+
+// Chart instances (destroyed and recreated on every render).
+window._execCharts = window._execCharts || {};
+
+// Editorial palette — restrained, human-crafted feel.
+const EXEC_PALETTE = {
+  navy:       "#000060",   // primary anchor
+  ochre:      "#C89B3C",   // warm accent (used for peaks)
+  sage:       "#6B8E7B",   // muted green
+  terracotta: "#C86F5B",   // warm red-orange
+  ink:        "#0f172a",
+  muted:      "#64748b",
+  hint:       "#94a3b8",
+  gridline:   "#f1f5f9"
+};
+
+// Category ranked list palette — matches donut slices.
+const EXEC_CATEGORY_PALETTE = [
+  "#000060", "#C89B3C", "#6B8E7B", "#C86F5B",
+  "#4C63B6", "#8B7355", "#94a3b8", "#cbd5e1"
+];
+
+// Shared subtle entrance animation for all charts.
+const EXEC_CHART_ANIM = { duration: 250, easing: 'easeOutQuart' };
+
+/* ── Helpers ── */
+
+// Destroy a stored chart instance (if any) so we can safely recreate it.
+function destroyExecChart(key){
+  if(window._execCharts[key]){
+    try { window._execCharts[key].destroy(); } catch(e){}
+    delete window._execCharts[key];
+  }
+}
+
+// Return an array of "YYYY-MM" keys covering the visible month window.
+// Rules:
+//   - If a date range is set → cover from range start to range end (whole months).
+//   - Otherwise               → last 12 months from today.
+function getExecMonthWindowKeys(dateFrom, dateTo){
+  const today = new Date();
+  let start, end;
+  if(dateFrom && dateTo){
+    start = new Date(dateFrom + "T00:00:00");
+    end   = new Date(dateTo   + "T00:00:00");
+  } else {
+    end   = new Date(today.getFullYear(), today.getMonth(), 1);
+    start = new Date(end.getFullYear(), end.getMonth() - 11, 1);
+  }
+  const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endMonth   = new Date(end.getFullYear(),   end.getMonth(),   1);
+  const keys = [];
+  const cur  = new Date(startMonth);
+  // Safety cap — never generate more than 60 buckets even if user picks a huge range.
+  let guard = 0;
+  while(cur <= endMonth && guard < 60){
+    const yr = cur.getFullYear();
+    const mo = String(cur.getMonth() + 1).padStart(2, '0');
+    keys.push(`${yr}-${mo}`);
+    cur.setMonth(cur.getMonth() + 1);
+    guard++;
+  }
+  return keys;
+}
+
+// Group events into a count array matching monthKeys order.
+function bucketEventsByMonth(events, monthKeys){
+  const counts = Object.fromEntries(monthKeys.map(k => [k, 0]));
+  events.forEach(e => {
+    if(!e.event_date) return;
+    const key = String(e.event_date).substring(0, 7);
+    if(counts.hasOwnProperty(key)) counts[key]++;
+  });
+  return monthKeys.map(k => counts[k]);
+}
+
+// Turn "2025-10" into "Oct '25".
+function formatExecMonthLabel(key){
+  const [y, m] = key.split("-");
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${names[parseInt(m, 10) - 1]} '${y.slice(-2)}`;
+}
+
+// Turn "2025-10" into "October 2025" (used in takeaway sentences).
+function formatExecMonthLong(key){
+  const [y, m] = key.split("-");
+  const names = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${names[parseInt(m, 10) - 1]} ${y}`;
+}
+
+/* ── Chart 1: Total Events by Campus (horizontal ranked bar) ── */
+function renderEventsByCampusChart(events){
+  const canvas  = document.getElementById("execChartByCampus");
+  const takeEl  = document.getElementById("execChartByCampusTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("byCampus");
+
+  const counts = EXEC_CAMPUSES.map(c => ({
+    campus: c,
+    count:  events.filter(e => e.campus === c).length
+  })).sort((a, b) => b.count - a.count);
+
+  const labels = counts.map(c => c.campus);
+  const data   = counts.map(c => c.count);
+  const colors = counts.map(c => EXEC_CAMPUS_COLORS[c.campus] || EXEC_PALETTE.navy);
+  const total  = data.reduce((a, b) => a + b, 0);
+
+  if(total === 0){
+    takeEl.textContent = "No events recorded in this range.";
+  } else {
+    const top = counts[0];
+    const pct = (top.count / total) * 100;
+    const pctStr = pct.toFixed(pct < 10 ? 1 : 0);
+    takeEl.textContent = `${top.campus} leads with ${top.count} events (${pctStr}% of ${total} total).`;
+  }
+  canvas.setAttribute("aria-label", `Events by campus: ${takeEl.textContent}`);
+
+  window._execCharts.byCampus = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderRadius: 4,
+        borderSkipped: false,
+        barPercentage: 0.7,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} event${ctx.parsed.x === 1 ? '' : 's'}` } }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { color: EXEC_PALETTE.muted, precision: 0 },
+          grid: { color: EXEC_PALETTE.gridline },
+          border: { display: false }
+        },
+        y: {
+          ticks: { color: EXEC_PALETTE.ink, font: { weight: '500' } },
+          grid: { display: false },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/* ── Chart 2: Events by Month (area line + peak highlight) ── */
+function renderEventsByMonthChart(events, dateFrom, dateTo){
+  const canvas  = document.getElementById("execChartByMonth");
+  const takeEl  = document.getElementById("execChartByMonthTake");
+  if(!canvas || !takeEl) return;
+  destroyExecChart("byMonth");
+
+  const monthKeys = getExecMonthWindowKeys(dateFrom, dateTo);
+  const counts    = bucketEventsByMonth(events, monthKeys);
+  const labels    = monthKeys.map(formatExecMonthLabel);
+
+  const peakCount = Math.max(...counts, 0);
+  const peakIdx   = peakCount > 0 ? counts.indexOf(peakCount) : -1;
+  const total     = counts.reduce((a, b) => a + b, 0);
+
+  // Highlight the peak point with a bigger dot in ochre.
+  const pointRadii  = counts.map((v, i) => (i === peakIdx && peakCount > 0) ? 6 : 3);
+  const pointColors = counts.map((v, i) => (i === peakIdx && peakCount > 0) ? EXEC_PALETTE.ochre : EXEC_PALETTE.navy);
+
+  if(total === 0){
+    takeEl.textContent = "No events in this window.";
+  } else {
+    takeEl.textContent = `Peak: ${formatExecMonthLong(monthKeys[peakIdx])} with ${peakCount} event${peakCount === 1 ? '' : 's'}.`;
+  }
+  canvas.setAttribute("aria-label", `Events per month: ${takeEl.textContent}`);
+
+  window._execCharts.byMonth = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        borderColor:     EXEC_PALETTE.navy,
+        backgroundColor: 'rgba(0, 0, 96, 0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.35,
+        pointRadius:          pointRadii,
+        pointHoverRadius:     7,
+        pointBackgroundColor: pointColors,
+        pointBorderColor:     '#fff',
+        pointBorderWidth:     2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.y} event${ctx.parsed.y === 1 ? '' : 's'}` } }
+      },
+      scales: {
+        x: {
+          ticks: { color: EXEC_PALETTE.muted, maxRotation: 0, autoSkipPadding: 20 },
+          grid:   { display: false },
+          border: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: EXEC_PALETTE.muted, precision: 0 },
+          grid:  { color: EXEC_PALETTE.gridline },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/* ── Chart 3: Events by Category (donut + ranked list) ── */
+function renderEventsByCategoryChart(events, proposals){
+  const canvas  = document.getElementById("execChartByCategory");
+  const listEl  = document.getElementById("execChartCategoryList");
+  const takeEl  = document.getElementById("execChartByCategoryTake");
+  const centerEl = document.getElementById("execChartCategoryCenter");
+  if(!canvas || !listEl || !takeEl) return;
+  destroyExecChart("byCategory");
+
+  // Map event_id → category (from event_proposals).
+  const catByEventId = {};
+  proposals.forEach(p => {
+    if(p.published_event_id && p.category){
+      catByEventId[p.published_event_id] = p.category;
+    }
+  });
+
+  // Count categories among filtered events.
+  const counts = {};
+  events.forEach(e => {
+    const cat = catByEventId[e.id];
+    if(cat) counts[cat] = (counts[cat] || 0) + 1;
+  });
+
+  const ranked = Object.entries(counts)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+  const total = ranked.reduce((a, r) => a + r.value, 0);
+
+  if(total === 0){
+    takeEl.textContent = "No categorised events in this range.";
+    listEl.innerHTML   = '<li class="exec-cat-empty">No data for the selected filters.</li>';
+    if(centerEl) centerEl.innerHTML = '';
+  } else {
+    const top    = ranked[0];
+    const pct    = (top.value / total) * 100;
+    const pctStr = pct.toFixed(pct < 10 ? 1 : 0);
+    takeEl.textContent = `${top.label} is the most common with ${top.value} event${top.value === 1 ? '' : 's'} (${pctStr}%).`;
+
+    listEl.innerHTML = ranked.map((r, i) => {
+      const p     = (r.value / total) * 100;
+      const pStr  = p.toFixed(p < 10 ? 1 : 0);
+      const color = EXEC_CATEGORY_PALETTE[i % EXEC_CATEGORY_PALETTE.length];
+      return `
+        <li class="exec-cat-item">
+          <span class="exec-cat-dot" style="background:${color};" aria-hidden="true"></span>
+          <span class="exec-cat-label">${execEscapeHtml(r.label)}</span>
+          <span class="exec-cat-value">${execFormatNumber(r.value)}</span>
+          <span class="exec-cat-pct">${pStr}%</span>
+        </li>`;
+    }).join("");
+
+    if(centerEl){
+      centerEl.innerHTML = `
+        <div class="exec-donut-total">${execFormatNumber(total)}</div>
+        <div class="exec-donut-label">events</div>`;
+    }
+  }
+  canvas.setAttribute("aria-label", `Events by category: ${takeEl.textContent}`);
+
+  window._execCharts.byCategory = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ranked.map(r => r.label),
+      datasets: [{
+        data:            ranked.map(r => r.value),
+        backgroundColor: ranked.map((_, i) => EXEC_CATEGORY_PALETTE[i % EXEC_CATEGORY_PALETTE.length]),
+        borderColor:     '#ffffff',
+        borderWidth:     3,
+        hoverOffset:     6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: EXEC_CHART_ANIM,
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const val = ctx.parsed;
+              const pct = total > 0 ? ((val / total) * 100) : 0;
+              return ` ${ctx.label}: ${val} (${pct.toFixed(pct < 10 ? 1 : 0)}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ── Chart 4: Events by Month × Campus (small multiples — 4 mini lines) ── */
+function renderEventsByMonthByCampusCharts(events, dateFrom, dateTo){
+  const monthKeys = getExecMonthWindowKeys(dateFrom, dateTo);
+  const labels    = monthKeys.map(formatExecMonthLabel);
+
+  EXEC_CAMPUSES.forEach(campus => {
+    const idSafe   = campus.replace(/\s+/g, '_');
+    const canvasId = "execChartSmall_" + idSafe;
+    const totalId  = "execChartSmallTotal_" + idSafe;
+    const canvas   = document.getElementById(canvasId);
+    const totalEl  = document.getElementById(totalId);
+    if(!canvas) return;
+    destroyExecChart("small_" + campus);
+
+    const campusEvents = events.filter(e => e.campus === campus);
+    const counts       = bucketEventsByMonth(campusEvents, monthKeys);
+    const total        = counts.reduce((a, b) => a + b, 0);
+    const color        = EXEC_CAMPUS_COLORS[campus] || EXEC_PALETTE.navy;
+
+    if(totalEl) totalEl.textContent = execFormatNumber(total);
+    canvas.setAttribute("aria-label", `${campus}: ${total} events across the shown period.`);
+
+    window._execCharts["small_" + campus] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: counts,
+          borderColor:     color,
+          backgroundColor: color + '22',  // ~13% opacity hex suffix
+          borderWidth: 1.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: color,
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: EXEC_CHART_ANIM,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0].label,
+              label: (ctx) => ` ${ctx.parsed.y} event${ctx.parsed.y === 1 ? '' : 's'}`
+            }
+          }
+        },
+        scales: {
+          x: { display: false },
+          y: { display: false, beginAtZero: true }
+        }
+      }
+    });
+  });
 }
 
 /* ══ DASHBOARD ══ */
