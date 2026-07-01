@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#000060">
+  <meta name="robots" content="noindex">
+  <title>Event Feedback — Life on Campus</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: #f0f7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
+      padding: 16px 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .header-brand { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2px; }
+    .header-title { font-size: 18px; font-weight: 800; color: white; }
+    .header-event { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 4px; font-style: italic; }
+
+    /* ── Screens ── */
+    .screen { display: none; flex: 1; align-items: center; justify-content: center; padding: 24px 20px; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── Card ── */
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 24px rgba(0,0,96,.1);
+      text-align: center;
+    }
+
+    .screen-icon { font-size: 52px; margin-bottom: 14px; line-height: 1; }
+    .screen-title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+    .screen-sub   { font-size: 14px; color: #6b7280; line-height: 1.6; }
+
+    .step-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: #9ca3af; margin-bottom: 8px;
+    }
+    .step-question {
+      font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 18px; line-height: 1.4;
+    }
+
+    /* ── Star rating (native radios, CSS-only fill) ── */
+    .star-rating {
+      display: flex; flex-direction: row-reverse; justify-content: center;
+      gap: 2px; margin-bottom: 6px; border: none; padding: 0;
+    }
+    .star-rating input {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    .star-rating label {
+      font-size: 40px; line-height: 1; color: #e5e7eb; cursor: pointer;
+      padding: 4px 6px; border-radius: 8px; transition: color .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .star-rating input:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label { color: #f59e0b; }
+    .star-rating input:focus-visible + label { outline: 2px solid #2563eb; outline-offset: 2px; }
+
+    .rating-caption { font-size: 12px; font-weight: 600; color: #6b7280; min-height: 16px; margin-bottom: 18px; }
+    .error-inline { font-size: 12px; color: #b91c1c; font-weight: 700; margin: -10px 0 16px; text-align: center; display: none; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    /* ── Fields ── */
+    .field-group { text-align: left; margin-bottom: 16px; }
+    .field-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
+    .field-hint  { font-weight: 400; color: #9ca3af; }
+    .field-input {
+      width: 100%; padding: 13px 14px; border: 1.5px solid #e5e7eb;
+      border-radius: 10px; font-family: inherit; font-size: 14px;
+      color: #111827; background: white; resize: none;
+    }
+    .field-input:focus { outline: none; border-color: #2563eb; }
+
+    /* ── Action buttons ── */
+    .btn-primary {
+      width: 100%; padding: 15px; border-radius: 12px;
+      background: linear-gradient(135deg, #000060, #2563eb);
+      color: white; border: none; font-family: inherit;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s; margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: .9; }
+    .btn-primary:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Confirmation ── */
+    .confetti { font-size: 48px; margin-bottom: 12px; animation: pop .4s ease; }
+    @keyframes pop { 0%{transform:scale(.5);opacity:0} 80%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+    .confirm-title { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+    .confirm-event { font-size: 15px; font-weight: 700; color: #2563eb; margin-bottom: 12px; }
+    .confirm-msg   { font-size: 13px; color: #6b7280; line-height: 1.7; }
+
+    /* ── Error / Inactive ── */
+    .error-icon  { font-size: 48px; margin-bottom: 12px; }
+    .error-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+    .error-msg   { font-size: 13px; color: #6b7280; line-height: 1.7; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; padding: 16px 20px;
+      font-size: 11px; color: #9ca3af; flex-shrink: 0;
+    }
+
+    @media (max-width: 360px) {
+      .card { padding: 20px 16px; }
+      .star-rating label { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header" role="banner">
+    <div class="header-brand">Aga Khan University</div>
+    <div class="header-title">Life on Campus</div>
+    <div class="header-event" id="headerEvent" aria-live="polite"></div>
+  </header>
+
+  <!-- Loading -->
+  <section class="screen active" id="screenLoading" aria-label="Loading">
+    <div class="card">
+      <div class="screen-icon" aria-hidden="true">⏳</div>
+      <div class="screen-title">Loading event…</div>
+      <div class="screen-sub">Just a moment</div>
+    </div>
+  </section>
+
+  <!-- Error -->
+  <section class="screen" id="screenError" aria-label="Error" aria-live="assertive">
+    <div class="card">
+      <div class="error-icon" aria-hidden="true">❌</div>
+      <div class="error-title">Link not valid</div>
+      <div class="error-msg" id="errorMsg">This feedback link is invalid or the event could not be found. Please ask the event organiser for the correct QR code.</div>
+    </div>
+  </section>
+
+  <!-- QR not yet active / closed -->
+  <section class="screen" id="screenInactive" aria-label="Feedback not open">
+    <div class="card">
+      <div class="screen-icon" aria-hidden="true">🕒</div>
+      <div class="screen-title" id="inactiveTitle">Feedback not open yet</div>
+      <div class="screen-sub" id="inactiveMsg">The feedback window is not currently active. Please scan the QR code once the event starts.</div>
+    </div>
+  </section>
+
+  <!-- Already submitted -->
+  <section class="screen" id="screenDuplicate" aria-label="Feedback already submitted">
+    <div class="card">
+      <div class="screen-icon" aria-hidden="true">✅</div>
+      <div class="screen-title">Feedback already received!</div>
+      <div class="screen-sub">You've already shared your feedback for this event from this device. Thank you!</div>
+    </div>
+  </section>
+
+  <!-- Form -->
+  <section class="screen" id="screenForm" aria-label="Feedback form">
+    <div class="card">
+
+      <div class="step-label">Quick Feedback</div>
+      <div class="step-question">Rate your experience</div>
+
+      <fieldset class="star-rating" role="radiogroup" aria-required="true" style="border:none;">
+        <legend class="sr-only">Rate this event from 1 to 5 stars</legend>
+        <input type="radio" id="star5" name="rating" value="5"><label for="star5" aria-label="5 stars — Excellent">★</label>
+        <input type="radio" id="star4" name="rating" value="4"><label for="star4" aria-label="4 stars — Good">★</label>
+        <input type="radio" id="star3" name="rating" value="3"><label for="star3" aria-label="3 stars — Okay">★</label>
+        <input type="radio" id="star2" name="rating" value="2"><label for="star2" aria-label="2 stars — Not great">★</label>
+        <input type="radio" id="star1" name="rating" value="1"><label for="star1" aria-label="1 star — Poor">★</label>
+      </fieldset>
+      <div class="rating-caption" id="ratingCaption" aria-live="polite"></div>
+      <div class="error-inline" id="ratingError" role="alert">Please select a star rating.</div>
+
+      <div class="field-group">
+        <label class="field-label" for="inpHighlights">What stood out to you? <span class="field-hint">(optional)</span></label>
+        <textarea class="field-input" id="inpHighlights" rows="2" maxlength="200" placeholder="e.g. the speaker, the food, the vibe…"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="inpImprovements">What could be better? <span class="field-hint">(optional)</span></label>
+        <textarea class="field-input" id="inpImprovements" rows="2" maxlength="200" placeholder="Any suggestions for next time…"></textarea>
+      </div>
+
+      <button class="btn-primary" onclick="submitFeedback()" id="btnSubmitFeedback">Send Feedback</button>
+    </div>
+  </section>
+
+  <!-- Confirmation -->
+  <section class="screen" id="screenDone" aria-label="Feedback submitted" aria-live="polite">
+    <div class="card">
+      <div class="confetti" aria-hidden="true">🙏</div>
+      <div class="confirm-title">Thanks for your feedback!</div>
+      <div class="confirm-event" id="confirmEventName"></div>
+      <div class="confirm-msg">Your response helps us plan even better events. We appreciate you taking the time!</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    Life on Campus · Aga Khan University · <a href="https://lifeoncampus.net" style="color:#2563eb;text-decoration:none;">lifeoncampus.net</a>
+  </footer>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   CONFIGURATION
+══════════════════════════════════════════════════════════════ */
+const SUPABASE_URL = "https://dgzuqvffnbfybngoadse.supabase.co";
+const SUPABASE_KEY = "sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8";
+
+// Feedback window: opens at event START time, closes 2 hours AFTER event END time
+const FEEDBACK_CLOSE_AFTER_END_HRS = 2;
+// Fallback assumed duration if an event has no end time on record
+const FALLBACK_DURATION_HRS = 3;
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+let eventId    = null;
+let eventData  = null;
+let deviceFingerprint = null;
+let doneKey    = null;
+
+/* ══════════════════════════════════════════════════════════════
+   DEVICE ID HELPERS (localStorage + cookie fallback, same approach
+   used on the attendance check-in page for reliability on all
+   phones/browsers)
+══════════════════════════════════════════════════════════════ */
+function safeLocalGet(key){
+  try { return localStorage.getItem(key); } catch(e){ return null; }
+}
+function safeLocalSet(key, value){
+  try { localStorage.setItem(key, value); } catch(e){ /* storage unavailable, ignore */ }
+}
+function getCookie(name){
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+function setCookie(name, value, days){
+  try {
+    const expires = new Date(Date.now() + days * 86400000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  } catch(e){ /* cookies unavailable, ignore */ }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FEEDBACK WINDOW HELPER
+   Opens at event start time. Closes FEEDBACK_CLOSE_AFTER_END_HRS
+   hours after event end time (falls back to a FALLBACK_DURATION_HRS
+   assumed length if no end time is on record). Handles events that
+   run past midnight.
+══════════════════════════════════════════════════════════════ */
+function getFeedbackWindow(date, time, endTime){
+  const t     = (time || "00:00").substring(0, 5);
+  const start = new Date(`${date}T${t}:00`);
+
+  let end;
+  if(endTime){
+    const et = endTime.substring(0, 5);
+    end = new Date(`${date}T${et}:00`);
+    if(end <= start) end = new Date(end.getTime() + 24 * 3600000); // event crosses midnight
+  } else {
+    end = new Date(start.getTime() + FALLBACK_DURATION_HRS * 3600000);
+  }
+
+  const closes = new Date(end.getTime() + FEEDBACK_CLOSE_AFTER_END_HRS * 3600000);
+  return { start, end, closes };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
+(async function init(){
+  // 1. Get event ID from URL
+  const params = new URLSearchParams(location.search);
+  eventId = params.get("e");
+  if(!eventId){ return showError("No event ID found in this link."); }
+
+  // 2. Device fingerprint — shared key with the attendance page, so a
+  //    phone that already checked in reuses the same device ID.
+  const fpKey = `lc_fp_${eventId}`;
+  doneKey = `lc_fb_done_${eventId}`;
+  deviceFingerprint = safeLocalGet(fpKey) || getCookie(fpKey);
+  if(!deviceFingerprint){
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    deviceFingerprint = Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  safeLocalSet(fpKey, deviceFingerprint);
+  setCookie(fpKey, deviceFingerprint, 365);
+
+  // 3. Already submitted? (local flag — fastest, no network needed)
+  if(safeLocalGet(doneKey) || getCookie(doneKey)){
+    return showScreen("screenDuplicate");
+  }
+
+  // 4. Fetch event from Supabase
+  let event;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/event_proposals?id=eq.${encodeURIComponent(eventId)}&select=event_name,campus,proposed_date,proposed_time,event_end_time,status&limit=1`,
+      { headers: { "apikey": SUPABASE_KEY, "Accept": "application/json" } }
+    );
+    const data = await res.json();
+    event = data?.[0];
+  } catch(e){
+    return showError("Could not connect to the server. Please check your internet connection.");
+  }
+
+  if(!event){ return showError("Event not found. Please ask the organiser for the correct QR code."); }
+  eventData = event;
+
+  // 5. Update header
+  document.getElementById("headerEvent").textContent = event.event_name;
+  document.getElementById("confirmEventName").textContent = event.event_name;
+
+  // 6. Check if event is in a valid status
+  const validStatuses = ["approved","assigned","in_progress","completed","report_submitted"];
+  if(!validStatuses.includes(event.status)){
+    return showInactive("This event is not currently accepting feedback.");
+  }
+
+  // 7. Check time window
+  if(event.proposed_date){
+    const win = getFeedbackWindow(event.proposed_date, event.proposed_time, event.event_end_time);
+    const now = new Date();
+
+    if(now < win.start){
+      const minsLeft = Math.round((win.start - now) / 60000);
+      const label    = minsLeft >= 60 ? `${Math.round(minsLeft/60)} hour${Math.round(minsLeft/60)!==1?"s":""}` : `${minsLeft} minute${minsLeft!==1?"s":""}`;
+      return showInactive(`Feedback opens in ${label}. Come back once the event starts!`, "⏳ Not Open Yet");
+    }
+    if(now > win.closes){
+      return showInactive("The feedback window for this event has closed. Thanks for your interest!", "⏰ Window Closed");
+    }
+  }
+
+  // 8. Show the form
+  showScreen("screenForm");
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN HELPERS
+══════════════════════════════════════════════════════════════ */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function showError(msg){
+  document.getElementById("errorMsg").textContent = msg;
+  showScreen("screenError");
+}
+function showInactive(msg, title){
+  if(title) document.getElementById("inactiveTitle").textContent = title;
+  document.getElementById("inactiveMsg").textContent = msg;
+  showScreen("screenInactive");
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STAR RATING CAPTION (live text so screen readers + sighted users
+   both get confirmation of the selected value)
+══════════════════════════════════════════════════════════════ */
+const RATING_LABELS = { 1:"Poor", 2:"Not great", 3:"Okay", 4:"Good", 5:"Excellent" };
+document.querySelectorAll('input[name="rating"]').forEach(input => {
+  input.addEventListener("change", () => {
+    document.getElementById("ratingCaption").textContent = `${input.value} star${input.value==="1"?"":"s"} — ${RATING_LABELS[input.value]}`;
+    document.getElementById("ratingError").style.display = "none";
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SUBMIT FEEDBACK
+══════════════════════════════════════════════════════════════ */
+async function submitFeedback(){
+  const selected = document.querySelector('input[name="rating"]:checked');
+  if(!selected){
+    document.getElementById("ratingError").style.display = "block";
+    return;
+  }
+
+  const btn = document.getElementById("btnSubmitFeedback");
+  if(btn){ btn.disabled = true; btn.textContent = "Sending…"; }
+
+  const payload = {
+    event_id:     eventId,
+    event_name:   eventData.event_name,
+    campus:       eventData.campus,
+    rating:       parseInt(selected.value, 10),
+    highlights:   document.getElementById("inpHighlights").value.trim()   || null,
+    improvements: document.getElementById("inpImprovements").value.trim() || null,
+    device_hash:  deviceFingerprint
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/event_feedback`, {
+      method:  "POST",
+      headers: {
+        "apikey":       SUPABASE_KEY,
+        "Content-Type": "application/json",
+        "Prefer":       "return=minimal"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if(!res.ok){
+      if(res.status === 409){
+        // Already submitted from this device — treat as success
+        safeLocalSet(doneKey, "1");
+        setCookie(doneKey, "1", 365);
+        return showScreen("screenDuplicate");
+      }
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+
+    safeLocalSet(doneKey, "1");
+    setCookie(doneKey, "1", 365);
+    showScreen("screenDone");
+
+  } catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = "Send Feedback"; }
+    alert("Could not submit. Please try again or check your internet connection.");
+    console.error("Feedback submit error:", e);
+  }
+}
+</script>
+</body>
+</html>
