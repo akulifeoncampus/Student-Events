@@ -6001,10 +6001,14 @@ async function execFetchAttendance(eventIds){
   for(let i = 0; i < eventIds.length; i += CHUNK){
     const slice = eventIds.slice(i, i + CHUNK);
     const { data, error } = await sb.from("event_attendance")
-      .select("student_id, student_name, event_id, event_name, campus, entity, program, gender, education_level, created_at")
+      .select("student_id, student_name, event_id, event_name, campus, entity, program, gender, education_level")
       .not("student_id", "is", null)
       .in("event_id", slice);
-    if(error) throw error;
+    if(error){
+      // Don't crash the whole dashboard if a single chunk fails — log and continue with what we have.
+      console.warn("[Exec Attendance] chunk failed, continuing with partial data:", error);
+      continue;
+    }
     if(data) out.push(...data);
   }
   return out;
@@ -6186,20 +6190,30 @@ async function loadExecutiveDashboard(){
     }
 
     // ── Phase 5 renders — inclusivity panel + live datasheet ──
-    renderExecInclusivityPanel({
-      clubs:           allClubs,
-      onboarded:       allOnboarded,
-      events:          eventsInRange,
-      upcomingEvents:  upcomingEvents,
-      attendance:      attendanceInRange,
-      priorEvents:     priorEvents,
-      priorAttendance: priorAttendance,
-      hasRange:        hasRange,
-      proposals:       proposals,
-      campus:          campus
-    });
-    // Datasheet always shows rows for the current campus scope (respects the top campus chip)
-    renderExecDatasheet(fAttendance, fEvents, proposals);
+    // Isolated in their own try/catch so any future bug here cannot blank out cards/charts above.
+    try {
+      renderExecInclusivityPanel({
+        clubs:           allClubs,
+        onboarded:       allOnboarded,
+        events:          eventsInRange,
+        upcomingEvents:  upcomingEvents,
+        attendance:      attendanceInRange,
+        priorEvents:     priorEvents,
+        priorAttendance: priorAttendance,
+        hasRange:        hasRange,
+        proposals:       proposals,
+        campus:          campus
+      });
+    } catch(err){
+      console.error("[Executive Dashboard] inclusivity panel render failed:", err);
+    }
+
+    try {
+      // Datasheet always shows rows for the current campus scope (respects the top campus chip)
+      renderExecDatasheet(fAttendance, fEvents, proposals);
+    } catch(err){
+      console.error("[Executive Dashboard] datasheet render failed:", err);
+    }
 
   } catch(err){
     console.error("[Executive Dashboard] load failed:", err);
