@@ -2731,9 +2731,10 @@ function switchCardTab(proposalId, tabName){
   // Lazy-load messages on first open
   if(tabName === "messages") loadCardMessages(proposalId);
 
-  // Init attendance tab — generate QR and load stats
-  if(tabName === "attendance") initAttendanceTab(proposalId);
-  else stopAttendancePolling(); // stop polling when leaving attendance tab
+  // Init attendance / feedback tabs — generate QR and load stats
+  if(tabName === "attendance"){ initAttendanceTab(proposalId); stopFeedbackPolling(); }
+  else if(tabName === "feedback"){ initFeedbackTab(proposalId); stopAttendancePolling(); }
+  else { stopAttendancePolling(); stopFeedbackPolling(); }
 }
 
 function renderProposals(){
@@ -2935,6 +2936,11 @@ function proposalCardHTML(p){
           role="tab" aria-selected="false" aria-controls="tab-attendance-${p.id}" id="tabbtn-attendance-${p.id}">
           📱 Attendance
         </button>` : ""}
+        ${showAttendance ? `<button class="card-tab" data-tab="feedback"
+          onclick="switchCardTab('${p.id}','feedback')"
+          role="tab" aria-selected="false" aria-controls="tab-feedback-${p.id}" id="tabbtn-feedback-${p.id}">
+          ⭐ Feedback
+        </button>` : ""}
       </div>
 
       <!-- Timeline tab (default) -->
@@ -3003,12 +3009,44 @@ function proposalCardHTML(p){
         </div>
       </div>` : ""}
 
+      ${showAttendance ? `
+      <!-- Feedback tab — QR code + live rating summary -->
+      <div class="card-tab-pane" id="tab-feedback-${p.id}" role="tabpanel" aria-labelledby="tabbtn-feedback-${p.id}">
+        <div style="padding:14px 16px;">
+
+          <!-- Status indicator -->
+          <div id="fb-status-${p.id}" style="font-size:12px;font-weight:600;text-align:center;margin-bottom:12px;"></div>
+
+          <!-- QR Code -->
+          <div style="text-align:center;margin-bottom:12px;">
+            <div id="qrfb-${p.id}" style="display:inline-block;padding:12px;background:white;border:2px solid #e5e7eb;border-radius:12px;" aria-label="QR code for event feedback"></div>
+          </div>
+
+          <!-- Full screen button -->
+          <div style="text-align:center;margin-bottom:16px;">
+            <button onclick="showFullScreenQR('${p.id}','${esc(p.event_name)}','feedback')"
+              aria-label="Show full-screen QR code for feedback display"
+              style="padding:9px 20px;background:#000060;color:white;border:none;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+              ⭐ Full Screen for Display
+            </button>
+          </div>
+
+          <!-- Live feedback stats -->
+          <div id="fb-stats-${p.id}" role="region" aria-label="Feedback statistics" aria-live="polite">
+            <div style="font-size:12px;color:var(--muted);text-align:center;">Loading feedback…</div>
+          </div>
+
+        </div>
+      </div>` : ""}
+
     </div>`;
 }
 
 /* ── QR ATTENDANCE (#51-58) ────────────────────────────────────── */
 let attendancePollInterval = null;
 let qrGenerated = {}; // track which proposals have QR generated
+let feedbackPollInterval = null;
+let qrFeedbackGenerated = {}; // track which proposals have the feedback QR generated
 
 async function loadQRLib(){
   if(window.QRCode) return;
@@ -3144,17 +3182,133 @@ function stopAttendancePolling(){
   if(attendancePollInterval){ clearInterval(attendancePollInterval); attendancePollInterval = null; }
 }
 
-function showFullScreenQR(proposalId, eventName){
+/* ── QR FEEDBACK ──────────────────────────────────────────────── */
+
+// Feedback window: opens at event START time, closes 2 hours AFTER event END time
+const FEEDBACK_CLOSE_AFTER_END_HRS = 2;
+// Fallback assumed duration if an event has no end time on record
+const FEEDBACK_FALLBACK_DURATION_HRS = 3;
+
+function getFeedbackWindow(date, time, endTime){
+  const t     = (time || "00:00").substring(0, 5);
+  const start = new Date(`${date}T${t}:00`);
+
+  let end;
+  if(endTime){
+    const et = endTime.substring(0, 5);
+    end = new Date(`${date}T${et}:00`);
+    if(end <= start) end = new Date(end.getTime() + 24 * 3600000); // event crosses midnight
+  } else {
+    end = new Date(start.getTime() + FEEDBACK_FALLBACK_DURATION_HRS * 3600000);
+  }
+
+  const closes = new Date(end.getTime() + FEEDBACK_CLOSE_AFTER_END_HRS * 3600000);
+  return { start, end, closes };
+}
+
+function getFeedbackStatus(date, time, endTime){
+  if(!date) return { active: false, msg: "No event date set." };
+  const win = getFeedbackWindow(date, time, endTime);
+  const now = new Date();
+  if(now < win.start){
+    const mins = Math.round((win.start - now) / 60000);
+    const label = mins >= 60 ? `~${Math.round(mins/60)}h` : `${mins}m`;
+    return { active: false, msg: `⏳ QR opens in ${label}` };
+  }
+  if(now > win.closes) return { active: false, msg: "⏰ Feedback window closed" };
+  return { active: true, msg: "🟢 Feedback is LIVE" };
+}
+
+async function initFeedbackTab(proposalId){
+  const p = allProposals.find(x => x.id === proposalId);
+  if(!p) return;
+
+  // Update status indicator
+  const statusEl = document.getElementById(`fb-status-${proposalId}`);
+  const { active, msg } = getFeedbackStatus(p.proposed_date, p.proposed_time, p.event_end_time);
+  if(statusEl){
+    statusEl.textContent = msg;
+    statusEl.style.color = active ? "#15803d" : "#6b7280";
+  }
+
+  // Generate QR code (only once per proposal)
+  if(!qrFeedbackGenerated[proposalId]){
+    try {
+      await loadQRLib();
+      const qrEl = document.getElementById(`qrfb-${proposalId}`);
+      if(qrEl && window.QRCode){
+        const url = `https://lifeoncampus.net/event-feedback.html?e=${proposalId}`;
+        new QRCode(qrEl, {
+          text:         url,
+          width:        180,
+          height:       180,
+          colorDark:    "#000060",
+          colorLight:   "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        qrFeedbackGenerated[proposalId] = true;
+      }
+    } catch(e){ console.warn("QR lib failed to load:", e); }
+  }
+
+  // Load stats and start polling
+  await loadFeedbackStats(proposalId);
+  stopFeedbackPolling();
+  feedbackPollInterval = setInterval(() => loadFeedbackStats(proposalId), 10000);
+}
+
+async function loadFeedbackStats(proposalId){
+  const statsEl = document.getElementById(`fb-stats-${proposalId}`);
+  if(!statsEl) return;
+
+  const { data, error } = await sb.from("event_feedback")
+    .select("rating").eq("event_id", proposalId);
+
+  if(error){
+    statsEl.innerHTML = `<p style="font-size:12px;color:var(--muted);text-align:center;">Could not load feedback data.</p>`;
+    return;
+  }
+
+  const count = data ? data.length : 0;
+
+  if(count === 0){
+    statsEl.innerHTML = `<p style="font-size:12px;color:var(--muted);text-align:center;font-style:italic;" role="status">No feedback yet — share the QR after the event!</p>`;
+    return;
+  }
+
+  const avg = (data.reduce((s, r) => s + (r.rating || 0), 0) / count).toFixed(1);
+
+  statsEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;" role="list" aria-label="Feedback summary">
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;text-align:center;" role="listitem">
+        <div style="font-size:18px;font-weight:800;color:#111827;">⭐ ${avg}</div>
+        <div style="font-size:10px;color:var(--muted);">Avg. Rating</div>
+      </div>
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;text-align:center;" role="listitem">
+        <div style="font-size:18px;font-weight:800;color:#111827;">${count}</div>
+        <div style="font-size:10px;color:var(--muted);">Responses</div>
+      </div>
+    </div>`;
+}
+
+function stopFeedbackPolling(){
+  if(feedbackPollInterval){ clearInterval(feedbackPollInterval); feedbackPollInterval = null; }
+}
+
+function showFullScreenQR(proposalId, eventName, kind = "attendance"){
   const overlay = document.getElementById("qrFullscreen");
   const codeEl  = document.getElementById("qrFullscreenCode");
-  document.getElementById("qrFullscreenEventName").textContent = eventName;
+  document.getElementById("qrFullscreenEventName").textContent =
+    kind === "feedback" ? `${eventName} — Feedback` : eventName;
   overlay.style.display = "flex";
   document.body.style.overflow = "hidden";
 
   // Clear and regenerate at larger size
   codeEl.innerHTML = "";
   if(window.QRCode){
-    const url = `https://lifeoncampus.net/attend.html?e=${proposalId}`;
+    const url = kind === "feedback"
+      ? `https://lifeoncampus.net/event-feedback.html?e=${proposalId}`
+      : `https://lifeoncampus.net/attend.html?e=${proposalId}`;
     new QRCode(codeEl, { text: url, width: 260, height: 260, colorDark: "#000060", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
   }
 }
