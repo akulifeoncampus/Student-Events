@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Phase 5: Excel export (SheetJS) + PDF export (html2pdf.js) — loaded lazily on demand -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 
   <style>
@@ -2450,6 +2453,344 @@
       .exec-gender-donut-wrap { margin: 0 auto; }
     }
 
+    /* ═══════════════════════════════════════════════════════════════
+       PHASE 5 — SECTION HEADER ACTIONS · INCLUSIVITY · DATASHEET · PDF
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* Right-side actions in the "Executive Dashboard" section header */
+    .exec-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .exec-updating-pill {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--color-accent-bg);
+      color: var(--color-accent);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    .exec-updating-pill.visible { display: inline-flex; }
+    .exec-updating-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: exec-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes exec-pulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50%      { opacity: 1;   transform: scale(1.1); }
+    }
+    .exec-pdf-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--aku-navy);
+      background: var(--aku-navy);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      transition: background .12s, border-color .12s, opacity .12s;
+    }
+    .exec-pdf-btn:hover:not(:disabled) { background: var(--aku-navy-dark); border-color: var(--aku-navy-dark); }
+    .exec-pdf-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .exec-pdf-btn svg { width: 15px; height: 15px; }
+
+    /* ── Inclusivity panel: 4 cards ── */
+    .exec-inclusivity-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .exec-incl-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .exec-incl-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .exec-incl-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--color-ink);
+      line-height: 1.1;
+    }
+    .exec-incl-value.small { font-size: 15px; line-height: 1.4; }
+    .exec-incl-sub {
+      font-size: 12px;
+      color: var(--color-muted);
+    }
+    .exec-incl-list {
+      list-style: none;
+      margin: 4px 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 130px;
+      overflow-y: auto;
+    }
+    .exec-incl-list li {
+      font-size: 12.5px;
+      color: var(--color-ink);
+      padding: 3px 0;
+      border-bottom: 0.5px solid var(--color-border);
+    }
+    .exec-incl-list li:last-child { border-bottom: 0; }
+    .exec-incl-empty {
+      font-size: 12px;
+      color: var(--color-hint);
+      font-style: italic;
+      padding: 4px 0;
+    }
+
+    /* ── Datasheet ── */
+    .exec-ds-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .exec-ds-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .exec-ds-search {
+      flex: 1;
+      min-width: 200px;
+      max-width: 320px;
+      padding: 8px 12px 8px 34px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      color: var(--color-ink);
+      background:
+        #fff
+        url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0'/%3E%3Cpath d='M21 21l-6 -6'/%3E%3C/svg%3E")
+        no-repeat 10px center;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .exec-ds-search:focus {
+      border-color: var(--aku-navy);
+      box-shadow: 0 0 0 3px var(--aku-navy-light);
+    }
+    .exec-ds-select {
+      padding: 7px 26px 7px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-family: 'Poppins', sans-serif;
+      font-size: 12.5px;
+      color: var(--color-ink);
+      background:
+        #fff
+        url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6l6 -6'/%3E%3C/svg%3E")
+        no-repeat right 8px center;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+    }
+    .exec-ds-select:focus {
+      border-color: var(--aku-navy);
+      box-shadow: 0 0 0 3px var(--aku-navy-light);
+    }
+    .exec-ds-toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .exec-ds-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: #fff;
+      color: var(--color-ink);
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .exec-ds-btn:hover { background: var(--color-bg); }
+    .exec-ds-btn.primary {
+      background: var(--aku-navy);
+      color: #fff;
+      border-color: var(--aku-navy);
+      font-weight: 600;
+    }
+    .exec-ds-btn.primary:hover { background: var(--aku-navy-dark); }
+    .exec-ds-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .exec-ds-btn svg { width: 13px; height: 13px; }
+
+    /* Column-toggle popover */
+    .exec-ds-cols-popover {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      z-index: 30;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 8px;
+      min-width: 220px;
+      display: none;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .exec-ds-cols-popover.open { display: block; }
+    .exec-ds-col-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      color: var(--color-ink);
+      cursor: pointer;
+    }
+    .exec-ds-col-toggle:hover { background: var(--color-bg); }
+    .exec-ds-col-toggle input[type="checkbox"] { accent-color: var(--aku-navy); cursor: pointer; }
+
+    /* Filter row (per-column dropdowns) */
+    .exec-ds-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 0 14px;
+      border-bottom: 0.5px solid var(--color-border);
+      margin-bottom: 12px;
+    }
+    .exec-ds-filter-row-item { display: flex; flex-direction: column; gap: 3px; }
+    .exec-ds-filter-row-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Data table */
+    .exec-ds-table-wrap {
+      max-height: 500px;
+      overflow: auto;
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+    }
+    .exec-ds-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .exec-ds-table thead th {
+      position: sticky;
+      top: 0;
+      background: var(--color-surface-2);
+      z-index: 1;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 700;
+      color: var(--color-ink);
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    .exec-ds-table tbody td {
+      padding: 8px 12px;
+      border-bottom: 0.5px solid var(--color-border);
+      color: var(--color-ink);
+      white-space: nowrap;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .exec-ds-table tbody tr:hover td { background: var(--color-surface-2); }
+    .exec-ds-empty {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--color-muted);
+      font-size: 13px;
+    }
+
+    /* Pagination */
+    .exec-ds-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 14px;
+      flex-wrap: wrap;
+    }
+    .exec-ds-count { font-size: 12px; color: var(--color-muted); }
+    .exec-ds-page-controls { display: flex; align-items: center; gap: 6px; }
+    .exec-ds-page-btn {
+      min-width: 30px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      background: #fff;
+      color: var(--color-ink);
+      font-family: 'Poppins', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .exec-ds-page-btn:hover:not(:disabled) { background: var(--color-bg); }
+    .exec-ds-page-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .exec-ds-page-btn.current { background: var(--aku-navy); color: #fff; border-color: var(--aku-navy); font-weight: 600; }
+    .exec-ds-page-info { font-size: 12px; color: var(--color-muted); padding: 0 6px; }
+
+    /* PDF export mode — hide interactive-only controls, show a temporary print header */
+    .exec-pdf-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--aku-navy);
+      color: #fff;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+    }
+    .exec-pdf-brand { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .exec-pdf-date { font-size: 12px; opacity: 0.9; }
+    .exec-pdf-mode .filter-strip,
+    .exec-pdf-mode .exec-ds-card,
+    .exec-pdf-mode .exec-header-actions,
+    .exec-pdf-mode .exec-clickable-hint,
+    .exec-pdf-mode .exec-updating-pill { display: none !important; }
+    .exec-pdf-mode .exec-chart-card,
+    .exec-pdf-mode .exec-incl-card,
+    .exec-pdf-mode .exec-small-multiples,
+    .exec-pdf-mode .exec-campus-tile,
+    .exec-pdf-mode .stat-card { break-inside: avoid; page-break-inside: avoid; }
+
     @media (max-width: 768px) {
       .filter-strip { padding: 14px; gap: 14px; }
       .filter-clear-btn { margin-left: 0; }
@@ -2858,6 +3199,16 @@
               <div class="section-title">Executive Dashboard</div>
               <div class="section-subtitle">Live insights across all campuses</div>
             </div>
+            <div class="exec-header-actions">
+              <span class="exec-updating-pill" id="execUpdatingPill" aria-live="polite">
+                <span class="exec-updating-dot" aria-hidden="true"></span>
+                <span>Updating…</span>
+              </span>
+              <button class="exec-pdf-btn" id="execPdfBtn" onclick="exportExecDashboardPDF()" aria-label="Export dashboard as PDF">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M12 17v-6" /><path d="M9.5 14.5l2.5 2.5l2.5 -2.5" /></svg>
+                Export as PDF
+              </button>
+            </div>
           </div>
 
           <!-- Filter strip: date range (event_date) + campus chips -->
@@ -3214,11 +3565,93 @@
           </div>
 
           <!-- Phase 5+ will replace this placeholder with the live datasheet, inclusivity panel, and PDF export -->
-          <div class="dash-placeholder">
-            <svg class="dash-placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l16 0" /><path d="M4 8l16 0" /><path d="M4 12l16 0" /><path d="M4 16l16 0" /><path d="M4 20l16 0" /></svg>
-            <div class="dash-placeholder-title">Live datasheet coming in Phase 5</div>
-            <div class="dash-placeholder-text">
-              Phase 4 complete: engagement, gender, and cross-cutting category charts are live. The searchable live datasheet, inclusivity panel, and PDF export will appear here in the final phase.
+          <!-- ═══════════════════════════════════════════════════════════════
+               PHASE 5 — INCLUSIVITY CHECK
+               Four cards giving a health-of-engagement snapshot for the current filter.
+               ═══════════════════════════════════════════════════════════════ -->
+          <div class="exec-section-divider">Inclusivity Check</div>
+          <div class="exec-inclusivity-grid">
+
+            <div class="exec-incl-card" role="region" aria-labelledby="execInclActiveTitle">
+              <div class="exec-incl-label" id="execInclActiveTitle">Active Clubs</div>
+              <div class="exec-incl-value" id="execInclActivePct">—</div>
+              <div class="exec-incl-sub" id="execInclActiveSub">held ≥1 event in the selected period</div>
+            </div>
+
+            <div class="exec-incl-card" role="region" aria-labelledby="execInclDormantTitle">
+              <div class="exec-incl-label" id="execInclDormantTitle">Dormant Clubs</div>
+              <div class="exec-incl-value small" id="execInclDormantHead">—</div>
+              <ul class="exec-incl-list" id="execInclDormantList" role="list">
+                <li class="exec-incl-empty">Loading…</li>
+              </ul>
+            </div>
+
+            <div class="exec-incl-card" role="region" aria-labelledby="execInclLeastTitle">
+              <div class="exec-incl-label" id="execInclLeastTitle">Least-active Programs</div>
+              <div class="exec-incl-value small" id="execInclLeastHead">—</div>
+              <ul class="exec-incl-list" id="execInclLeastList" role="list">
+                <li class="exec-incl-empty">Loading…</li>
+              </ul>
+            </div>
+
+            <div class="exec-incl-card" role="region" aria-labelledby="execInclTrendTitle">
+              <div class="exec-incl-label" id="execInclTrendTitle">Trending Down</div>
+              <div class="exec-incl-value small" id="execInclTrendHead">—</div>
+              <ul class="exec-incl-list" id="execInclTrendList" role="list">
+                <li class="exec-incl-empty">Loading…</li>
+              </ul>
+            </div>
+
+          </div>
+
+          <!-- ═══════════════════════════════════════════════════════════════
+               PHASE 5 — LIVE DATASHEET
+               Search + per-column filter dropdowns + column visibility toggle
+               + pagination + Excel export. Auto-updates via Supabase realtime.
+               ═══════════════════════════════════════════════════════════════ -->
+          <div class="exec-section-divider">Live Datasheet</div>
+          <div class="exec-ds-card" id="execDsCard" role="region" aria-labelledby="execDsTitle">
+            <h3 class="exec-chart-title" id="execDsTitle" style="margin-bottom:12px;">Attendance Records</h3>
+
+            <div class="exec-ds-toolbar" style="position:relative;">
+              <input type="search" class="exec-ds-search" id="execDsSearch"
+                     placeholder="Search across all columns…"
+                     aria-label="Search datasheet" oninput="onExecDsSearchInput(this.value)" />
+              <label class="exec-ds-filter-row-label" for="execDsPageSize" style="align-self:center;">Rows per page:</label>
+              <select class="exec-ds-select" id="execDsPageSize" aria-label="Rows per page" onchange="onExecDsPageSizeChange(this.value)">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+              </select>
+              <div class="exec-ds-toolbar-right">
+                <button class="exec-ds-btn" onclick="toggleExecDsColsPopover()" aria-label="Toggle columns" aria-haspopup="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l16 0" /><path d="M4 12l16 0" /><path d="M4 18l12 0" /></svg>
+                  Columns
+                </button>
+                <button class="exec-ds-btn" onclick="clearExecDsFilters()" aria-label="Clear datasheet filters">Clear</button>
+                <button class="exec-ds-btn primary" onclick="exportExecDsExcel()" aria-label="Export datasheet to Excel">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M9 15l6 -6" /><path d="M15 15l-6 -6" /></svg>
+                  Export Excel
+                </button>
+              </div>
+              <!-- Column-visibility popover (populated by JS) -->
+              <div class="exec-ds-cols-popover" id="execDsColsPopover" role="menu" aria-label="Toggle columns"></div>
+            </div>
+
+            <!-- Per-column filter dropdowns (populated by JS) -->
+            <div class="exec-ds-filter-row" id="execDsFilterRow"></div>
+
+            <div class="exec-ds-table-wrap">
+              <table class="exec-ds-table" id="execDsTable" aria-describedby="execDsCount">
+                <thead><tr id="execDsHead"></tr></thead>
+                <tbody id="execDsBody"><tr><td class="exec-ds-empty">Loading…</td></tr></tbody>
+              </table>
+            </div>
+
+            <div class="exec-ds-pagination">
+              <div class="exec-ds-count" id="execDsCount" aria-live="polite">—</div>
+              <div class="exec-ds-page-controls" id="execDsPageControls"></div>
             </div>
           </div>
         </div>
@@ -5428,6 +5861,8 @@ function initExecutiveDashboardView(){
     document.addEventListener("dashboard:filters-changed", loadExecutiveDashboard);
     window._execDashListenerAttached = true;
     loadExecutiveDashboard();
+    // Phase 5: live auto-refresh via Supabase realtime (debounced inside the handler)
+    subscribeExecRealtime();
   }
 }
 
@@ -5566,7 +6001,7 @@ async function execFetchAttendance(eventIds){
   for(let i = 0; i < eventIds.length; i += CHUNK){
     const slice = eventIds.slice(i, i + CHUNK);
     const { data, error } = await sb.from("event_attendance")
-      .select("student_id, event_id, entity, program, gender")
+      .select("student_id, student_name, event_id, event_name, campus, entity, program, gender, education_level, created_at")
       .not("student_id", "is", null)
       .in("event_id", slice);
     if(error) throw error;
@@ -5599,12 +6034,12 @@ async function loadExecutiveDashboard(){
   try {
     // ── Wave 1: parallel fetches that don't depend on each other ──
     const [clubsRes, onboardedRes, eventsRes, upcomingRes, proposalsRes] = await Promise.all([
-      sb.from("clubs").select("id, campus"),
+      sb.from("clubs").select("id, name, campus"),
       sb.from("club_accounts").select("id, campus").eq("status", "approved"),
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), todayStr, f.dateTo),
-      sb.from("event_proposals").select("event_type, category, published_event_id").not("published_event_id", "is", null)
+      sb.from("event_proposals").select("event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
     ]);
 
     const allClubs       = clubsRes.data       || [];
@@ -5749,6 +6184,22 @@ async function loadExecutiveDashboard(){
     } else {
       destroyExecChart("clustered");
     }
+
+    // ── Phase 5 renders — inclusivity panel + live datasheet ──
+    renderExecInclusivityPanel({
+      clubs:           allClubs,
+      onboarded:       allOnboarded,
+      events:          eventsInRange,
+      upcomingEvents:  upcomingEvents,
+      attendance:      attendanceInRange,
+      priorEvents:     priorEvents,
+      priorAttendance: priorAttendance,
+      hasRange:        hasRange,
+      proposals:       proposals,
+      campus:          campus
+    });
+    // Datasheet always shows rows for the current campus scope (respects the top campus chip)
+    renderExecDatasheet(fAttendance, fEvents, proposals);
 
   } catch(err){
     console.error("[Executive Dashboard] load failed:", err);
@@ -6973,6 +7424,587 @@ function renderCategoryCampusClusteredBar(attendance, events, proposals){
       }
     }
   });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ EXECUTIVE DASHBOARD — Phase 5: inclusivity, datasheet, PDF, realtime ══
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Datasheet column definitions ──
+   `required` columns are always shown. Others can be toggled by the user. */
+const EXEC_DS_COLS = [
+  { key: "campus",       label: "Campus",         required: true,  filter: true  },
+  { key: "event_name",   label: "Event Name",     required: true,  filter: false },
+  { key: "student_name", label: "Student Name",   required: true,  filter: false },
+  { key: "student_id",   label: "Student ID",     required: true,  filter: false },
+  { key: "gender",       label: "Gender",         required: true,  filter: true  },
+  { key: "entity",       label: "Entity",         required: true,  filter: true  },
+  { key: "program",      label: "Program",        required: true,  filter: true  },
+  { key: "category",     label: "Event Category", required: true,  filter: true  },
+  { key: "event_type",   label: "Event Type",     required: true,  filter: true  },
+  { key: "club_name",    label: "Club Name",      required: false, filter: false },
+  { key: "event_date",   label: "Event Date",     required: false, filter: false },
+  { key: "level",        label: "Level",          required: false, filter: false },
+  { key: "checkin_time", label: "Check-in Time",  required: false, filter: false }
+];
+
+/* Datasheet state — persisted across renders so the user's search/page survives filter reloads. */
+window._execDs = window._execDs || {
+  allRows:      [],       // composed rows from the last data load
+  filteredRows: [],       // after search + column filters
+  page:         1,
+  pageSize:     50,       // default matches the <select> default
+  search:       "",
+  colFilters:   {},       // { campus:"Karachi", gender:"Female", … }
+  visibleCols:  null      // Set<string> of visible column keys
+};
+
+/* Ensure the visibleCols Set is initialised once we know the required columns. */
+function ensureExecDsInit(){
+  if(window._execDs.visibleCols) return;
+  const set = new Set(EXEC_DS_COLS.filter(c => c.required).map(c => c.key));
+  window._execDs.visibleCols = set;
+}
+
+/* Compose one datasheet row per attendance record using events + proposals lookups. */
+function composeExecDsRows(attendance, events, proposals){
+  const eventById = Object.fromEntries(events.map(e => [e.id, e]));
+  const propByEventId = {};
+  proposals.forEach(p => {
+    if(p.published_event_id) propByEventId[p.published_event_id] = p;
+  });
+  return attendance.map(a => {
+    const ev = eventById[a.event_id] || {};
+    const p  = propByEventId[a.event_id] || {};
+    return {
+      campus:        a.campus         || ev.campus || "",
+      event_name:    a.event_name     || "",
+      event_date:    ev.event_date    || "",
+      student_name:  a.student_name   || "",
+      student_id:    a.student_id     || "",
+      gender:        a.gender         || "",
+      entity:        a.entity         || "",
+      program:       a.program        || "",
+      level:         a.education_level|| "",
+      category:      p.category       || "",
+      event_type:    p.event_type     || "",
+      club_name:     p.club_name      || "",
+      checkin_time:  a.created_at     || ""
+    };
+  });
+}
+
+/* ── Datasheet render (called from loadExecutiveDashboard) ── */
+function renderExecDatasheet(attendance, events, proposals){
+  ensureExecDsInit();
+
+  window._execDs.allRows = composeExecDsRows(attendance, events, proposals);
+
+  buildExecDsHead();
+  buildExecDsFilterRow();
+  buildExecDsColsPopover();
+  applyExecDsSearchAndFilters();
+}
+
+/* Build the table <thead> row based on currently visible columns. */
+function buildExecDsHead(){
+  const head = document.getElementById("execDsHead");
+  if(!head) return;
+  const visibleCols = EXEC_DS_COLS.filter(c => window._execDs.visibleCols.has(c.key));
+  head.innerHTML = visibleCols.map(c => `<th>${execEscapeHtml(c.label)}</th>`).join("");
+}
+
+/* Build the per-column filter dropdowns (only for columns flagged filter:true and currently visible). */
+function buildExecDsFilterRow(){
+  const row = document.getElementById("execDsFilterRow");
+  if(!row) return;
+
+  const visibleFilterCols = EXEC_DS_COLS.filter(c => c.filter && window._execDs.visibleCols.has(c.key));
+
+  row.innerHTML = visibleFilterCols.map(col => {
+    // Distinct values from the current allRows for this column, sorted alphabetically
+    const uniques = Array.from(new Set(
+      window._execDs.allRows.map(r => (r[col.key] || "").trim()).filter(v => v)
+    )).sort();
+    const current = window._execDs.colFilters[col.key] || "";
+    const opts = ['<option value="">All</option>']
+      .concat(uniques.map(v => `<option value="${execEscapeHtml(v)}" ${v === current ? 'selected' : ''}>${execEscapeHtml(v)}</option>`))
+      .join("");
+    return `
+      <div class="exec-ds-filter-row-item">
+        <label class="exec-ds-filter-row-label" for="execDsF_${col.key}">${execEscapeHtml(col.label)}</label>
+        <select class="exec-ds-select" id="execDsF_${col.key}"
+                aria-label="Filter by ${execEscapeHtml(col.label)}"
+                onchange="onExecDsColFilterChange('${col.key}', this.value)">${opts}</select>
+      </div>`;
+  }).join("");
+}
+
+/* Build the column-visibility popover. Required columns are shown but disabled. */
+function buildExecDsColsPopover(){
+  const pop = document.getElementById("execDsColsPopover");
+  if(!pop) return;
+  pop.innerHTML = EXEC_DS_COLS.map(c => {
+    const checked  = window._execDs.visibleCols.has(c.key) ? 'checked' : '';
+    const disabled = c.required ? 'disabled' : '';
+    return `
+      <label class="exec-ds-col-toggle">
+        <input type="checkbox" ${checked} ${disabled}
+               onchange="onExecDsColToggle('${c.key}', this.checked)" />
+        <span>${execEscapeHtml(c.label)}${c.required ? ' <span style="color:var(--color-hint);font-size:10.5px;">(required)</span>' : ''}</span>
+      </label>`;
+  }).join("");
+}
+
+/* Apply the current search + column filters and re-render the visible page. */
+function applyExecDsSearchAndFilters(){
+  const q = (window._execDs.search || "").trim().toLowerCase();
+  const filters = window._execDs.colFilters || {};
+  const visibleCols = EXEC_DS_COLS.filter(c => window._execDs.visibleCols.has(c.key));
+
+  window._execDs.filteredRows = window._execDs.allRows.filter(row => {
+    // Column filters
+    for(const key in filters){
+      const want = filters[key];
+      if(!want) continue;
+      if((row[key] || "") !== want) return false;
+    }
+    // Global search — matches any visible column
+    if(q){
+      const hay = visibleCols.map(c => (row[c.key] || "").toString().toLowerCase()).join(" | ");
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Reset page if the current page is beyond the last page after filtering
+  const totalPages = Math.max(1, execDsTotalPages());
+  if(window._execDs.page > totalPages) window._execDs.page = 1;
+
+  renderExecDsBody();
+  renderExecDsPagination();
+}
+
+function execDsTotalPages(){
+  if(window._execDs.pageSize === 'all') return 1;
+  const size = Number(window._execDs.pageSize) || 50;
+  return Math.max(1, Math.ceil(window._execDs.filteredRows.length / size));
+}
+
+function renderExecDsBody(){
+  const body = document.getElementById("execDsBody");
+  const countEl = document.getElementById("execDsCount");
+  if(!body) return;
+
+  const visibleCols = EXEC_DS_COLS.filter(c => window._execDs.visibleCols.has(c.key));
+  const total    = window._execDs.filteredRows.length;
+  const grand    = window._execDs.allRows.length;
+
+  if(total === 0){
+    body.innerHTML = `<tr><td class="exec-ds-empty" colspan="${visibleCols.length}">No matching rows for the current filters.</td></tr>`;
+    if(countEl) countEl.textContent = `0 of ${execFormatNumber(grand)} rows`;
+    return;
+  }
+
+  const pageSize = (window._execDs.pageSize === 'all') ? total : (Number(window._execDs.pageSize) || 50);
+  const start    = (window._execDs.page - 1) * pageSize;
+  const end      = Math.min(start + pageSize, total);
+  const slice    = window._execDs.filteredRows.slice(start, end);
+
+  body.innerHTML = slice.map(row => {
+    return `<tr>` + visibleCols.map(c => {
+      let cell = row[c.key] || "";
+      if(c.key === "checkin_time" && cell){
+        // ISO string → local short format
+        try { cell = new Date(cell).toLocaleString(); } catch(e){}
+      }
+      if(c.key === "event_type" && cell){
+        cell = cell.charAt(0).toUpperCase() + cell.slice(1); // Title-case
+      }
+      return `<td title="${execEscapeHtml(String(cell))}">${execEscapeHtml(String(cell))}</td>`;
+    }).join("") + `</tr>`;
+  }).join("");
+
+  if(countEl){
+    countEl.textContent = (total === grand)
+      ? `Showing ${execFormatNumber(start + 1)}–${execFormatNumber(end)} of ${execFormatNumber(total)}`
+      : `Showing ${execFormatNumber(start + 1)}–${execFormatNumber(end)} of ${execFormatNumber(total)} filtered (of ${execFormatNumber(grand)} total)`;
+  }
+}
+
+function renderExecDsPagination(){
+  const ctl = document.getElementById("execDsPageControls");
+  if(!ctl) return;
+  const totalPages = execDsTotalPages();
+  const p = window._execDs.page;
+  if(totalPages <= 1){ ctl.innerHTML = ""; return; }
+
+  // Show ‹ prev, first…window…last, next ›
+  const btn = (label, page, opts = {}) => `
+    <button class="exec-ds-page-btn ${opts.current ? 'current' : ''}"
+            ${opts.disabled ? 'disabled' : ''}
+            onclick="goToExecDsPage(${page})"
+            aria-label="${opts.aria || `Page ${page}`}">${label}</button>`;
+
+  const parts = [];
+  parts.push(btn("‹", p - 1, { disabled: p === 1, aria: "Previous page" }));
+
+  // Compact window: current +/- 2 with ellipses
+  const win = new Set([1, totalPages, p, p - 1, p + 1, p - 2, p + 2].filter(n => n >= 1 && n <= totalPages));
+  const sorted = Array.from(win).sort((a, b) => a - b);
+  let last = 0;
+  sorted.forEach(n => {
+    if(n - last > 1) parts.push(`<span class="exec-ds-page-info">…</span>`);
+    parts.push(btn(String(n), n, { current: n === p }));
+    last = n;
+  });
+
+  parts.push(btn("›", p + 1, { disabled: p === totalPages, aria: "Next page" }));
+  parts.push(`<span class="exec-ds-page-info">of ${execFormatNumber(totalPages)}</span>`);
+  ctl.innerHTML = parts.join("");
+}
+
+/* ── Datasheet interaction handlers ── */
+function onExecDsSearchInput(v){
+  window._execDs.search = v || "";
+  window._execDs.page = 1;
+  applyExecDsSearchAndFilters();
+}
+function onExecDsPageSizeChange(v){
+  window._execDs.pageSize = (v === "all") ? "all" : (parseInt(v, 10) || 50);
+  window._execDs.page = 1;
+  applyExecDsSearchAndFilters();
+}
+function onExecDsColFilterChange(key, v){
+  if(v) window._execDs.colFilters[key] = v;
+  else  delete window._execDs.colFilters[key];
+  window._execDs.page = 1;
+  applyExecDsSearchAndFilters();
+}
+function onExecDsColToggle(key, on){
+  if(on) window._execDs.visibleCols.add(key);
+  else   window._execDs.visibleCols.delete(key);
+  // Rebuild head, filter row and body
+  buildExecDsHead();
+  buildExecDsFilterRow();
+  applyExecDsSearchAndFilters();
+}
+function goToExecDsPage(n){
+  const total = execDsTotalPages();
+  window._execDs.page = Math.max(1, Math.min(total, n));
+  renderExecDsBody();
+  renderExecDsPagination();
+}
+function clearExecDsFilters(){
+  window._execDs.search = "";
+  window._execDs.colFilters = {};
+  window._execDs.page = 1;
+  const searchEl = document.getElementById("execDsSearch"); if(searchEl) searchEl.value = "";
+  buildExecDsFilterRow();
+  applyExecDsSearchAndFilters();
+}
+function toggleExecDsColsPopover(){
+  const pop = document.getElementById("execDsColsPopover");
+  if(pop) pop.classList.toggle("open");
+}
+// Close the columns popover when clicking outside
+document.addEventListener("click", function(e){
+  const pop = document.getElementById("execDsColsPopover");
+  if(!pop || !pop.classList.contains("open")) return;
+  // If click is inside the popover or on the columns button, ignore
+  if(pop.contains(e.target)) return;
+  if(e.target.closest && e.target.closest(".exec-ds-btn[onclick*='toggleExecDsColsPopover']")) return;
+  pop.classList.remove("open");
+});
+
+/* ── Excel export (respects search + column filters + column visibility) ── */
+function exportExecDsExcel(){
+  if(typeof XLSX === "undefined"){
+    alert("Excel library still loading — please try again in a moment.");
+    return;
+  }
+  const rows = window._execDs.filteredRows;
+  if(!rows || rows.length === 0){
+    alert("Nothing to export — no rows match the current filters.");
+    return;
+  }
+  const visibleCols = EXEC_DS_COLS.filter(c => window._execDs.visibleCols.has(c.key));
+
+  // Sheet data: header row + values
+  const aoa = [visibleCols.map(c => c.label)];
+  rows.forEach(row => {
+    aoa.push(visibleCols.map(c => {
+      let v = row[c.key] || "";
+      if(c.key === "checkin_time" && v){
+        try { v = new Date(v).toLocaleString(); } catch(e){}
+      }
+      if(c.key === "event_type" && v){
+        v = String(v).charAt(0).toUpperCase() + String(v).slice(1);
+      }
+      return v;
+    }));
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  // Column widths — approximate from label + longest value length
+  ws["!cols"] = visibleCols.map((c, i) => {
+    const maxLen = Math.max(
+      c.label.length,
+      ...aoa.slice(1, 200).map(r => String(r[i] || "").length) // sample first 200 rows
+    );
+    return { wch: Math.min(40, Math.max(10, maxLen + 2)) };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+  const today = new Date().toISOString().split("T")[0];
+  XLSX.writeFile(wb, `AKU-Attendance-${today}.xlsx`);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   INCLUSIVITY PANEL
+   4 cards driven from the currently-loaded data.
+   ════════════════════════════════════════════════════════════════════════ */
+function renderExecInclusivityPanel(ctx){
+  // ctx = {
+  //   clubs, onboarded, events, upcomingEvents,
+  //   attendance, priorEvents, priorAttendance, hasRange,
+  //   proposals, campus
+  // }
+  const filterClub = (c) => ctx.campus === "all" || c.campus === ctx.campus;
+
+  // ── Card 1: Active Clubs % ──
+  const scopedClubs = ctx.clubs.filter(filterClub);
+  const eventCampusesById = Object.fromEntries(ctx.events.map(e => [e.id, e.campus]));
+
+  // A club is "active" if it hosted at least one event in the range. We match by club name.
+  const propByEventId = {};
+  ctx.proposals.forEach(p => {
+    if(p.published_event_id && p.club_name){
+      propByEventId[p.published_event_id] = { club_name: (p.club_name || "").trim().toLowerCase(), club_campus: eventCampusesById[p.published_event_id] };
+    }
+  });
+  const activeClubNames = new Set();
+  ctx.events.forEach(e => {
+    if(ctx.campus !== "all" && e.campus !== ctx.campus) return;
+    const info = propByEventId[e.id];
+    if(info && info.club_name) activeClubNames.add(info.club_name);
+  });
+  // Set of scoped club names (lower-cased)
+  const scopedClubNamesLower = new Set(scopedClubs.map(c => (c.name || "").trim().toLowerCase()).filter(Boolean));
+
+  const totalClubs      = scopedClubs.length;
+  const activeMatched   = Array.from(activeClubNames).filter(n => scopedClubNamesLower.has(n)).length;
+  const activePct       = totalClubs > 0 ? (activeMatched / totalClubs) * 100 : null;
+
+  const pctEl = document.getElementById("execInclActivePct");
+  const subEl = document.getElementById("execInclActiveSub");
+  if(pctEl){
+    pctEl.textContent = (activePct === null)
+      ? "—"
+      : activePct.toFixed(activePct < 10 ? 1 : 0) + "%";
+  }
+  if(subEl){
+    subEl.textContent = (totalClubs === 0)
+      ? "No clubs registered in this scope."
+      : `${execFormatNumber(activeMatched)} of ${execFormatNumber(totalClubs)} clubs held ≥1 event`;
+  }
+
+  // ── Card 2: Dormant Clubs list ──
+  const dormant = scopedClubs.filter(c => {
+    const nm = (c.name || "").trim().toLowerCase();
+    return nm && !activeClubNames.has(nm);
+  }).map(c => c.name).sort();
+  const dormHead = document.getElementById("execInclDormantHead");
+  const dormList = document.getElementById("execInclDormantList");
+  if(dormHead) dormHead.textContent = `${execFormatNumber(dormant.length)} club${dormant.length === 1 ? '' : 's'} idle`;
+  if(dormList){
+    if(dormant.length === 0){
+      dormList.innerHTML = '<li class="exec-incl-empty">Every club held an event in this range 🎉</li>';
+    } else {
+      dormList.innerHTML = dormant.slice(0, 8).map(n => `<li>${execEscapeHtml(n)}</li>`).join("")
+        + (dormant.length > 8 ? `<li class="exec-incl-empty">+${execFormatNumber(dormant.length - 8)} more…</li>` : "");
+    }
+  }
+
+  // ── Card 3: Least-active Programs (bottom 5 with ≥1 attendance) ──
+  const programCounts = {};
+  ctx.attendance.forEach(a => {
+    const p = execNormalizeLabel(a.program, "Not Specified");
+    if(p === "Not Specified") return;
+    programCounts[p] = (programCounts[p] || 0) + 1;
+  });
+  const leastActive = Object.entries(programCounts)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 5);
+  const leastHead = document.getElementById("execInclLeastHead");
+  const leastList = document.getElementById("execInclLeastList");
+  if(leastHead){
+    leastHead.textContent = leastActive.length === 0
+      ? "No attendance data"
+      : `Bottom ${leastActive.length} program${leastActive.length === 1 ? '' : 's'}`;
+  }
+  if(leastList){
+    if(leastActive.length === 0){
+      leastList.innerHTML = '<li class="exec-incl-empty">No attendance recorded in this range.</li>';
+    } else {
+      leastList.innerHTML = leastActive.map(p =>
+        `<li><span style="color:var(--color-muted);">${execFormatNumber(p.value)} check-in${p.value === 1 ? '' : 's'}</span> — ${execEscapeHtml(p.label)}</li>`
+      ).join("");
+    }
+  }
+
+  // ── Card 4: Trending down (only when a date range is set) ──
+  const trendHead = document.getElementById("execInclTrendHead");
+  const trendList = document.getElementById("execInclTrendList");
+  if(!ctx.hasRange){
+    if(trendHead) trendHead.textContent = "Set a date range";
+    if(trendList){
+      trendList.innerHTML = '<li class="exec-incl-empty">Pick a date range at the top to see period-over-period trends.</li>';
+    }
+    return;
+  }
+
+  // Count attendance per campus in current vs prior period, respecting campus filter
+  const inCampus = (a) => {
+    if(ctx.campus === "all") return true;
+    return (eventCampusesById[a.event_id] || "") === ctx.campus;
+  };
+  const priorEventCampusesById = Object.fromEntries(ctx.priorEvents.map(e => [e.id, e.campus]));
+  const inCampusPrior = (a) => {
+    if(ctx.campus === "all") return true;
+    return (priorEventCampusesById[a.event_id] || "") === ctx.campus;
+  };
+
+  // Attendance per campus current
+  const currByCampus = {};
+  ctx.attendance.filter(inCampus).forEach(a => {
+    const c = eventCampusesById[a.event_id] || "Unknown";
+    currByCampus[c] = (currByCampus[c] || 0) + 1;
+  });
+  const priorByCampus = {};
+  ctx.priorAttendance.filter(inCampusPrior).forEach(a => {
+    const c = priorEventCampusesById[a.event_id] || "Unknown";
+    priorByCampus[c] = (priorByCampus[c] || 0) + 1;
+  });
+
+  const trends = [];
+  const seenCampuses = new Set([...Object.keys(currByCampus), ...Object.keys(priorByCampus)]);
+  seenCampuses.forEach(c => {
+    const curr = currByCampus[c] || 0;
+    const prior = priorByCampus[c] || 0;
+    if(prior >= 10 && curr < prior){
+      const drop = ((prior - curr) / prior) * 100;
+      if(drop >= 25){
+        trends.push({ label: c, drop, curr, prior });
+      }
+    }
+  });
+  trends.sort((a, b) => b.drop - a.drop);
+
+  if(trendHead){
+    trendHead.textContent = (trends.length === 0)
+      ? "All campuses steady or up"
+      : `${trends.length} campus${trends.length === 1 ? '' : 'es'} declining`;
+  }
+  if(trendList){
+    if(trends.length === 0){
+      trendList.innerHTML = '<li class="exec-incl-empty">No campus dropped ≥25% vs the prior period.</li>';
+    } else {
+      trendList.innerHTML = trends.slice(0, 5).map(t =>
+        `<li><strong>${execEscapeHtml(t.label)}</strong> <span style="color:var(--color-danger);">↓ ${t.drop.toFixed(t.drop < 10 ? 1 : 0)}%</span> <span style="color:var(--color-muted);">(${execFormatNumber(t.curr)} vs ${execFormatNumber(t.prior)})</span></li>`
+      ).join("");
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PDF EXPORT — snapshot the current filtered view of the dashboard
+   ════════════════════════════════════════════════════════════════════════ */
+async function exportExecDashboardPDF(){
+  const dashboard = document.getElementById("executiveDashboardView");
+  const btn = document.getElementById("execPdfBtn");
+  if(!dashboard) return;
+  if(typeof html2pdf === "undefined"){
+    alert("PDF library still loading — please try again in a moment.");
+    return;
+  }
+
+  if(btn){ btn.disabled = true; const orig = btn.innerHTML; btn.dataset.orig = orig; btn.innerHTML = "Preparing PDF…"; }
+
+  dashboard.classList.add("exec-pdf-mode");
+
+  // Insert a temporary AKU-branded PDF header at the top
+  const header = document.createElement("div");
+  header.className = "exec-pdf-header";
+  const filterSum = document.getElementById("execFilterSummary")?.textContent || "";
+  header.innerHTML = `
+    <div class="exec-pdf-brand">AKU Life on Campus — Executive Dashboard</div>
+    <div class="exec-pdf-date">Generated ${new Date().toLocaleDateString()} · ${execEscapeHtml(filterSum)}</div>
+  `;
+  dashboard.insertBefore(header, dashboard.firstChild);
+
+  const opts = {
+    margin:       [8, 8, 10, 8],
+    filename:     `AKU-Executive-Dashboard-${new Date().toISOString().split("T")[0]}.pdf`,
+    image:        { type: 'jpeg', quality: 0.95 },
+    html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['css', 'legacy'], avoid: '.exec-chart-card, .exec-incl-card, .exec-campus-tile, .stat-card, .exec-small-multiples' }
+  };
+
+  try {
+    await html2pdf().set(opts).from(dashboard).save();
+  } catch(err){
+    console.error("PDF export failed:", err);
+    alert("Sorry, the PDF export failed. Please try again.");
+  } finally {
+    dashboard.classList.remove("exec-pdf-mode");
+    header.remove();
+    if(btn){ btn.disabled = false; btn.innerHTML = btn.dataset.orig || "Export as PDF"; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   REALTIME SUBSCRIPTION
+   Debounced by 3s so a burst of check-ins triggers one refresh, not many.
+   ════════════════════════════════════════════════════════════════════════ */
+function showExecUpdatingPill(){
+  const pill = document.getElementById("execUpdatingPill");
+  if(pill) pill.classList.add("visible");
+}
+function hideExecUpdatingPill(){
+  const pill = document.getElementById("execUpdatingPill");
+  if(pill) pill.classList.remove("visible");
+}
+
+let execRealtimeTimer = null;
+function scheduleExecRealtimeRefresh(){
+  if(!EXECUTIVE_DASHBOARD_ROLES.includes(currentRole)) return;
+  showExecUpdatingPill();
+  if(execRealtimeTimer) clearTimeout(execRealtimeTimer);
+  execRealtimeTimer = setTimeout(() => {
+    Promise.resolve(loadExecutiveDashboard())
+      .finally(() => hideExecUpdatingPill());
+  }, 3000);
+}
+
+function subscribeExecRealtime(){
+  if(window._execRealtimeChannel) return; // already subscribed
+  try {
+    const channel = sb.channel('exec-dashboard-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_attendance' }, scheduleExecRealtimeRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' },           scheduleExecRealtimeRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_proposals' },  scheduleExecRealtimeRefresh)
+      .subscribe(status => {
+        // Optional: log status for debugging. Realtime must be enabled on these tables in the Supabase dashboard.
+        // console.log("[Exec Realtime]", status);
+      });
+    window._execRealtimeChannel = channel;
+  } catch(err){
+    console.warn("[Exec Realtime] subscription setup failed:", err);
+  }
 }
 
 /* ══ DASHBOARD ══ */
