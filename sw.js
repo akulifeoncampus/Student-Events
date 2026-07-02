@@ -52,6 +52,11 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
 
+  // Only http/https requests can be cached — ignore chrome-extension://,
+  // moz-extension://, etc. (browser extensions), which the Cache API
+  // rejects and would otherwise throw an unhandled error.
+  const isCacheable = url.protocol === "http:" || url.protocol === "https:";
+
   // Never cache admin or event-hub pages
   if(NO_CACHE_PATHS.some(p => url.pathname.includes(p))){
     event.respondWith(fetch(event.request));
@@ -75,8 +80,10 @@ self.addEventListener("fetch", event => {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          if(isCacheable){
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+          }
           return response;
         })
         .catch(() =>
@@ -85,6 +92,12 @@ self.addEventListener("fetch", event => {
           )
         )
     );
+    return;
+  }
+
+  // Not cacheable (e.g. browser extension requests) — just pass through
+  if(!isCacheable){
+    event.respondWith(fetch(event.request));
     return;
   }
 
