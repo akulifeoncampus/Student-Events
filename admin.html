@@ -12192,20 +12192,61 @@ async function sendProposalMessage(){
   loadMessageThread(proposalId);
 }
 
+/* ══ REALTIME SOUND ALERTS (message vs new proposal — two distinct tones) ══ */
+let _akuAudioCtx = null;
+function _akuGetAudioCtx(){
+  if(!_akuAudioCtx){
+    try { _akuAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  return _akuAudioCtx;
+}
+function _akuTone(freq, start, len, peak){
+  const ctx = _akuGetAudioCtx();
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(peak, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + len);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + len + 0.02);
+}
+function _akuPlaySeq(notes, peak = 0.14){
+  const ctx = _akuGetAudioCtx();
+  if(!ctx) return;
+  try {
+    if(ctx.state === "suspended") ctx.resume();
+    let t = ctx.currentTime;
+    notes.forEach(n => {
+      _akuTone(n.f, t, n.len, peak);
+      t += n.len + (n.gap != null ? n.gap : 0.02);
+    });
+  } catch(e){ /* sound is non-critical — never break the app */ }
+}
+// Crisp bell — short bright ping for new chat / proposal-thread messages
+function playMessageSound(){ _akuPlaySeq([{f:1046.5, len:0.09, gap:0.01},{f:1318.5, len:0.11}]); }
+// Crisp bell — bright ascending fanfare for a new event proposal submitted
+function playProposalSound(){ _akuPlaySeq([{f:784, len:0.1, gap:0.015},{f:987.77, len:0.1, gap:0.015},{f:1174.7, len:0.1, gap:0.015},{f:1567.98, len:0.16}]); }
+
 /* ══ REALTIME SUBSCRIPTIONS ══ */
 function startRealtimeSubscriptions(){
   // Refresh proposals table whenever any proposal changes
   try { sb.removeAllChannels(); } catch(e){}
 
   sb.channel("admin-proposals-" + Date.now())
-    .on("postgres_changes", { event:"*", schema:"public", table:"event_proposals" }, () => {
+    .on("postgres_changes", { event:"*", schema:"public", table:"event_proposals" }, payload => {
+      if(payload.eventType === "INSERT") playProposalSound();
       loadProposals();
       const pipelineSection = document.getElementById("section-my-events");
       if(pipelineSection && pipelineSection.classList.contains("active")) loadMyAssignedEvents();
     }).subscribe();
 
   sb.channel("admin-messages-" + Date.now())
-    .on("postgres_changes", { event:"INSERT", schema:"public", table:"proposal_messages" }, () => {
+    .on("postgres_changes", { event:"INSERT", schema:"public", table:"proposal_messages" }, payload => {
+      if(payload.new && payload.new.sender_type !== "admin") playMessageSound();
       loadAdminNotifications();
       // Refresh any open inline threads
       document.querySelectorAll("[id^='pipeline-msgs-']").forEach(el => {
@@ -12784,6 +12825,7 @@ function initAdminChatRealtime(){
       filter: `campus=eq.${currentAdminCampus}`,
     }, payload => {
       const msg = payload.new;
+      if(msg.sender_type === "club") playMessageSound();
 
       // If thread is open for this club, append the message
       if(adminChatActiveClub === msg.club_email && msg.sender_type !== "admin"){
