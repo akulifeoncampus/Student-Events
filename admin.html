@@ -277,16 +277,22 @@
     .topbar-icon-btn:hover { background: var(--color-bg); color: var(--color-ink); }
     .topbar-icon-btn:focus-visible { outline: 2px solid var(--aku-navy); outline-offset: 2px; }
 
-    /* Notification dot badge */
+    /* Notification count badge */
     .notif-bell-badge {
-      position: absolute; top: 6px; right: 6px;
-      width: 8px; height: 8px;
+      position: absolute; top: 2px; right: 2px;
+      min-width: 15px; height: 15px;
+      padding: 0 3px;
       background: var(--color-danger);
-      border-radius: 50%;
+      border-radius: 999px;
       border: 2px solid #fff;
       display: none;
+      align-items: center; justify-content: center;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+      font-size: 9px; font-weight: 700; line-height: 1;
+      color: #fff;
     }
-    .notif-bell-badge.visible { display: block; }
+    .notif-bell-badge.visible { display: flex; }
 
     /* Vertical divider between icons and user */
     .topbar-divider {
