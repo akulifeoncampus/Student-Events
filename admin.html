@@ -3821,6 +3821,25 @@
           </div>
         </div>
 
+        <!-- Row 0b: Team Workload by Event Scale — same team members, broken down by Small/Medium/Mega instead of status. -->
+        <div class="charts-grid full">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Team Workload by Event Scale</div>
+                <div class="chart-card-sub">Small / Medium / Mega events assigned per admin &amp; event lead</div>
+                <div class="chart-card-takeaway" id="takeawayWorkloadScale" aria-live="polite">Loading…</div>
+              </div>
+              <div class="chart-controls">
+                <button class="chart-download-btn" onclick="downloadChart('chartTeamWorkloadScale','Team Workload by Event Scale')">⬇ PNG</button>
+              </div>
+            </div>
+            <div class="chart-wrap" id="teamWorkloadScaleWrap" style="height:320px;">
+              <canvas id="chartTeamWorkloadScale" role="img" aria-label="Stacked bar chart of events assigned to each admin and event lead, broken down by event scale"></canvas>
+            </div>
+          </div>
+        </div>
+
         <!-- Row 1: Events by Campus (hidden for campus admins) + Events by Month (always visible).
              For campus admins, the row becomes full-width showing only Events by Month. -->
         <div class="charts-grid" id="row1Charts">
@@ -8866,9 +8885,10 @@ function renderCategoryChart(){
 /* ── Chart 5: Team Workload — events assigned per admin & event lead ──
    Data source mirrors the Team Overview tab: for each admin/event_lead whose
    permissions cover this campus, count their assigned event_proposals by
-   execution status. Fetched separately from dashEventData because it needs
-   its own Supabase queries (admins + event_proposals), then cached in
-   teamWorkloadRows so the chart can be re-rendered without re-fetching. */
+   execution status (Chart 5) and by event scale — Small/Medium/Mega (Chart 6).
+   Fetched separately from dashEventData because it needs its own Supabase
+   queries (admins + event_proposals), then cached in teamWorkloadRows so
+   both charts can be re-rendered without re-fetching. */
 async function loadTeamWorkloadChart(){
   try {
     const scopeCampuses = (currentAdminCampus && currentAdminCampus !== "All") ? [currentAdminCampus] : CAMPUSES;
@@ -8884,11 +8904,12 @@ async function loadTeamWorkloadChart(){
     if(!leadEmails.length){
       teamWorkloadRows = [];
       renderTeamWorkloadChart();
+      renderTeamWorkloadScaleChart();
       return;
     }
 
     const { data: proposals } = await sb.from("event_proposals")
-      .select("assigned_to, execution_status")
+      .select("assigned_to, execution_status, event_type")
       .in("assigned_to", leadEmails);
 
     teamWorkloadRows = leadEmails.map(email => {
@@ -8897,14 +8918,27 @@ async function loadTeamWorkloadChart(){
       const underprep = mine.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
       const held      = mine.filter(p => (p.execution_status||"pending") === "completed").length;
       const closed    = mine.filter(p => (p.execution_status||"pending") === "report_submitted").length;
-      return { email, upcoming, underprep, held, closed, total: upcoming+underprep+held+closed };
+
+      // Scale breakdown — same pool (all non-cancelled assigned proposals), grouped by event_type instead.
+      const notCancelled = mine.filter(p => (p.execution_status||"pending") !== "cancelled");
+      const small        = notCancelled.filter(p => (p.event_type||"").toLowerCase() === "small").length;
+      const medium       = notCancelled.filter(p => (p.event_type||"").toLowerCase() === "medium").length;
+      const mega          = notCancelled.filter(p => (p.event_type||"").toLowerCase() === "mega").length;
+      const unspecified   = notCancelled.length - small - medium - mega;
+
+      return {
+        email, upcoming, underprep, held, closed, total: upcoming+underprep+held+closed,
+        small, medium, mega, unspecified, scaleTotal: small+medium+mega+unspecified,
+      };
     }).sort((a,b) => b.total - a.total);
 
     renderTeamWorkloadChart();
+    renderTeamWorkloadScaleChart();
   } catch(e){
     console.warn("[Chart] TeamWorkload data load failed:", e);
     teamWorkloadRows = [];
     renderTeamWorkloadChart();
+    renderTeamWorkloadScaleChart();
   }
 }
 
@@ -8962,6 +8996,71 @@ function renderTeamWorkloadChart(){
       setChartTakeaway("takeawayWorkload", `${teamWorkloadRows.length} team member${teamWorkloadRows.length!==1?"s":""} found, no events assigned yet.`);
     }
   } catch(e){ console.warn("[Chart] TeamWorkload render failed:", e); }
+}
+
+/* ── Chart 6: Team Workload by Event Scale (Small / Medium / Mega) ──
+   Same team members and same underlying proposals as Chart 5, just grouped
+   by event_type instead of execution status — lets a decision-maker see who
+   is carrying the bigger, more resource-intensive events. */
+function renderTeamWorkloadScaleChart(){
+  try {
+    const wrap = document.getElementById("teamWorkloadScaleWrap");
+    if(!wrap) return; // dashboard not on screen
+
+    if(!teamWorkloadRows.length){
+      destroyChart("chartTeamWorkloadScale");
+      wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No admins or event leads found for this campus yet.</div></div>`;
+      setChartTakeaway("takeawayWorkloadScale", "No team members to show.");
+      return;
+    }
+
+    // Restore the canvas if a previous empty-state replaced it
+    if(!document.getElementById("chartTeamWorkloadScale")){
+      wrap.innerHTML = `<canvas id="chartTeamWorkloadScale" role="img" aria-label="Stacked bar chart of events assigned to each admin and event lead, broken down by event scale"></canvas>`;
+    }
+    destroyChart("chartTeamWorkloadScale");
+    const canvas = document.getElementById("chartTeamWorkloadScale");
+    const ctx    = canvas.getContext("2d");
+    const labels = teamWorkloadRows.map(r => r.email.split("@")[0]);
+    const hasUnspecified = teamWorkloadRows.some(r => r.unspecified > 0);
+
+    const datasets = [
+      { label:"Small",  data:teamWorkloadRows.map(r=>r.small),  backgroundColor:"#10b981", borderRadius:4 },
+      { label:"Medium", data:teamWorkloadRows.map(r=>r.medium), backgroundColor:"#f59e0b", borderRadius:4 },
+      { label:"Mega",   data:teamWorkloadRows.map(r=>r.mega),   backgroundColor:"#ef4444", borderRadius:4 },
+    ];
+    if(hasUnspecified){
+      datasets.push({ label:"Unspecified", data:teamWorkloadRows.map(r=>r.unspecified), backgroundColor:"#9ca3af", borderRadius:4 });
+    }
+
+    chartInstances["chartTeamWorkloadScale"] = new Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position:"bottom", labels:{ usePointStyle:true, padding:16, font:{ size:12 } } },
+          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y ?? c.parsed}` } }
+        },
+        scales: {
+          x: { stacked:true, grid:{ display:false }, ticks:{ color:"#374151", font:{ weight:"600" } } },
+          y: { stacked:true, beginAtZero:true, ticks:{ stepSize:1, color:"#9ca3af" }, grid:{ color:"#f3f4f6" }, border:{ dash:[4,4] } }
+        }
+      }
+    });
+
+    // Auto-generated insight line — highlight whoever carries the most Mega events
+    const megaTotal = teamWorkloadRows.reduce((s,r) => s+r.mega, 0);
+    const busiestMega = [...teamWorkloadRows].sort((a,b) => b.mega - a.mega)[0];
+    const scaleTotal = teamWorkloadRows.reduce((s,r) => s+r.scaleTotal, 0);
+    if(scaleTotal === 0){
+      setChartTakeaway("takeawayWorkloadScale", `${teamWorkloadRows.length} team member${teamWorkloadRows.length!==1?"s":""} found, no events assigned yet.`);
+    } else if(busiestMega && busiestMega.mega > 0){
+      setChartTakeaway("takeawayWorkloadScale", `${megaTotal} Mega event${megaTotal!==1?"s":""} assigned in total — ${busiestMega.email.split("@")[0]} is carrying the most with ${busiestMega.mega}.`);
+    } else {
+      setChartTakeaway("takeawayWorkloadScale", `No Mega events currently assigned; workload is Small/Medium only.`);
+    }
+  } catch(e){ console.warn("[Chart] TeamWorkloadScale render failed:", e); }
 }
 
 /* ── Campus enforcement ── */
