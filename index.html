@@ -481,6 +481,7 @@
     .modal-action-cal { background: #fef9c3; color: #b45309; border-color: #fde68a !important; }
     .modal-action-bell { background: #f0f9ff; color: #0369a1; border-color: #bae6fd !important; }
     .modal-action-bell.active { background: #dbeafe; color: #1d4ed8; border-color: #3b82f6 !important; }
+    .modal-action-share { background: #dcfce7; color: #15803d; border-color: #86efac !important; }
 
     .chip{
       margin-top:10px;
@@ -617,6 +618,43 @@
     .notify-btn .icon-bell-on  { display: none; }
     .notify-btn.active .icon-bell-off { display: none; }
     .notify-btn.active .icon-bell-on  { display: block; }
+    .share-btn {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 1.5px solid #86efac;
+      background: #dcfce7;
+      color: #15803d;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+      flex-shrink: 0; padding: 0;
+    }
+    .share-btn:hover { background: #bbf7d0; border-color: #4ade80; }
+    /* Share popover menu (desktop fallback when native share sheet isn't available) */
+    .share-menu {
+      position: fixed;
+      width: 180px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.18);
+      border: 1px solid #e5e7eb;
+      padding: 6px;
+      z-index: 1000;
+      font-family: 'Poppins', sans-serif;
+    }
+    .share-menu button {
+      width: 100%;
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px;
+      border: none; background: none;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      text-align: left;
+    }
+    .share-menu button:hover, .share-menu button:focus-visible { background: #f3f4f6; outline: none; }
+    .share-menu .fomo-icon { color: #6b7280; flex-shrink: 0; }
     /* Registration link strip on card */
     .reg-link {
       display: flex; align-items: center; gap: 6px;
@@ -715,6 +753,8 @@
     .cal-icon-btn.bell { background: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
     .cal-icon-btn.bell:hover { background: #dbeafe; border-color: #93c5fd; }
     .cal-icon-btn.bell.active { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
+    .cal-icon-btn.share { background: #dcfce7; border-color: #86efac; color: #15803d; }
+    .cal-icon-btn.share:hover { background: #bbf7d0; border-color: #4ade80; }
 
     /* ── CALENDAR VIEW ── */
     .view-switch {
@@ -1778,6 +1818,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="card-actions">
             ${e.id && e.date ? `<button class="add-to-cal-btn" onclick="downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : ""}
             ${e.id ? `<button class="notify-btn ${isNotified ? 'active' : ''}" id="notify-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotified ? 'Stop reminders' : 'Remind me'}" aria-label="${isNotified ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon icon-bell-off" viewBox="0 0 24 24"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.794 13.456l-2.794 -2.456v-1a6 6 0 0 0 -9.927 -4.54"/><path d="M6.087 6.089a6 6 0 0 0 -.087 .911v5l-3 3h13.5"/><line x1="3" y1="3" x2="21" y2="21"/></svg><svg class="fomo-icon icon-bell-on" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : ""}
+            ${e.id ? `<button class="share-btn" onclick="shareEvent('${e.id}', this)" title="Share this event" aria-label="Share this event" aria-haspopup="true" aria-expanded="false"><svg class="fomo-icon" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>` : ""}
           </div>
         </div>` : "";
 
@@ -1954,6 +1995,10 @@ document.addEventListener("DOMContentLoaded", () => {
         onclick="toggleEventNotification('${e.id}',this)">
         <svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notify-label">${isNotified?"Notified":"Remind Me"}</span>
+      </button>
+      <button class="modal-action-share" onclick="shareEvent('${e.id}', this)" aria-haspopup="true" aria-expanded="false">
+        <svg class="fomo-icon" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
       </button>`;
 
     document.getElementById("eventDetailModal").classList.add("open");
@@ -2062,6 +2107,114 @@ document.addEventListener("DOMContentLoaded", () => {
     clearTimeout(t._timer);
     t._timer = setTimeout(() => t.style.opacity = "0", 3000);
   }
+
+  /* ── Share an event (WhatsApp / Message / Copy Link) ── */
+  function buildEventShareUrl(id){
+    return `${window.location.origin}${window.location.pathname}?event=${encodeURIComponent(id)}`;
+  }
+
+  let _shareMenuEl     = null;
+  let _shareMenuData   = null;
+  let _shareTriggerBtn = null;
+
+  function closeShareMenu(){
+    if(_shareMenuEl){ _shareMenuEl.remove(); _shareMenuEl = null; }
+    if(_shareTriggerBtn){ _shareTriggerBtn.setAttribute("aria-expanded", "false"); _shareTriggerBtn = null; }
+    document.removeEventListener("click", _shareMenuOutsideClick, true);
+    document.removeEventListener("keydown", _shareMenuEscClose, true);
+  }
+  function _shareMenuOutsideClick(ev){
+    if(_shareMenuEl && !_shareMenuEl.contains(ev.target) && ev.target !== _shareTriggerBtn) closeShareMenu();
+  }
+  function _shareMenuEscClose(ev){
+    if(ev.key === "Escape") closeShareMenu();
+  }
+
+  function openShareMenu(btnEl, text, url){
+    closeShareMenu();
+    if(!btnEl) return;
+
+    const menu = document.createElement("div");
+    menu.className = "share-menu";
+    menu.setAttribute("role", "menu");
+    menu.innerHTML = `
+      <button role="menuitem" onclick="window._shareVia('whatsapp')">
+        <svg class="fomo-icon" viewBox="0 0 24 24"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 3.4z"/></svg>
+        WhatsApp
+      </button>
+      <button role="menuitem" onclick="window._shareVia('sms')">
+        <svg class="fomo-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Message
+      </button>
+      <button role="menuitem" onclick="window._shareVia('copy')">
+        <svg class="fomo-icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy Link
+      </button>`;
+    document.body.appendChild(menu);
+
+    // Position near the button that was clicked, flipping if it would overflow the screen
+    const rect  = btnEl.getBoundingClientRect();
+    const menuW = menu.offsetWidth  || 180;
+    const menuH = menu.offsetHeight || 132;
+    let top  = rect.bottom + 6;
+    let left = rect.right - menuW;
+    if(left < 8) left = 8;
+    if(left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+    if(top + menuH > window.innerHeight - 8) top = rect.top - menuH - 6;
+    menu.style.top  = `${top}px`;
+    menu.style.left = `${left}px`;
+
+    _shareMenuEl     = menu;
+    _shareMenuData   = { text, url };
+    _shareTriggerBtn = btnEl;
+    btnEl.setAttribute("aria-expanded", "true");
+
+    const firstItem = menu.querySelector("button");
+    if(firstItem) firstItem.focus();
+
+    setTimeout(() => {
+      document.addEventListener("click", _shareMenuOutsideClick, true);
+      document.addEventListener("keydown", _shareMenuEscClose, true);
+    }, 0);
+  }
+
+  window._shareVia = function(type){
+    const data    = _shareMenuData;
+    const trigger = _shareTriggerBtn;
+    closeShareMenu();
+    if(!data) return;
+    if(type === "whatsapp"){
+      window.open(`https://wa.me/?text=${encodeURIComponent(data.text + " " + data.url)}`, "_blank", "noopener");
+    } else if(type === "sms"){
+      window.location.href = `sms:?body=${encodeURIComponent(data.text + " " + data.url)}`;
+    } else if(type === "copy"){
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(data.url)
+          .then(() => showCardToast("🔗 Link copied!"))
+          .catch(() => window.prompt("Copy this link:", data.url));
+      } else {
+        window.prompt("Copy this link:", data.url);
+      }
+    }
+    if(trigger) trigger.focus();
+  };
+
+  // Native share sheet on mobile (WhatsApp, Instagram, Messages, etc. all appear automatically);
+  // falls back to a small on-screen menu on desktop browsers that don't support it.
+  window.shareEvent = async function(eventId, btnEl){
+    const e = allEvents.find(x => x.id === eventId);
+    if(!e) return;
+
+    const url  = buildEventShareUrl(eventId);
+    const text = `${e.name} — ${formatDate(e.date)}${e.time ? " · " + e.time : ""}${e.venue ? " · " + e.venue : ""}`;
+
+    if(navigator.share){
+      try { await navigator.share({ title: e.name, text, url }); }
+      catch(err){ /* user closed the native share sheet — nothing to do */ }
+      return;
+    }
+    openShareMenu(btnEl, text, url);
+  };
 
   // Make toggle accessible from inline onclick
   window.toggleInterested = async function(evt, eventId){
@@ -2213,6 +2366,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     emptyMsg.style.display = "none";
     render();
+
+    // If someone opened a shared event link (?event=...), show that event automatically
+    const sharedEventId = new URLSearchParams(window.location.search).get("event");
+    if(sharedEventId && allEvents.some(x => x.id === sharedEventId)){
+      window._openEventModal(sharedEventId);
+    }
   }
 
   // Wire up filter controls — re-render both list and calendar
@@ -2527,6 +2686,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const clubHref = e.organiser ? `href="clubs.html?club=${encodeURIComponent(e.organiser)}"` : "";
             const calBtn   = e.id && e.date ? `<button class="cal-icon-btn cal" onclick="event.stopPropagation();downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : "";
             const bellBtn  = e.id ? `<button class="cal-icon-btn bell ${isNotif ? 'active' : ''}" id="notify-cal-${e.id}" onclick="event.stopPropagation();toggleEventNotification('${e.id}', this)" title="${isNotif ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : "";
+            const shareBtn = e.id ? `<button class="cal-icon-btn share" onclick="event.stopPropagation();shareEvent('${e.id}', this)" title="Share this event" aria-haspopup="true" aria-expanded="false"><svg class="fomo-icon" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>` : "";
             return `
               <div class="cal-detail-event" onclick="window._openEventModal('${e.id}')">
                 <div class="cal-detail-color" style="background:${color};"></div>
@@ -2536,7 +2696,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   ${(au || cm) ? `<div class="cal-detail-meta2">${au ? `<span>👥 ${au}</span>` : ""}${cm ? `<span>🏫 ${cm}</span>` : ""}</div>` : ""}
                   <div class="cal-detail-footer">
                     ${e.organiser ? `<a class="cal-view-club" ${clubHref} onclick="event.stopPropagation()">🎭 ${escapeHtml(e.organiser)} →</a>` : `<span></span>`}
-                    <div class="cal-detail-btns">${calBtn}${bellBtn}</div>
+                    <div class="cal-detail-btns">${calBtn}${bellBtn}${shareBtn}</div>
                   </div>
                 </div>
               </div>`;
@@ -2580,6 +2740,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const au       = e.audience ? escapeHtml(e.audience) : "";
       const calBtn   = e.id && e.date ? `<button class="cal-icon-btn cal" onclick="downloadICS('${e.id}')" title="Save to calendar"><svg class="fomo-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></button>` : "";
       const bellBtn  = e.id ? `<button class="cal-icon-btn bell ${isNotif ? 'active' : ''}" id="notify-mob-${e.id}" onclick="toggleEventNotification('${e.id}', this)" title="${isNotif ? 'Stop reminders' : 'Remind me'}"><svg class="fomo-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>` : "";
+      const shareBtn = e.id ? `<button class="cal-icon-btn share" onclick="shareEvent('${e.id}', this)" title="Share this event" aria-haspopup="true" aria-expanded="false"><svg class="fomo-icon" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>` : "";
       const clubLink = e.organiser
         ? `<a href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="font-size:11px;font-weight:700;color:#000060;text-decoration:none;">🎭 ${escapeHtml(e.organiser)} →</a>`
         : "";
@@ -2591,7 +2752,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="cal-mobile-meta">${meta1}${au ? ` · 👥 ${au}` : ""}</div>
             <div class="cal-mobile-actions" style="justify-content:space-between;align-items:center;">
               ${clubLink}
-              <div style="display:flex;gap:5px;">${calBtn}${bellBtn}</div>
+              <div style="display:flex;gap:5px;">${calBtn}${bellBtn}${shareBtn}</div>
             </div>
           </div>
         </div>`;
