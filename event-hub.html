@@ -2401,6 +2401,51 @@ async function markChatRead(){
   document.getElementById("chatBadge").classList.remove("visible");
 }
 
+/* ══ REALTIME SOUND ALERTS (message vs status update — two distinct tones) ══ */
+let _akuAudioCtx = null;
+function _akuGetAudioCtx(){
+  if(!_akuAudioCtx){
+    try { _akuAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  return _akuAudioCtx;
+}
+function _akuTone(freq, start, len, peak){
+  const ctx = _akuGetAudioCtx();
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(peak, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + len);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + len + 0.02);
+}
+function _akuPlaySeq(notes, peak = 0.14){
+  const ctx = _akuGetAudioCtx();
+  if(!ctx) return;
+  try {
+    if(ctx.state === "suspended") ctx.resume();
+    let t = ctx.currentTime;
+    notes.forEach(n => {
+      _akuTone(n.f, t, n.len, peak);
+      t += n.len + (n.gap != null ? n.gap : 0.02);
+    });
+  } catch(e){ /* sound is non-critical — never break the app */ }
+}
+// Crisp bell — short bright ping for a new chat / proposal-thread message
+function playMessageSound(){ _akuPlaySeq([{f:1046.5, len:0.09, gap:0.01},{f:1318.5, len:0.11}]); }
+// Crisp bell — bright ascending fanfare for a proposal status update
+function playProposalSound(){ _akuPlaySeq([{f:784, len:0.1, gap:0.015},{f:987.77, len:0.1, gap:0.015},{f:1174.7, len:0.1, gap:0.015},{f:1567.98, len:0.16}]); }
+// Browsers block audio until the page has had a real click — unlock it on the first one
+document.addEventListener("click", function _akuUnlockAudio(){
+  const ctx = _akuGetAudioCtx();
+  if(ctx && ctx.state === "suspended") ctx.resume();
+  document.removeEventListener("click", _akuUnlockAudio);
+}, { once: true });
+
 function initChatRealtime(){
   if(chatChannel) sb.removeChannel(chatChannel);
   startChatPolling(); // reliable fallback — updates every 4 seconds
@@ -2416,6 +2461,8 @@ function initChatRealtime(){
       if(msg.sender_type === "club" && msg.sender_email === currentClub?.email) return;
       // Avoid duplicates from any other source
       if(chatMessages.some(m => m.id === msg.id)) return;
+
+      if(msg.sender_type === "admin") playMessageSound();
 
       chatMessages.push(msg);
       renderChatMessages();
@@ -3518,11 +3565,15 @@ async function sendCardReply(proposalId){
 }
 
 /* ── Realtime: auto-refresh cards when status changes ── */
+let _akuHubChannels = [];
 function subscribeToProposalUpdates(){
-  try { sb.removeAllChannels(); } catch(e){}
+  // Remove only channels this function created before — never sb.removeAllChannels(),
+  // which would also tear down the chat channel from initChatRealtime() mid-connect.
+  _akuHubChannels.forEach(ch => { try { sb.removeChannel(ch); } catch(e){} });
+  _akuHubChannels = [];
 
   // Proposal status changes
-  sb.channel("hub-proposals-" + Date.now())
+  const proposalsChannel = sb.channel("hub-proposals-" + Date.now())
     .on("postgres_changes", {
       event: "UPDATE", schema: "public", table: "event_proposals",
       filter: `club_email=eq.${currentClub.email}`
@@ -3538,11 +3589,11 @@ function subscribeToProposalUpdates(){
         under_review: "🔍 Your proposal is now In Review",
       };
       const msg = statusLabels[payload.new?.status];
-      if(msg) showToast(msg, ["approved","assigned"].includes(payload.new?.status) ? "success" : "error");
+      if(msg){ playProposalSound(); showToast(msg, ["approved","assigned"].includes(payload.new?.status) ? "success" : "error"); }
     }).subscribe();
 
   // New messages — auto-show on card thread
-  sb.channel("hub-messages-" + Date.now())
+  const messagesChannel = sb.channel("hub-messages-" + Date.now())
     .on("postgres_changes", {
       event: "INSERT", schema: "public", table: "proposal_messages"
     }, async payload => {
@@ -3551,6 +3602,7 @@ function subscribeToProposalUpdates(){
       // Only refresh if this message is for one of our proposals
       const myProposal = allProposals.find(p => p.id === pid);
       if(!myProposal) return;
+      if(payload.new.sender_type === "admin") playMessageSound();
       // Refresh thread if it's open
       const threadBody = document.getElementById(`thread-body-${pid}`);
       if(threadBody && threadBody.style.display !== "none"){
@@ -3561,7 +3613,7 @@ function subscribeToProposalUpdates(){
     }).subscribe();
 
   // Real-time notifications — bell updates instantly
-  sb.channel("hub-notifs-" + Date.now())
+  const notifsChannel = sb.channel("hub-notifs-" + Date.now())
     .on("postgres_changes", {
       event: "INSERT", schema: "public", table: "notifications",
       filter: `recipient=eq.${currentClub.email}`
@@ -3569,6 +3621,8 @@ function subscribeToProposalUpdates(){
       loadNotifications();
       showToast("🔔 You have a new notification!", "success");
     }).subscribe();
+
+  _akuHubChannels = [proposalsChannel, messagesChannel, notifsChannel];
 }
 
 /* ── Load unread badges on initial load ── */
