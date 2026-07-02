@@ -1,9 +1,11 @@
 # ══════════════════════════════════════════════════════════════════
 # Life on Campus — Event Reminder Notifications
 #
-# This workflow automatically sends push notifications to students:
-#   • Every hour  → checks if any event starts in the next hour
-#   • Every day at midnight PKT → sends 24-hour advance reminders
+# Runs every hour. Each run checks:
+#   • Any event starting in ~1 hour  → sends the "starting soon" push
+#   • Any event starting in ~24 hours → sends the "tomorrow" push
+# Each subscriber gets exactly 2 reminders per event they're interested
+# in: one 24h before, one 1h before. No extra/duplicate pushes.
 #
 # HOW TO SET THIS UP (one time only):
 #   1. In your GitHub repository, create the folder structure:
@@ -21,15 +23,15 @@ name: Event Reminder Notifications
 
 on:
   schedule:
-    # Runs every hour to check for events starting soon (1-hour reminder)
+    # Runs every hour, on the hour
     - cron: '0 * * * *'
-
-    # Runs once daily at 19:00 UTC = midnight PKT / 10pm EAT
-    # This sends the "tomorrow" advance reminders to subscribed students
-    - cron: '0 19 * * *'
 
   # Allows you to run this manually from the GitHub Actions tab for testing
   workflow_dispatch:
+
+env:
+  # Public "publishable" key — safe to store here, same one used on the website.
+  SUPABASE_ANON_KEY: sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8
 
 jobs:
   hourly-event-reminder:
@@ -39,9 +41,11 @@ jobs:
     steps:
       - name: Notify subscribers of events starting soon
         run: |
-          curl -s -o /dev/null -w "Status: %{http_code}\n" \
+          curl -sf -o /dev/null -w "Status: %{http_code}\n" \
             -X POST \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
             -d '{"type":"check_reminders"}' \
             "https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor"
 
@@ -49,17 +53,13 @@ jobs:
     name: 24-Hour Advance Reminder
     runs-on: ubuntu-latest
 
-    # Only run this job on the midnight PKT schedule (19:00 UTC)
-    # or when triggered manually for testing
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.schedule == '0 19 * * *'
-
     steps:
-      - name: Notify subscribers of tomorrow's events
+      - name: Notify subscribers of events happening in ~24 hours
         run: |
-          curl -s -o /dev/null -w "Status: %{http_code}\n" \
+          curl -sf -o /dev/null -w "Status: %{http_code}\n" \
             -X POST \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
             -d '{"type":"reminder_24h"}' \
             "https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor"
