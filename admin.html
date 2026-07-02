@@ -1082,9 +1082,9 @@
     .chart-card {
       background: var(--color-surface);
       border-radius: var(--radius-lg);
-      border: 0.5px solid var(--color-border);
+      border: 1px solid var(--color-border);
       box-shadow: var(--shadow-sm);
-      padding: 20px 22px;
+      padding: 20px;
       transition: box-shadow .2s;
     }
     .chart-card:hover { box-shadow: var(--shadow-md); }
@@ -1097,14 +1097,25 @@
       gap: 10px;
     }
     .chart-card-title {
-      font-size: var(--text-md);
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
       color: var(--color-ink);
     }
     .chart-card-sub {
       font-size: var(--text-sm);
       color: var(--color-hint);
       margin-top: 2px;
+    }
+    /* Auto-generated one-line insight under each chart title — matches the
+       Executive Dashboard's "takeaway" style so both dashboards feel consistent. */
+    .chart-card-takeaway {
+      font-size: 12.5px;
+      color: var(--color-muted);
+      line-height: 1.4;
+      min-height: 18px;
+      margin-top: 6px;
+      max-width: 480px;
     }
     .chart-select {
       padding: 5px 10px;
@@ -3790,6 +3801,26 @@
         <!-- ── CHARTS ── -->
         <div class="charts-section-title">Events Analytics</div>
 
+        <!-- Row 0: Team Workload — events assigned per admin & event lead for this campus.
+             Always the first chart shown, right after the stat cards. -->
+        <div class="charts-grid full">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">Team Workload</div>
+                <div class="chart-card-sub">Events assigned per admin &amp; event lead</div>
+                <div class="chart-card-takeaway" id="takeawayWorkload" aria-live="polite">Loading…</div>
+              </div>
+              <div class="chart-controls">
+                <button class="chart-download-btn" onclick="downloadChart('chartTeamWorkload','Team Workload')">⬇ PNG</button>
+              </div>
+            </div>
+            <div class="chart-wrap" id="teamWorkloadWrap" style="height:320px;">
+              <canvas id="chartTeamWorkload" role="img" aria-label="Stacked bar chart of events assigned to each admin and event lead, broken down by status"></canvas>
+            </div>
+          </div>
+        </div>
+
         <!-- Row 1: Events by Campus (hidden for campus admins) + Events by Month (always visible).
              For campus admins, the row becomes full-width showing only Events by Month. -->
         <div class="charts-grid" id="row1Charts">
@@ -3798,6 +3829,7 @@
               <div>
                 <div class="chart-card-title">Events by Campus</div>
                 <div class="chart-card-sub">Total events per campus</div>
+                <div class="chart-card-takeaway" id="takeawayByCampus" aria-live="polite">Loading…</div>
               </div>
               <div class="chart-controls">
                 <select class="chart-select" id="campusChartType" onchange="renderCampusChart()" aria-label="Chart type">
@@ -3816,6 +3848,7 @@
               <div>
                 <div class="chart-card-title">Events by Month</div>
                 <div class="chart-card-sub">All campuses combined</div>
+                <div class="chart-card-takeaway" id="takeawayByMonth" aria-live="polite">Loading…</div>
               </div>
               <div class="chart-controls">
                 <select class="chart-select" id="monthChartYear" onchange="renderMonthChart()" aria-label="Year"></select>
@@ -3837,6 +3870,7 @@
               <div>
                 <div class="chart-card-title">Events by Campus by Month</div>
                 <div class="chart-card-sub">Breakdown per campus across months</div>
+                <div class="chart-card-takeaway" id="takeawayByCampusMonth" aria-live="polite">Loading…</div>
               </div>
               <div class="chart-controls">
                 <select class="chart-select" id="campusMonthYear" onchange="renderCampusMonthChart()" aria-label="Year"></select>
@@ -3858,6 +3892,7 @@
               <div>
                 <div class="chart-card-title">Events by Category</div>
                 <div class="chart-card-sub">Distribution across all campuses</div>
+                <div class="chart-card-takeaway" id="takeawayByCategory" aria-live="polite">Loading…</div>
               </div>
               <div class="chart-controls">
                 <select class="chart-select" id="categoryChartCampus" onchange="renderCategoryChart()">
@@ -8041,6 +8076,7 @@ const CATEGORY_PALETTE = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#f9
 
 const chartInstances = {};
 let dashEventData = [];
+let teamWorkloadRows = [];
 
 /* ── Global Chart.js defaults ── */
 Chart.defaults.font.family = "'Poppins', sans-serif";
@@ -8306,6 +8342,7 @@ async function loadDashboard(){
 
   renderAllCharts();
   buildPivotTable();
+  loadTeamWorkloadChart();
 }
 
 function jumpToSection(name){
@@ -8542,6 +8579,12 @@ function renderAllCharts(){
   setTimeout(() => safeRender(renderCategoryChart,      "Category"),    isCampusAdmin ? 250 : 550);
 }
 
+/* Set a chart's auto-generated one-line insight, if that chart's takeaway element exists on the page. */
+function setChartTakeaway(elId, text){
+  const el = document.getElementById(elId);
+  if(el) el.textContent = text;
+}
+
 /* ── Chart 1: Events by Campus ── */
 function renderCampusChart(){
   try {
@@ -8582,6 +8625,16 @@ function renderCampusChart(){
       } : {}
     }
   });
+
+  // Auto-generated insight line
+  const total = counts.reduce((a,b) => a+b, 0);
+  if(total > 0){
+    const leadIdx = counts.indexOf(Math.max(...counts));
+    const pct = Math.round((counts[leadIdx] / total) * 100);
+    setChartTakeaway("takeawayByCampus", `${CAMPUSES[leadIdx]} leads with ${counts[leadIdx]} event${counts[leadIdx]!==1?"s":""} (${pct}% of ${total} total).`);
+  } else {
+    setChartTakeaway("takeawayByCampus", "No events recorded yet.");
+  }
   } catch(e){ console.warn("[Chart] Campus render failed:", e); }
 }
 
@@ -8633,6 +8686,16 @@ function renderMonthChart(){
       }
     }
   });
+
+  // Auto-generated insight line
+  const maxV = Math.max(...counts);
+  if(maxV > 0){
+    const idx = counts.indexOf(maxV);
+    const activeMonths = counts.filter(c => c > 0).length;
+    setChartTakeaway("takeawayByMonth", `${MONTHS[idx]} was the busiest month with ${maxV} event${maxV!==1?"s":""}; ${activeMonths} of 12 months had activity in ${year}.`);
+  } else {
+    setChartTakeaway("takeawayByMonth", `No events recorded for ${year} yet.`);
+  }
   } catch(e){ console.warn("[Chart] Month render failed:", e); }
 }
 
@@ -8645,6 +8708,7 @@ function renderCampusMonthChart(){
   const canvas  = document.getElementById("chartCampusByMonth");
   const ctx     = canvas.getContext("2d");
 
+  const campusTotals = [];
   const datasets = CAMPUSES.map(campus => {
     const color = CAMPUS_COLORS[campus] || "#999";
     const data  = MONTHS.map((_,mi) =>
@@ -8654,6 +8718,7 @@ function renderCampusMonthChart(){
         return d.getFullYear() === year && d.getMonth() === mi;
       }).length
     );
+    campusTotals.push(data.reduce((a,b) => a+b, 0));
     const bg = type === "bar" ? makeGradient(ctx, color, 0.8, 0.4) : makeGradient(ctx, color, 0.2, 0.02);
     return {
       label: campus,
@@ -8684,6 +8749,15 @@ function renderCampusMonthChart(){
       }
     }
   });
+
+  // Auto-generated insight line
+  const grandTotal = campusTotals.reduce((a,b) => a+b, 0);
+  if(grandTotal > 0){
+    const leadIdx = campusTotals.indexOf(Math.max(...campusTotals));
+    setChartTakeaway("takeawayByCampusMonth", `${CAMPUSES[leadIdx]} had the most events in ${year} with ${campusTotals[leadIdx]}, across ${grandTotal} total.`);
+  } else {
+    setChartTakeaway("takeawayByCampusMonth", `No events recorded for ${year} yet.`);
+  }
   } catch(e){ console.warn("[Chart] CampusMonth render failed:", e); }
 }
 
@@ -8777,7 +8851,117 @@ function renderCategoryChart(){
       cutout: type === "doughnut" ? "62%" : undefined,
     }
   });
+
+  // Auto-generated insight line
+  if(total > 0 && cats.length){
+    const leadIdx = counts.indexOf(Math.max(...counts));
+    const pct = Math.round((counts[leadIdx] / total) * 100);
+    setChartTakeaway("takeawayByCategory", `${cats[leadIdx]} is the most common category with ${counts[leadIdx]} event${counts[leadIdx]!==1?"s":""} (${pct}% of ${total}).`);
+  } else {
+    setChartTakeaway("takeawayByCategory", "No categorized events yet.");
+  }
   } catch(e){ console.warn("[Chart] Category render failed:", e); }
+}
+
+/* ── Chart 5: Team Workload — events assigned per admin & event lead ──
+   Data source mirrors the Team Overview tab: for each admin/event_lead whose
+   permissions cover this campus, count their assigned event_proposals by
+   execution status. Fetched separately from dashEventData because it needs
+   its own Supabase queries (admins + event_proposals), then cached in
+   teamWorkloadRows so the chart can be re-rendered without re-fetching. */
+async function loadTeamWorkloadChart(){
+  try {
+    const scopeCampuses = (currentAdminCampus && currentAdminCampus !== "All") ? [currentAdminCampus] : CAMPUSES;
+
+    const { data: leads } = await sb.from("admins").select("*").in("role", ["admin","event_lead"]);
+    const filteredLeads = (leads || []).filter(l => {
+      const lc = l.permissions?.campus || ["All"];
+      if(lc.includes("All")) return true;
+      return scopeCampuses.some(c => lc.includes(c));
+    });
+    const leadEmails = filteredLeads.map(l => l.email);
+
+    if(!leadEmails.length){
+      teamWorkloadRows = [];
+      renderTeamWorkloadChart();
+      return;
+    }
+
+    const { data: proposals } = await sb.from("event_proposals")
+      .select("assigned_to, execution_status")
+      .in("assigned_to", leadEmails);
+
+    teamWorkloadRows = leadEmails.map(email => {
+      const mine      = (proposals || []).filter(p => p.assigned_to === email);
+      const upcoming  = mine.filter(p => (p.execution_status||"pending") === "pending").length;
+      const underprep = mine.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
+      const held      = mine.filter(p => (p.execution_status||"pending") === "completed").length;
+      const closed    = mine.filter(p => (p.execution_status||"pending") === "report_submitted").length;
+      return { email, upcoming, underprep, held, closed, total: upcoming+underprep+held+closed };
+    }).sort((a,b) => b.total - a.total);
+
+    renderTeamWorkloadChart();
+  } catch(e){
+    console.warn("[Chart] TeamWorkload data load failed:", e);
+    teamWorkloadRows = [];
+    renderTeamWorkloadChart();
+  }
+}
+
+function renderTeamWorkloadChart(){
+  try {
+    const wrap     = document.getElementById("teamWorkloadWrap");
+    if(!wrap) return; // dashboard not on screen
+
+    if(!teamWorkloadRows.length){
+      destroyChart("chartTeamWorkload");
+      wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">No admins or event leads found for this campus yet.</div></div>`;
+      setChartTakeaway("takeawayWorkload", "No team members to show.");
+      return;
+    }
+
+    // Restore the canvas if a previous empty-state replaced it
+    if(!document.getElementById("chartTeamWorkload")){
+      wrap.innerHTML = `<canvas id="chartTeamWorkload" role="img" aria-label="Stacked bar chart of events assigned to each admin and event lead, broken down by status"></canvas>`;
+    }
+    destroyChart("chartTeamWorkload");
+    const canvas = document.getElementById("chartTeamWorkload");
+    const ctx    = canvas.getContext("2d");
+    const labels = teamWorkloadRows.map(r => r.email.split("@")[0]);
+
+    chartInstances["chartTeamWorkload"] = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          { label:"Upcoming",   data:teamWorkloadRows.map(r=>r.upcoming),  backgroundColor:"#0891b2", borderRadius:4 },
+          { label:"Under Prep", data:teamWorkloadRows.map(r=>r.underprep), backgroundColor:"#2563eb", borderRadius:4 },
+          { label:"Held",       data:teamWorkloadRows.map(r=>r.held),      backgroundColor:"#15803d", borderRadius:4 },
+          { label:"Closed",     data:teamWorkloadRows.map(r=>r.closed),    backgroundColor:"#7c3aed", borderRadius:4 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position:"bottom", labels:{ usePointStyle:true, padding:16, font:{ size:12 } } },
+          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y ?? c.parsed}` } }
+        },
+        scales: {
+          x: { stacked:true, grid:{ display:false }, ticks:{ color:"#374151", font:{ weight:"600" } } },
+          y: { stacked:true, beginAtZero:true, ticks:{ stepSize:1, color:"#9ca3af" }, grid:{ color:"#f3f4f6" }, border:{ dash:[4,4] } }
+        }
+      }
+    });
+
+    // Auto-generated insight line
+    const totalAssigned = teamWorkloadRows.reduce((s,r) => s+r.total, 0);
+    const busiest = teamWorkloadRows[0];
+    if(busiest && busiest.total > 0){
+      setChartTakeaway("takeawayWorkload", `${teamWorkloadRows.length} team member${teamWorkloadRows.length!==1?"s":""} handling ${totalAssigned} assigned event${totalAssigned!==1?"s":""} — ${busiest.email.split("@")[0]} carries the heaviest load with ${busiest.total}.`);
+    } else {
+      setChartTakeaway("takeawayWorkload", `${teamWorkloadRows.length} team member${teamWorkloadRows.length!==1?"s":""} found, no events assigned yet.`);
+    }
+  } catch(e){ console.warn("[Chart] TeamWorkload render failed:", e); }
 }
 
 /* ── Campus enforcement ── */
