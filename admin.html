@@ -12230,6 +12230,12 @@ function _akuPlaySeq(notes, peak = 0.14){
 function playMessageSound(){ _akuPlaySeq([{f:1046.5, len:0.09, gap:0.01},{f:1318.5, len:0.11}]); }
 // Crisp bell — bright ascending fanfare for a new event proposal submitted
 function playProposalSound(){ _akuPlaySeq([{f:784, len:0.1, gap:0.015},{f:987.77, len:0.1, gap:0.015},{f:1174.7, len:0.1, gap:0.015},{f:1567.98, len:0.16}]); }
+// Browsers block audio until the page has had a real click — unlock it on the first one
+document.addEventListener("click", function _akuUnlockAudio(){
+  const ctx = _akuGetAudioCtx();
+  if(ctx && ctx.state === "suspended") ctx.resume();
+  document.removeEventListener("click", _akuUnlockAudio);
+}, { once: true });
 
 /* ══ REALTIME SUBSCRIPTIONS ══ */
 function startRealtimeSubscriptions(){
