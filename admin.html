@@ -5190,6 +5190,15 @@
             <option value="friendly">Friendly (Team Update)</option>
           </select>
         </div>
+        <div class="field">
+          <label>AI Model</label>
+          <select id="reportModel" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;background:white;">
+            <option value="openai/gpt-oss-120b" selected>Most Powerful (Recommended)</option>
+            <option value="llama-3.3-70b-versatile">Balanced (previous default)</option>
+            <option value="openai/gpt-oss-20b">Fastest (quick drafts)</option>
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">All three are free on the same Groq API key above — "Most Powerful" gives the richest analysis; "Fastest" trades some quality for speed.</div>
+        </div>
         <div class="field full">
           <label>Include Sections</label>
           <div class="report-options">
@@ -5202,6 +5211,7 @@
           </div>
         </div>
       </div>
+
 
       <!-- Generate button -->
       <div style="display:flex;gap:10px;margin-bottom:16px;">
@@ -13643,7 +13653,7 @@ function saveGeminiKey(){
 async function generateReport(){
   const apiKey = document.getElementById("geminiKey").value.trim();
   if(!apiKey){
-    showToast("Please enter your Gemini API key first.", "error");
+    showToast("Please enter your Groq API key first.", "error");
     return;
   }
 
@@ -13651,6 +13661,7 @@ async function generateReport(){
   const focusCampus = document.getElementById("reportCampus").value;
   const year        = document.getElementById("reportYear").value;
   const tone        = document.getElementById("reportTone").value;
+  const aiModel      = document.getElementById("reportModel").value || "openai/gpt-oss-120b";
 
   // Sections to include
   const sections = {
@@ -13790,10 +13801,10 @@ ${dataSnapshot}`.trim();
           "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: aiModel,
           messages: [{ role: "user", content: prompt }],
           temperature: 0.7,
-          max_tokens: 1500
+          max_tokens: 3000
         })
       }
     );
