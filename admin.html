@@ -12463,12 +12463,15 @@ async function loadAdminConversations(){
   if(!currentAdminCampus) return;
 
   // Get latest message per club for this campus
-  const { data } = await sb.from("chat_messages")
+  const { data: rawData } = await sb.from("chat_messages")
     .select("*")
     .eq("campus", currentAdminCampus)
     .order("created_at", { ascending: false });
 
-  if(!data) return;
+  if(!rawData) return;
+
+  // Exclude group-chat messages (no club_email) — they belong in the Groups tab, not here
+  const data = rawData.filter(m => m.club_email);
 
   // Group by club_email — keep only the most recent message per club
   const seen = {};
@@ -12518,7 +12521,7 @@ function renderAdminConversations(){
     return;
   }
 
-  list.innerHTML = convos.map(c => {
+  list.innerHTML = convos.filter(c => c.club_email).map(c => {
     const name     = c.club_email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, l => l.toUpperCase());
     const initials = name.split(" ").map(w=>w[0]||"").join("").substring(0,2).toUpperCase();
     const preview  = (c.sender_type === "admin" ? "You: " : "") + (c.message_text || "").substring(0,45);
