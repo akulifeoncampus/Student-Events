@@ -3158,6 +3158,16 @@ function proposalCardHTML(p){
             <div style="font-size:12px;color:var(--muted);text-align:center;">Loading attendance…</div>
           </div>
 
+          <!-- Participant list -->
+          <div style="text-align:center;margin-top:12px;">
+            <button onclick="toggleAttendanceList('${p.id}')" id="attend-list-toggle-${p.id}"
+              aria-expanded="false" aria-controls="attend-list-${p.id}"
+              style="padding:8px 16px;background:white;color:#000060;border:1.5px solid #c7d2fe;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+              👥 View Participant List
+            </button>
+          </div>
+          <div id="attend-list-${p.id}" style="display:none;margin-top:12px;max-height:320px;overflow-y:auto;" role="region" aria-label="Participant list"></div>
+
         </div>
       </div>` : ""}
 
@@ -3187,6 +3197,16 @@ function proposalCardHTML(p){
           <div id="fb-stats-${p.id}" role="region" aria-label="Feedback statistics" aria-live="polite">
             <div style="font-size:12px;color:var(--muted);text-align:center;">Loading feedback…</div>
           </div>
+
+          <!-- Individual responses -->
+          <div style="text-align:center;margin-top:12px;">
+            <button onclick="toggleFeedbackList('${p.id}')" id="fb-list-toggle-${p.id}"
+              aria-expanded="false" aria-controls="fb-list-${p.id}"
+              style="padding:8px 16px;background:white;color:#000060;border:1.5px solid #c7d2fe;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+              💬 View Responses
+            </button>
+          </div>
+          <div id="fb-list-${p.id}" style="display:none;margin-top:12px;max-height:320px;overflow-y:auto;" role="region" aria-label="Feedback responses"></div>
 
         </div>
       </div>` : ""}
@@ -3445,6 +3465,120 @@ async function loadFeedbackStats(proposalId){
 
 function stopFeedbackPolling(){
   if(feedbackPollInterval){ clearInterval(feedbackPollInterval); feedbackPollInterval = null; }
+}
+
+/* ── Participant list & individual feedback responses ──
+   Previously clubs could only see aggregate counts (total, by type) and
+   an average rating — no way to see who actually attended or what people
+   wrote, short of downloading the Excel export. These give that visibility
+   directly in the portal. Lists are fetched on-demand (collapsed by
+   default) rather than loaded upfront with the stats, since most events
+   won't need this level of detail every time the tab is opened. */
+async function toggleAttendanceList(proposalId){
+  const listEl = document.getElementById(`attend-list-${proposalId}`);
+  const btn    = document.getElementById(`attend-list-toggle-${proposalId}`);
+  const isOpen = listEl.style.display !== "none";
+  if(isOpen){
+    listEl.style.display = "none";
+    btn.textContent = "👥 View Participant List";
+    btn.setAttribute("aria-expanded", "false");
+    return;
+  }
+  listEl.style.display = "block";
+  btn.textContent = "👥 Hide Participant List";
+  btn.setAttribute("aria-expanded", "true");
+  await loadAttendanceList(proposalId);
+}
+
+async function loadAttendanceList(proposalId){
+  const listEl = document.getElementById(`attend-list-${proposalId}`);
+  listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">Loading…</div>`;
+
+  const { data, error } = await sb.from("event_attendance").select("*").eq("event_id", proposalId);
+
+  if(error || !data){
+    listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">Could not load participant list.</div>`;
+    return;
+  }
+  if(!data.length){
+    listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;font-style:italic;">No check-ins yet.</div>`;
+    return;
+  }
+
+  // Sort client-side, newest first — avoids depending on a specific
+  // timestamp column existing at the database query level.
+  data.sort((a, b) => new Date(b.scanned_at || 0) - new Date(a.scanned_at || 0));
+
+  const TYPE_LABELS = { student: "🎓 Student", faculty: "👨‍🏫 Faculty", staff: "💼 Staff", external_guest: "🌐 External" };
+
+  listEl.innerHTML = `
+    <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f9fafb;">
+            <th style="text-align:left;padding:8px 10px;font-weight:700;color:var(--muted);">Name</th>
+            <th style="text-align:left;padding:8px 10px;font-weight:700;color:var(--muted);">Type</th>
+            <th style="text-align:left;padding:8px 10px;font-weight:700;color:var(--muted);">Program</th>
+            <th style="text-align:left;padding:8px 10px;font-weight:700;color:var(--muted);">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(r => `
+            <tr style="border-top:1px solid #f3f4f6;">
+              <td style="padding:8px 10px;">${esc(r.student_name || "—")}</td>
+              <td style="padding:8px 10px;white-space:nowrap;">${TYPE_LABELS[r.attendee_type] || esc(r.attendee_type || "—")}</td>
+              <td style="padding:8px 10px;">${esc(r.program || r.entity || "—")}</td>
+              <td style="padding:8px 10px;color:var(--muted);white-space:nowrap;">${r.scanned_at ? new Date(r.scanned_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "—"}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function toggleFeedbackList(proposalId){
+  const listEl = document.getElementById(`fb-list-${proposalId}`);
+  const btn    = document.getElementById(`fb-list-toggle-${proposalId}`);
+  const isOpen = listEl.style.display !== "none";
+  if(isOpen){
+    listEl.style.display = "none";
+    btn.textContent = "💬 View Responses";
+    btn.setAttribute("aria-expanded", "false");
+    return;
+  }
+  listEl.style.display = "block";
+  btn.textContent = "💬 Hide Responses";
+  btn.setAttribute("aria-expanded", "true");
+  await loadFeedbackList(proposalId);
+}
+
+async function loadFeedbackList(proposalId){
+  const listEl = document.getElementById(`fb-list-${proposalId}`);
+  listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">Loading…</div>`;
+
+  const { data, error } = await sb.from("event_feedback").select("*").eq("event_id", proposalId);
+
+  if(error || !data){
+    listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">Could not load responses.</div>`;
+    return;
+  }
+  if(!data.length){
+    listEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;font-style:italic;">No responses yet.</div>`;
+    return;
+  }
+
+  data.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  listEl.innerHTML = data.map(r => {
+    const rating = r.rating || 0;
+    const stars  = "⭐".repeat(rating) + "☆".repeat(Math.max(0, 5 - rating));
+    return `
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-size:13px;margin-bottom:4px;" aria-label="${rating} out of 5 stars">${stars}</div>
+      ${r.highlights ? `<div style="font-size:12px;color:#111827;margin-bottom:2px;"><strong>Liked:</strong> ${esc(r.highlights)}</div>` : ""}
+      ${r.improvements ? `<div style="font-size:12px;color:#111827;"><strong>Could improve:</strong> ${esc(r.improvements)}</div>` : ""}
+      ${!r.highlights && !r.improvements ? `<div style="font-size:12px;color:var(--muted);font-style:italic;">No written comments — rating only.</div>` : ""}
+    </div>`;
+  }).join("");
 }
 
 function showFullScreenQR(proposalId, eventName, kind = "attendance"){
