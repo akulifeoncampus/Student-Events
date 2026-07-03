@@ -4266,9 +4266,92 @@
             <div class="section-subtitle">Annual closing ceremony — Context Score, nominations, and shortlist review</div>
           </div>
         </div>
-        <div class="empty-state">
+
+        <!-- Shown when the submission window is closed or not yet configured -->
+        <div id="awardsWindowNotice" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:#991b1b;"></div>
+
+        <!-- Context Score submission form — shown to anyone with submit permission -->
+        <div id="contextScoreSubmitPanel" style="display:none;">
+          <div style="background:var(--color-bg,#f8f9fa);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:24px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:2px;">Submit Context Score</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">One submission per club, per cycle. You can edit your own submission until the submission window closes.</div>
+
+            <div class="form-grid">
+              <div class="field full">
+                <label>Club *</label>
+                <select id="csClub"><option value="">Select a club…</option></select>
+              </div>
+
+              <div class="field full">
+                <label>Extenuating circumstances</label>
+                <select id="csExtenuatingCategory" onchange="toggleExtenuatingNote()">
+                  <option value="">— none to report —</option>
+                  <option value="leadership_transition">Leadership transition</option>
+                  <option value="health_personal">Health / personal</option>
+                  <option value="restructuring">Restructuring</option>
+                  <option value="external_disruption">External disruption</option>
+                </select>
+              </div>
+              <div class="field full" id="csExtenuatingNoteField" style="display:none;">
+                <label>One-sentence note *</label>
+                <input id="csExtenuatingNote" type="text" maxlength="220" placeholder="Keep it to one sentence — detail isn't the point, the flag is." />
+              </div>
+
+              <div class="field">
+                <label>Member development (1–5) *</label>
+                <select id="csMemberDevelopment">
+                  <option value="">Select…</option>
+                  <option value="1">1 — one person carried the club</option>
+                  <option value="2">2</option>
+                  <option value="3">3 — mixed</option>
+                  <option value="4">4</option>
+                  <option value="5">5 — responsibility genuinely distributed, new leaders grown</option>
+                </select>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;">Shared with the Leader of the Year panel as supporting context for this club's nominee.</div>
+              </div>
+
+              <div class="field">
+                <label>Conduct &amp; collaboration (1–5) *</label>
+                <select id="csConductCollaboration">
+                  <option value="">Select…</option>
+                  <option value="1">1 — poor engagement with OSE / peer clubs</option>
+                  <option value="2">2</option>
+                  <option value="3">3 — mixed</option>
+                  <option value="4">4</option>
+                  <option value="5">5 — consistently constructive and fair</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top:4px;">
+              <button class="btn btn-primary" onclick="submitContextScore()">Save Context Score</button>
+            </div>
+          </div>
+
+          <div class="section-subtitle" style="margin-bottom:10px;">Your submissions this cycle</div>
+          <div class="table-wrap">
+            <table id="context-scores-table">
+              <thead>
+                <tr>
+                  <th>Club</th>
+                  <th>Extenuating</th>
+                  <th>Member Dev.</th>
+                  <th>Conduct</th>
+                  <th>Submitted</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="context-scores-tbody">
+                <tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No submissions yet.</div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Placeholder for reviewers (AD-SE, self-reviewing Managers, AM-SE, SMG, VP) — built next -->
+        <div id="awardsReviewPlaceholder" style="display:none;" class="empty-state">
           <div class="empty-state-icon">🏆</div>
-          <div class="empty-state-text">This section is being built. Context Score submission, nominations, and shortlist review will appear here once ready.</div>
+          <div class="empty-state-text">Shortlist review is being built next. Your Context Score submissions above are saved and will feed into it.</div>
         </div>
       </div>
 
@@ -5955,6 +6038,7 @@ function showSection(name, btn){
   }
   if(name === "resources") loadResources();
   if(name === "emergency") loadEmergencyContacts();
+  if(name === "awards") loadAwardsSection();
 }
 
 /* ══ TOAST ══ */
@@ -9877,6 +9961,177 @@ async function saveAwardsWindow(campus){
   if(error){ showToast("Failed to save: " + error.message, "error"); return; }
   showToast(`${campus} window saved.`);
   loadAwardsWindows();
+}
+
+/* ── Context Score submission ──
+   One row per (club, submitter, cycle_year) — Karachi's Event Leads and
+   Manager each submit their own row for the same club; the shortlist
+   review stage (not built yet) is what compiles them, not this form.
+   Gated by getScoringPermission(currentAdminCampus, currentAdminDesignation). */
+let currentAwardsWindow = null; // cached window for the logged-in admin's campus
+
+function toggleExtenuatingNote(){
+  const category = document.getElementById("csExtenuatingCategory").value;
+  document.getElementById("csExtenuatingNoteField").style.display = category ? "" : "none";
+  if(!category) document.getElementById("csExtenuatingNote").value = "";
+}
+
+async function loadAwardsSection(){
+  const perm = getScoringPermission(currentAdminCampus, currentAdminDesignation);
+  const isOversight = ["senior_manager_global", "vice_provost", "super_admin"].includes(currentRole);
+
+  document.getElementById("contextScoreSubmitPanel").style.display = perm.submit ? "" : "none";
+  document.getElementById("awardsReviewPlaceholder").style.display = (perm.review || isOversight) ? "" : "none";
+  document.getElementById("awardsWindowNotice").style.display = "none";
+
+  if(!perm.submit) return; // nothing further to load for a review-only or oversight view yet
+
+  // Load this campus's window and check whether submissions are open
+  const { data: windowRow } = await sb.from("site_settings")
+    .select("value").eq("key", `awards_window_${currentAdminCampus}`).maybeSingle();
+  let win = null;
+  try { win = windowRow?.value ? JSON.parse(windowRow.value) : null; } catch(e){ win = null; }
+  currentAwardsWindow = win;
+
+  const notice = document.getElementById("awardsWindowNotice");
+  if(!win || !win.submissionClose){
+    notice.textContent = "The Super Admin hasn't set an Activity Window and Submission Close for your campus yet — submissions aren't open.";
+    notice.style.display = "block";
+    document.getElementById("contextScoreSubmitPanel").style.display = "none";
+    return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  if(today > win.submissionClose){
+    notice.textContent = `Submissions for your campus closed on ${new Date(win.submissionClose).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}. You can no longer add or edit Context Scores.`;
+    notice.style.display = "block";
+    document.getElementById("contextScoreSubmitPanel").style.display = "none";
+    return;
+  }
+
+  await populateContextScoreClubDropdown();
+  await loadMyContextScores();
+}
+
+async function populateContextScoreClubDropdown(){
+  const { data, error } = await sb.from("clubs").select("id,name").eq("campus", currentAdminCampus).order("name");
+  const sel = document.getElementById("csClub");
+  if(error || !data){ sel.innerHTML = `<option value="">Failed to load clubs</option>`; return; }
+  sel.innerHTML = `<option value="">Select a club…</option>` +
+    data.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+}
+
+function currentCycleYear(){
+  // Cycle runs Jan–Nov; a submission in Dec still counts toward that same
+  // calendar year's cycle rather than rolling into a not-yet-started one.
+  return new Date().getFullYear();
+}
+
+async function submitContextScore(){
+  const clubId       = document.getElementById("csClub").value;
+  const category      = document.getElementById("csExtenuatingCategory").value || null;
+  const note           = document.getElementById("csExtenuatingNote").value.trim() || null;
+  const memberDev     = document.getElementById("csMemberDevelopment").value;
+  const conduct        = document.getElementById("csConductCollaboration").value;
+
+  if(!clubId){ showToast("Select a club.", "error"); return; }
+  if(!memberDev || !conduct){ showToast("Both rating fields are required.", "error"); return; }
+  if(category && !note){ showToast("Add a one-sentence note for the extenuating circumstance you flagged.", "error"); return; }
+
+  if(currentAwardsWindow?.submissionClose){
+    const today = new Date().toISOString().slice(0,10);
+    if(today > currentAwardsWindow.submissionClose){
+      showToast("The submission window for your campus has closed.", "error");
+      loadAwardsSection();
+      return;
+    }
+  }
+
+  const payload = {
+    club_id:                clubId,
+    campus:                 currentAdminCampus,
+    cycle_year:              currentCycleYear(),
+    submitted_by_email:      currentUser.email,
+    submitted_by_designation: currentAdminDesignation || null,
+    extenuating_category:    category,
+    extenuating_note:        note,
+    member_development:      parseInt(memberDev, 10),
+    conduct_collaboration:   parseInt(conduct, 10),
+    updated_at:              new Date().toISOString(),
+  };
+
+  const { error } = await sb.from("award_context_scores")
+    .upsert(payload, { onConflict: "club_id,submitted_by_email,cycle_year" });
+
+  if(error){ showToast("Failed to save: " + error.message, "error"); return; }
+  showToast("Context Score saved.");
+
+  document.getElementById("csClub").value = "";
+  document.getElementById("csExtenuatingCategory").value = "";
+  toggleExtenuatingNote();
+  document.getElementById("csMemberDevelopment").value = "";
+  document.getElementById("csConductCollaboration").value = "";
+
+  loadMyContextScores();
+}
+
+async function loadMyContextScores(){
+  const { data, error } = await sb.from("award_context_scores")
+    .select("*, clubs(name)")
+    .eq("submitted_by_email", currentUser.email)
+    .eq("cycle_year", currentCycleYear())
+    .order("updated_at", { ascending: false });
+
+  const tbody = document.getElementById("context-scores-tbody");
+  if(error){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-text">Failed to load your submissions.</div></div></td></tr>`;
+    return;
+  }
+  if(!data || !data.length){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No submissions yet.</div></div></td></tr>`;
+    return;
+  }
+
+  const CATEGORY_LABELS = {
+    leadership_transition: "Leadership transition",
+    health_personal:       "Health / personal",
+    restructuring:         "Restructuring",
+    external_disruption:   "External disruption",
+  };
+
+  tbody.innerHTML = data.map(row => `
+    <tr>
+      <td>${esc(row.clubs?.name || "—")}</td>
+      <td>${row.extenuating_category ? esc(CATEGORY_LABELS[row.extenuating_category] || row.extenuating_category) : "—"}</td>
+      <td>${row.member_development ?? "—"}</td>
+      <td>${row.conduct_collaboration ?? "—"}</td>
+      <td>${new Date(row.updated_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editContextScore('${row.id}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteContextScore('${row.id}')">🗑️ Delete</button>
+      </div></td>
+    </tr>`).join("");
+
+  window._myContextScores = data; // small cache so editContextScore doesn't need a re-fetch
+}
+
+function editContextScore(id){
+  const row = (window._myContextScores || []).find(r => r.id === id);
+  if(!row) return;
+  document.getElementById("csClub").value = row.club_id;
+  document.getElementById("csExtenuatingCategory").value = row.extenuating_category || "";
+  toggleExtenuatingNote();
+  document.getElementById("csExtenuatingNote").value = row.extenuating_note || "";
+  document.getElementById("csMemberDevelopment").value = row.member_development ?? "";
+  document.getElementById("csConductCollaboration").value = row.conduct_collaboration ?? "";
+  document.getElementById("contextScoreSubmitPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function deleteContextScore(id){
+  if(!confirm("Remove this Context Score submission?")) return;
+  const { error } = await sb.from("award_context_scores").delete().eq("id", id);
+  if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
+  showToast("Submission removed.");
+  loadMyContextScores();
 }
 
 async function loadAdmins(){
