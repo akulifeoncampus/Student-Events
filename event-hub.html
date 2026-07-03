@@ -1561,9 +1561,15 @@
           <label id="fClubNameLabel">Club Name *</label>
           <input id="fClubName" type="text" readonly style="background:#f9fafb;cursor:not-allowed;" />
         </div>
-        <div class="field">
-          <label id="fRepNameLabel">Representative Name *</label>
+        <div class="field" id="fRepNameField">
+          <label>Representative Name *</label>
           <input id="fRepName" type="text" placeholder="Your full name" />
+        </div>
+        <div class="field" id="fProgramField" style="display:none;">
+          <label>Your Program *</label>
+          <select id="fProgram">
+            <option value="">Select…</option>
+          </select>
         </div>
         <div class="field" id="fDesignationField">
           <label id="fDesignationLabel">Designation *</label>
@@ -3913,6 +3919,7 @@ function openProposalModal(id = null){
   document.getElementById("proposalId").value     = "";
   document.getElementById("fClubName").value      = currentClub?.club_name || "";
   document.getElementById("fRepName").value       = "";
+  document.getElementById("fProgram").value       = "";
   document.getElementById("fDesignation").value   = "";
   document.getElementById("fEventName").value     = "";
   document.getElementById("fCategory").value      = "";
@@ -3969,8 +3976,9 @@ function openProposalModal(id = null){
   const CLUB_NAME_LABELS = { club: "Club Name *", department: "Department Name *", individual: "Your Name *" };
   document.getElementById("fClubNameLabel").textContent = CLUB_NAME_LABELS[accountType];
 
-  document.getElementById("fRepNameLabel").textContent = isIndividual ? "Your Program *" : "Representative Name *";
-  document.getElementById("fRepName").placeholder      = isIndividual ? "e.g. Bachelor of Business Administration" : "Your full name";
+  document.getElementById("fRepNameField").style.display = isIndividual ? "none" : "";
+  document.getElementById("fProgramField").style.display = isIndividual ? "" : "none";
+  if(isIndividual) populateProgramDropdown(id ? (allProposals.find(x=>x.id===id)?.program || "") : "");
 
   document.getElementById("fDesignationField").style.display = isDepartment ? "none" : "";
   document.getElementById("fDesignationLabel").textContent   = isIndividual ? "Year *" : "Designation *";
@@ -4028,6 +4036,19 @@ function openProposalModal(id = null){
 }
 
 let allCollaboratorClubs = [];
+
+async function populateProgramDropdown(selected = ""){
+  const sel    = document.getElementById("fProgram");
+  const campus = currentClub?.campus;
+  sel.innerHTML = `<option value="">Loading…</option>`;
+  const { data, error } = await sb.from("programs").select("name").eq("campus", campus).eq("active", true).order("name");
+  if(error || !data || !data.length){
+    sel.innerHTML = `<option value="">No programs listed for your campus yet</option>`;
+    return;
+  }
+  sel.innerHTML = `<option value="">Select…</option>` + data.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("");
+  if(selected) sel.value = selected;
+}
 
 async function loadCollaboratorClubs(selectedStr = ""){
   const list = document.getElementById("collaboratorList");
@@ -4180,7 +4201,8 @@ async function submitProposal(){
   const id            = document.getElementById("proposalId").value;
   const isDepartment  = currentClub?.account_type === "department";
   const isIndividual  = currentClub?.account_type === "individual";
-  const repName       = document.getElementById("fRepName").value.trim();
+  const repName       = isIndividual ? (currentClub?.club_name || "") : document.getElementById("fRepName").value.trim();
+  const program       = isIndividual ? document.getElementById("fProgram").value : null;
   const designation   = isDepartment ? null : document.getElementById("fDesignation").value;
   const eventName     = document.getElementById("fEventName").value.trim();
   const category      = document.getElementById("fCategory").value;
@@ -4223,6 +4245,7 @@ async function submitProposal(){
 
   // Validation — department accounts skip designation, attendance, disclaimer
   if(!repName)              { showToast("Representative name is required", "error"); reset(); return; }
+  if(isIndividual && !program) { showToast("Please select your program", "error"); reset(); return; }
   if(!isDepartment && !designation) { showToast(isIndividual ? "Please select your year" : "Please select your designation", "error"); reset(); return; }
   if(!eventName)            { showToast("Event name is required", "error"); reset(); return; }
   if(!category)             { showToast("Please select a category", "error"); reset(); return; }
@@ -4253,6 +4276,7 @@ async function submitProposal(){
     club_email:           currentClub.email,
     club_name:            currentClub.club_name,
     representative_name:  repName,
+    program,
     designation,
     event_name:           eventName,
     category,
