@@ -3166,7 +3166,7 @@
         <div class="sidebar-label">Event management</div>
         <button class="nav-item" data-section="section-clubs-approval" onclick="showSection('clubs-approval', this)" id="clubsApprovalNavBtn">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /> <path d="M9 12l2 2l4 -4" /></svg>
-          <span class="nav-label">Club Approvals</span>
+          <span class="nav-label">Event Hub Accounts</span>
           <span class="nav-badge" id="pendingClubsBadge" style="display:none;"></span>
         </button>
         <button class="nav-item" data-section="section-proposals" onclick="showSection('proposals', this)" id="proposalsNavBtn">
@@ -4633,8 +4633,8 @@
       <div class="section" id="section-clubs-approval">
         <div class="section-header">
           <div>
-            <div class="section-title">Club Approvals</div>
-            <div class="section-subtitle">Review and approve club access requests for Event Hub</div>
+            <div class="section-title">Event Hub Accounts</div>
+            <div class="section-subtitle">Review and approve club, department, and independent event access requests</div>
           </div>
           <button class="btn btn-secondary" onclick="loadClubApprovals()">↺ Refresh</button>
         </div>
@@ -4645,7 +4645,7 @@
           <div class="table-scroll">
             <table id="clubs-pending-table">
               <thead><tr>
-                <th>Club Name</th><th>Email</th><th>Campus</th><th>Requested</th><th>Actions</th>
+                <th>Name</th><th>Email</th><th>Campus</th><th>Requested</th><th>Actions</th>
               </tr></thead>
               <tbody id="clubs-pending-tbody">
                 <tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div></td></tr>
@@ -4655,15 +4655,15 @@
         </div>
 
         <!-- Approved -->
-        <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">✅ Approved Clubs</div>
+        <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">✅ Approved Accounts</div>
         <div class="table-wrap" style="margin-bottom:28px;">
           <div class="table-scroll">
             <table id="clubs-approved-table">
               <thead><tr>
-                <th>Club Name</th><th>Email</th><th>Campus</th><th>Approved By</th><th>Actions</th>
+                <th>Name</th><th>Email</th><th>Campus</th><th>Approved By</th><th>Actions</th>
               </tr></thead>
               <tbody id="clubs-approved-tbody">
-                <tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No approved clubs yet.</div></div></td></tr>
+                <tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">No approved accounts yet.</div></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -4675,7 +4675,7 @@
           <div class="table-scroll">
             <table id="clubs-rejected-table">
               <thead><tr>
-                <th>Club Name</th><th>Email</th><th>Campus</th><th>Reason</th><th>Actions</th>
+                <th>Name</th><th>Email</th><th>Campus</th><th>Reason</th><th>Actions</th>
               </tr></thead>
               <tbody id="clubs-rejected-tbody">
                 <tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">No rejected requests.</div></div></td></tr>
@@ -12508,7 +12508,7 @@ function accountTypeBadge(type){
 function renderClubTable(tbodyId, list, type, cols){
   const tbody = document.getElementById(tbodyId);
   if(!list.length){
-    const msgs = { pending:"No pending requests.", approved:"No approved clubs yet.", rejected:"No rejected requests." };
+    const msgs = { pending:"No pending requests.", approved:"No approved accounts yet.", rejected:"No rejected requests." };
     const icons = { pending:"⏳", approved:"✅", rejected:"❌" };
     tbody.innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-state-icon">${icons[type]}</div><div class="empty-state-text">${msgs[type]}</div></div></td></tr>`;
     return;
