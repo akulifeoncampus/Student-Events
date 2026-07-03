@@ -1289,16 +1289,43 @@
 
     <!-- Signup-only fields -->
     <div id="signupOnlyFields" style="display:none;">
-      <label class="login-label" for="signupClubName">Club / Society Name *</label>
-      <input class="login-input" id="signupClubName" type="text" placeholder="e.g. AKU Athletics Club" />
-      <label class="login-label" for="signupCampus">Campus *</label>
-      <select class="login-input" id="signupCampus" style="padding:11px 16px;">
-        <option value="">Select campus…</option>
-        <option>Karachi</option>
-        <option>Nairobi</option>
-        <option>Kampala</option>
-        <option>Dar es Salaam</option>
-      </select>
+      <label class="login-label">Account Type *</label>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button type="button" id="typeBtnClub" onclick="selectAccountType('club')"
+          style="flex:1;padding:9px 6px;border:1.5px solid #000060;border-radius:8px;background:#000060;color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">🎭 Club</button>
+        <button type="button" id="typeBtnDepartment" onclick="selectAccountType('department')"
+          style="flex:1;padding:9px 6px;border:1.5px solid #d1d5db;border-radius:8px;background:white;color:#374151;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">🏛️ Department</button>
+        <button type="button" id="typeBtnIndividual" onclick="selectAccountType('individual')"
+          style="flex:1;padding:9px 6px;border:1.5px solid #d1d5db;border-radius:8px;background:white;color:#374151;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">🎗️ Independent</button>
+      </div>
+
+      <div id="signupFieldsClub">
+        <label class="login-label" for="signupClubName">Club / Society Name *</label>
+        <input class="login-input" id="signupClubName" type="text" placeholder="e.g. AKU Athletics Club" />
+      </div>
+
+      <div id="signupFieldsDepartment" style="display:none;">
+        <label class="login-label" for="signupDepartmentName">Department *</label>
+        <select class="login-input" id="signupDepartmentName" style="padding:11px 16px;">
+          <option value="">Select department…</option>
+        </select>
+      </div>
+
+      <div id="signupFieldsIndividual" style="display:none;">
+        <label class="login-label" for="signupIndividualName">Your Full Name *</label>
+        <input class="login-input" id="signupIndividualName" type="text" placeholder="e.g. Ayesha Khan" />
+      </div>
+
+      <div id="signupCampusField">
+        <label class="login-label" for="signupCampus">Campus *</label>
+        <select class="login-input" id="signupCampus" style="padding:11px 16px;">
+          <option value="">Select campus…</option>
+          <option>Karachi</option>
+          <option>Nairobi</option>
+          <option>Kampala</option>
+          <option>Dar es Salaam</option>
+        </select>
+      </div>
     </div>
 
     <label class="login-label" for="loginEmail">Club Email *</label>
@@ -1825,6 +1852,33 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 /* ── State ── */
 let currentClub    = null; // { email, club_name, campus }
+let signupAccountType = "club";
+
+function selectAccountType(type){
+  signupAccountType = type;
+  const BTN_IDS = { club: "typeBtnClub", department: "typeBtnDepartment", individual: "typeBtnIndividual" };
+  Object.entries(BTN_IDS).forEach(([t, id]) => {
+    const btn = document.getElementById(id);
+    const isActive = t === type;
+    btn.style.background = isActive ? "#000060" : "white";
+    btn.style.color      = isActive ? "white"   : "#374151";
+    btn.style.borderColor = isActive ? "#000060" : "#d1d5db";
+  });
+  document.getElementById("signupFieldsClub").style.display       = type === "club"       ? "" : "none";
+  document.getElementById("signupFieldsDepartment").style.display = type === "department" ? "" : "none";
+  document.getElementById("signupFieldsIndividual").style.display = type === "individual" ? "" : "none";
+  // Departments serve the whole institution, not one campus — campus is chosen per-event instead
+  document.getElementById("signupCampusField").style.display      = type === "department" ? "none" : "";
+  if(type === "department") loadDepartmentOptions();
+}
+
+async function loadDepartmentOptions(){
+  const sel = document.getElementById("signupDepartmentName");
+  sel.innerHTML = `<option value="">Loading…</option>`;
+  const { data, error } = await sb.from("department_types").select("name").eq("active", true).order("name");
+  if(error || !data){ sel.innerHTML = `<option value="">Failed to load departments</option>`; return; }
+  sel.innerHTML = `<option value="">Select department…</option>` + data.map(d => `<option value="${esc(d.name)}">${esc(d.name)}</option>`).join("");
+}
 let currentSession = null;
 let isRecoverySession = false;
 let allProposals   = [];
@@ -1908,16 +1962,17 @@ function toggleAuthMode(e){
   e.preventDefault();
   authMode = authMode === "login" ? "signup" : "login";
   const isSignup = authMode === "signup";
-  document.getElementById("loginTitle").textContent         = isSignup ? "Request Club Access"    : "Welcome to Event Hub";
-  document.getElementById("loginSubTitle").textContent      = isSignup ? "Fill in your details to request access. An OSE admin will review and approve your account." : "Sign in with your official club email to submit and track event proposals.";
+  document.getElementById("loginTitle").textContent         = isSignup ? "Request Access"          : "Welcome to Event Hub";
+  document.getElementById("loginSubTitle").textContent      = isSignup ? "Fill in your details to request access. An OSE admin will review and approve your account." : "Sign in with your official email to submit and track event proposals.";
   document.getElementById("loginBtn").textContent           = isSignup ? "Submit Access Request"  : "Sign In";
-  document.getElementById("authToggleText").textContent     = isSignup ? "Already have access? "  : "New club? ";
+  document.getElementById("authToggleText").textContent     = isSignup ? "Already have access? "  : "New here? ";
   document.getElementById("authToggleLink").textContent     = isSignup ? "Sign In"                : "Request Access";
   document.getElementById("signupRow").style.display        = isSignup ? "block" : "none";
   document.getElementById("signupOnlyFields").style.display = isSignup ? "block" : "none";
   document.getElementById("loginNote").textContent          = isSignup
     ? "📋 Your request will be reviewed by the OSE team. You will be notified once approved."
-    : "🔒 Access is restricted to approved club emails. New clubs must request access first.";
+    : "🔒 Access is restricted to approved emails. New accounts must request access first.";
+  if(isSignup) selectAccountType("club");
   hideMsg();
 }
 
@@ -1957,7 +2012,7 @@ async function handleLogin(){
   const { data: clubRow } = await sb.from("club_accounts").select("*").eq("email", email).single();
 
   if(!clubRow){
-    showMsg("❌ No account found. Use 'Request Access' to register your club.", "error");
+    showMsg("❌ No account found. Use 'Request Access' to register your club, department, or independent event account.", "error");
     btn.disabled = false; btn.textContent = "Sign In";
     return;
   }
@@ -1989,16 +2044,20 @@ async function handleLogin(){
 }
 
 async function handleSignup(){
-  const clubName = document.getElementById("signupClubName").value.trim();
-  const campus   = document.getElementById("signupCampus").value;
+  const accountType = signupAccountType || "club";
+  const nameFieldId = { club: "signupClubName", department: "signupDepartmentName", individual: "signupIndividualName" }[accountType];
+  const clubName = document.getElementById(nameFieldId).value.trim();
+  // Departments serve the whole institution — campus is chosen per-event on the proposal form instead
+  const campus   = accountType === "department" ? "All" : document.getElementById("signupCampus").value;
   const email    = document.getElementById("loginEmail").value.trim();
   const pw       = document.getElementById("loginPassword").value;
   const pwConf   = document.getElementById("loginPasswordConfirm").value;
   const btn      = document.getElementById("loginBtn");
 
-  if(!clubName)    { showMsg("Club name is required.", "error"); return; }
-  if(!campus)      { showMsg("Please select a campus.", "error"); return; }
-  if(!email)       { showMsg("Club email is required.", "error"); return; }
+  const NAME_LABELS = { club: "Club name", department: "Department", individual: "Your name" };
+  if(!clubName)    { showMsg(`${NAME_LABELS[accountType]} is required.`, "error"); return; }
+  if(accountType !== "department" && !campus){ showMsg("Please select a campus.", "error"); return; }
+  if(!email)       { showMsg("Email is required.", "error"); return; }
   if(pw.length < 8){ showMsg("Password must be at least 8 characters.", "error"); return; }
   if(pw !== pwConf){ showMsg("Passwords do not match.", "error"); return; }
 
@@ -2011,7 +2070,7 @@ async function handleSignup(){
 
   // Already approved
   if(existing?.status === "approved"){
-    showMsg("✅ Your club already has an approved account. Please sign in.", "success");
+    showMsg("✅ This email already has an approved account. Please sign in.", "success");
     btn.disabled = false; btn.textContent = "Submit Access Request";
     return;
   }
@@ -2026,7 +2085,7 @@ async function handleSignup(){
   btn.textContent = "Sending verification…";
 
   // Store form data temporarily for after verification
-  sessionStorage.setItem("pending_club", JSON.stringify({ clubName, campus, email, pw, existing: !!existing }));
+  sessionStorage.setItem("pending_club", JSON.stringify({ clubName, campus, email, pw, accountType, existing: !!existing }));
 
   // Create auth account first, then send OTP
   const { error: otpErr } = await sb.auth.signInWithOtp({
@@ -2128,6 +2187,7 @@ async function verifyOTP(){
     const { error } = await sb.from("club_accounts").update({
       club_name:  pending.clubName,
       campus:     pending.campus,
+      account_type: pending.accountType || "club",
       status:     "pending",
       authorized: false,
     }).eq("email", pending.email);
@@ -2137,6 +2197,7 @@ async function verifyOTP(){
       email:         pending.email,
       club_name:     pending.clubName,
       campus:        pending.campus,
+      account_type:  pending.accountType || "club",
       status:        "pending",
       authorized:    false,
       password_hash: pending.pw,
@@ -4139,6 +4200,7 @@ async function submitProposal(){
     purchase_items:       purchaseItems || null,
     event_type:           eventType || null,
     registration_form_url: document.getElementById("fRegistrationFormUrl").value.trim() || null,
+    organiser_type:       currentClub?.account_type || "club",
     disclaimer_accepted:  disclaimer,
     updated_at:           new Date().toISOString(),
   };
