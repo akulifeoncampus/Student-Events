@@ -4147,6 +4147,28 @@
             <button class="btn btn-secondary btn-sm" onclick="addDepartment()">+ Add</button>
           </div>
         </div>
+
+        <!-- ── PROGRAMS (Super Admin only) — campus-scoped ── -->
+        <div id="programsPanel" style="margin-top:20px;background:#eefdf3;border:1px solid #bbf7d0;border-radius:14px;padding:18px 20px;display:none;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">🎓 Programs</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Shown as the "Your Program" dropdown for independent event submitters, scoped to their campus.</div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:8px;">Campus</label>
+            <select id="programsCampus" onchange="loadPrograms()"
+              style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;">
+              <option>Karachi</option>
+              <option>Nairobi</option>
+              <option>Kampala</option>
+              <option>Dar es Salaam</option>
+            </select>
+          </div>
+          <div id="programsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+          <div style="display:flex;gap:8px;">
+            <input id="newProgramName" type="text" placeholder="New program name…"
+              style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
+            <button class="btn btn-secondary btn-sm" onclick="addProgram()">+ Add</button>
+          </div>
+        </div>
       </div>
 
       <!-- ── NEWS ── -->
@@ -5998,7 +6020,7 @@ function showAdminPanel(){
   adminNotifInterval = setInterval(pollNotifications, 30000);
   startRealtimeSubscriptions();
 
-  if(isSuper){ loadAdmins(); loadAwardsWindows(); loadDepartments(); }
+  if(isSuper){ loadAdmins(); loadAwardsWindows(); loadDepartments(); loadPrograms(); }
 }
 
 function applyActionPermission(permKey, selectors){
@@ -10055,6 +10077,75 @@ async function deleteDepartment(id, name){
   if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
   showToast("Department removed.");
   loadDepartments();
+}
+
+/* ── Programs — managed list for the "Your Program" dropdown, per campus ──
+   Independent submitters only see programs for their own account's campus,
+   matching how the campus lock already works elsewhere on the proposal form. */
+let allPrograms = [];
+
+async function loadPrograms(){
+  if(currentRole !== "super_admin") return;
+  document.getElementById("programsPanel").style.display = "block";
+  const campus = document.getElementById("programsCampus").value;
+  const { data, error } = await sb.from("programs").select("*").eq("campus", campus).order("name");
+  if(error){ showToast("Failed to load programs: " + error.message, "error"); return; }
+  allPrograms = data || [];
+  renderPrograms();
+}
+
+function renderPrograms(){
+  const el = document.getElementById("programsList");
+  if(!allPrograms.length){
+    el.innerHTML = `<div style="font-size:12px;color:var(--muted);">No programs yet for this campus — add one below.</div>`;
+    return;
+  }
+  el.innerHTML = allPrograms.map(p => `
+    <div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+      <input type="text" value="${esc(p.name)}" id="prog-name-${p.id}"
+        style="flex:1;border:none;font-family:'Poppins',sans-serif;font-size:13px;background:transparent;outline:none;"
+        onchange="renameProgram('${p.id}', this.value)" />
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;">
+        <input type="checkbox" ${p.active ? "checked" : ""} onchange="toggleProgramActive('${p.id}', this.checked)" /> Active
+      </label>
+      <button class="btn btn-danger btn-sm" onclick="deleteProgram('${p.id}','${safeStr(p.name)}')">🗑️</button>
+    </div>`).join("");
+}
+
+async function addProgram(){
+  const input  = document.getElementById("newProgramName");
+  const campus = document.getElementById("programsCampus").value;
+  const name = input.value.trim();
+  if(!name){ showToast("Enter a program name.", "error"); return; }
+  const { error } = await sb.from("programs").insert({ name, campus });
+  if(error){ showToast("Failed to add: " + error.message, "error"); return; }
+  input.value = "";
+  showToast("Program added.");
+  loadPrograms();
+}
+
+async function renameProgram(id, newName){
+  const name = newName.trim();
+  if(!name){ showToast("Name cannot be empty.", "error"); loadPrograms(); return; }
+  const { error } = await sb.from("programs").update({ name, updated_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Failed to rename: " + error.message, "error"); return; }
+  showToast("Program renamed.");
+  loadPrograms();
+}
+
+async function toggleProgramActive(id, active){
+  const { error } = await sb.from("programs").update({ active, updated_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Failed to update: " + error.message, "error"); return; }
+  showToast(active ? "Program activated." : "Program deactivated — hidden from new proposals.");
+  loadPrograms();
+}
+
+async function deleteProgram(id, name){
+  if(!confirm(`Delete "${name}"? Existing proposals keep their stored value — this only removes it from the dropdown.`)) return;
+  const { error } = await sb.from("programs").delete().eq("id", id);
+  if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
+  showToast("Program removed.");
+  loadPrograms();
 }
 
 /* ── Context Score submission ──
