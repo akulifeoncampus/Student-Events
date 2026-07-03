@@ -4169,6 +4169,53 @@
             <button class="btn btn-secondary btn-sm" onclick="addProgram()">+ Add</button>
           </div>
         </div>
+
+        <!-- ── OUTPUT SCORE WEIGHTS (Super Admin only) ── -->
+        <div id="outputWeightsPanel" style="margin-top:20px;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:18px 20px;display:none;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">⚖️ Output Score Weights</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+            Feeds the Efficiency Score used in Club of the Year and Emerging Clubs. Must add up to 100%.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
+            <div class="field">
+              <label style="font-size:10px;">Event Count</label>
+              <div style="position:relative;">
+                <input type="number" id="owEventCount" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label style="font-size:10px;">Attendance</label>
+              <div style="position:relative;">
+                <input type="number" id="owAttendance" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label style="font-size:10px;">Feedback Rating</label>
+              <div style="position:relative;">
+                <input type="number" id="owFeedback" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label style="font-size:10px;">Event Diversity</label>
+              <div style="position:relative;">
+                <input type="number" id="owDiversity" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div id="weightTotalDisplay" style="font-size:12px;font-weight:700;">Total: —</div>
+            <button class="btn btn-secondary btn-sm" onclick="saveOutputWeights()">💾 Save Weights</button>
+          </div>
+          <div id="outputWeightsMeta" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
+        </div>
       </div>
 
       <!-- ── NEWS ── -->
@@ -6020,7 +6067,7 @@ function showAdminPanel(){
   adminNotifInterval = setInterval(pollNotifications, 30000);
   startRealtimeSubscriptions();
 
-  if(isSuper){ loadAdmins(); loadAwardsWindows(); loadDepartments(); loadPrograms(); }
+  if(isSuper){ loadAdmins(); loadAwardsWindows(); loadDepartments(); loadPrograms(); loadOutputWeights(); }
 }
 
 function applyActionPermission(permKey, selectors){
@@ -10181,6 +10228,73 @@ async function deleteProgram(id, name){
   if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
   showToast("Program removed.");
   loadPrograms();
+}
+
+/* ── Output Score Weights ──
+   Feeds the Efficiency Score (Output Score ÷ Resource Index). Editable
+   here rather than hard-coded, so weighting changes don't require a code
+   change. Stored in site_settings, same key/value pattern as everything
+   else in this section. Must sum to exactly 100 — enforced client-side
+   before save, not just suggested. */
+async function loadOutputWeights(){
+  if(currentRole !== "super_admin") return;
+  document.getElementById("outputWeightsPanel").style.display = "block";
+
+  const { data, error } = await sb.from("site_settings").select("value").eq("key", "output_score_weights").maybeSingle();
+  let weights = { eventCount: 25, attendance: 25, feedback: 25, diversity: 25 };
+  let meta = null;
+  if(!error && data?.value){
+    try {
+      const parsed = JSON.parse(data.value);
+      weights = { eventCount: parsed.eventCount, attendance: parsed.attendance, feedback: parsed.feedback, diversity: parsed.diversity };
+      meta = parsed;
+    } catch(e){ /* fall back to defaults */ }
+  }
+
+  document.getElementById("owEventCount").value = weights.eventCount;
+  document.getElementById("owAttendance").value = weights.attendance;
+  document.getElementById("owFeedback").value    = weights.feedback;
+  document.getElementById("owDiversity").value   = weights.diversity;
+
+  document.getElementById("outputWeightsMeta").textContent = meta
+    ? `Last set by ${meta.setBy} on ${new Date(meta.setAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`
+    : "Not yet set — showing default 25/25/25/25 split.";
+
+  updateWeightTotal();
+}
+
+function updateWeightTotal(){
+  const vals = ["owEventCount","owAttendance","owFeedback","owDiversity"].map(id => parseFloat(document.getElementById(id).value) || 0);
+  const total = vals.reduce((a,b) => a+b, 0);
+  const el = document.getElementById("weightTotalDisplay");
+  el.textContent = `Total: ${total}%`;
+  el.style.color = total === 100 ? "#15803d" : "#dc2626";
+}
+
+async function saveOutputWeights(){
+  const eventCount = parseFloat(document.getElementById("owEventCount").value) || 0;
+  const attendance = parseFloat(document.getElementById("owAttendance").value) || 0;
+  const feedback    = parseFloat(document.getElementById("owFeedback").value) || 0;
+  const diversity   = parseFloat(document.getElementById("owDiversity").value) || 0;
+  const total = eventCount + attendance + feedback + diversity;
+
+  if(total !== 100){
+    showToast(`Weights must add up to exactly 100% — currently ${total}%.`, "error");
+    return;
+  }
+
+  const value = JSON.stringify({
+    eventCount, attendance, feedback, diversity,
+    setBy: currentUser.email,
+    setAt: new Date().toISOString(),
+  });
+
+  const { error } = await sb.from("site_settings")
+    .upsert({ key: "output_score_weights", value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+
+  if(error){ showToast("Failed to save: " + error.message, "error"); return; }
+  showToast("Output Score weights saved.");
+  loadOutputWeights();
 }
 
 /* ── Context Score submission ──
