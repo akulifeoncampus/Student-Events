@@ -1562,11 +1562,11 @@
           <input id="fClubName" type="text" readonly style="background:#f9fafb;cursor:not-allowed;" />
         </div>
         <div class="field">
-          <label>Representative Name *</label>
+          <label id="fRepNameLabel">Representative Name *</label>
           <input id="fRepName" type="text" placeholder="Your full name" />
         </div>
         <div class="field" id="fDesignationField">
-          <label>Designation *</label>
+          <label id="fDesignationLabel">Designation *</label>
           <select id="fDesignation">
             <option value="">Select…</option>
             <option>Convenor</option>
@@ -1724,6 +1724,14 @@
         <div class="field full">
           <label>Description *</label>
           <textarea id="fDescription" rows="4" placeholder="Describe the event, its purpose, objectives and any special details…"></textarea>
+        </div>
+      </div>
+
+      <!-- Section 4b: Your Team — independent submitters only -->
+      <div class="form-grid" id="fTeamMembersField" style="display:none;">
+        <div class="field full">
+          <label>Your Team</label>
+          <textarea id="fTeamMembers" rows="3" placeholder="Please write their name, program, year, and email — one person per line"></textarea>
         </div>
       </div>
 
@@ -3914,6 +3922,7 @@ function openProposalModal(id = null){
   document.getElementById("fVenue").value         = "";
   document.getElementById("fAttendance").value    = "";
   document.getElementById("fDescription").value   = "";
+  document.getElementById("fTeamMembers").value   = "";
   document.getElementById("fImageUrl").value      = "";
   document.getElementById("fImagePreview").innerHTML = "📸 Click to upload cover image";
   document.getElementById("fImageFile").value     = "";
@@ -3949,12 +3958,28 @@ function openProposalModal(id = null){
     campusSel.style.cssText = "";
   }
 
-  // Department accounts get a trimmed proposal form — no designation,
-  // attendance, transport, support, or disclaimer. Club and individual
-  // accounts are completely unaffected by this block.
-  const isDepartment = currentClub?.account_type === "department";
-  document.getElementById("fClubNameLabel").textContent = isDepartment ? "Department Name *" : "Club Name *";
-  document.getElementById("fDesignationField").style.display     = isDepartment ? "none" : "";
+  // Form fields adapt per account type. Club stays exactly as it always was.
+  // Department gets a trimmed form (see below). Individual repurposes the
+  // designation field into Year and adds a Your Team field, but otherwise
+  // keeps everything a club form has — nothing here touches club accounts.
+  const accountType  = currentClub?.account_type || "club";
+  const isDepartment = accountType === "department";
+  const isIndividual = accountType === "individual";
+
+  const CLUB_NAME_LABELS = { club: "Club Name *", department: "Department Name *", individual: "Your Name *" };
+  document.getElementById("fClubNameLabel").textContent = CLUB_NAME_LABELS[accountType];
+
+  document.getElementById("fRepNameLabel").textContent = isIndividual ? "Your Program *" : "Representative Name *";
+  document.getElementById("fRepName").placeholder      = isIndividual ? "e.g. Bachelor of Business Administration" : "Your full name";
+
+  document.getElementById("fDesignationField").style.display = isDepartment ? "none" : "";
+  document.getElementById("fDesignationLabel").textContent   = isIndividual ? "Year *" : "Designation *";
+  document.getElementById("fDesignation").innerHTML = isIndividual
+    ? `<option value="">Select…</option><option>Year 1</option><option>Year 2</option><option>Year 3</option><option>Year 4</option><option>Year 5</option>`
+    : `<option value="">Select…</option><option>Convenor</option><option>Co-Convenor</option><option>General Secretary</option><option>Treasurer</option><option>Core Team Member</option>`;
+
+  document.getElementById("fTeamMembersField").style.display = isIndividual ? "" : "none";
+
   document.getElementById("fAttendanceField").style.display      = isDepartment ? "none" : "";
   document.getElementById("fTransportSupportWrap").style.display = isDepartment ? "none" : "";
   document.getElementById("fDisclaimerWrap").style.display       = isDepartment ? "none" : "";
@@ -3977,6 +4002,7 @@ function openProposalModal(id = null){
       document.getElementById("fVenue").value         = p.proposed_venue      || "";
       document.getElementById("fAttendance").value    = p.expected_attendance || "";
       document.getElementById("fDescription").value   = p.description         || "";
+      document.getElementById("fTeamMembers").value   = p.team_members         || "";
       document.getElementById("fImageUrl").value      = p.cover_image         || "";
       document.getElementById("fRegistrationFormUrl").value = p.registration_form_url || "";
       document.getElementById("fDisclaimer").checked  = p.disclaimer_accepted || false;
@@ -4153,6 +4179,7 @@ async function submitProposal(){
 
   const id            = document.getElementById("proposalId").value;
   const isDepartment  = currentClub?.account_type === "department";
+  const isIndividual  = currentClub?.account_type === "individual";
   const repName       = document.getElementById("fRepName").value.trim();
   const designation   = isDepartment ? null : document.getElementById("fDesignation").value;
   const eventName     = document.getElementById("fEventName").value.trim();
@@ -4163,6 +4190,7 @@ async function submitProposal(){
   const endTime       = document.getElementById("fEndTime").value;
   const venue         = document.getElementById("fVenue").value.trim();
   const description   = document.getElementById("fDescription").value.trim();
+  const teamMembers   = document.getElementById("fTeamMembers").value.trim();
   const attendance    = isDepartment ? null : document.getElementById("fAttendance").value;
   const disclaimer    = isDepartment ? true : document.getElementById("fDisclaimer").checked;
   const eventType   = document.querySelector('input[name="eventScale"]:checked')?.value || null;
@@ -4195,7 +4223,7 @@ async function submitProposal(){
 
   // Validation — department accounts skip designation, attendance, disclaimer
   if(!repName)              { showToast("Representative name is required", "error"); reset(); return; }
-  if(!isDepartment && !designation) { showToast("Please select your designation", "error"); reset(); return; }
+  if(!isDepartment && !designation) { showToast(isIndividual ? "Please select your year" : "Please select your designation", "error"); reset(); return; }
   if(!eventName)            { showToast("Event name is required", "error"); reset(); return; }
   if(!category)             { showToast("Please select a category", "error"); reset(); return; }
   if(!campus)               { showToast("Please select a campus", "error"); reset(); return; }
@@ -4236,6 +4264,7 @@ async function submitProposal(){
     audience:             selectedAudience.join(", ") || null,
     expected_attendance:  parseInt(attendance) || null,
     description:          description || null,
+    team_members:         teamMembers || null,
     cover_image:          imageUrl || null,
     collaborators:        collaborators || null,
     transport_required:   transport,
