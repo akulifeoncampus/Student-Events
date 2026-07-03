@@ -3126,6 +3126,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" /> <path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" /> <path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" /> <path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" /></svg>
           <span class="nav-label">Dashboard</span>
         </button>
+        <button class="nav-item" data-section="section-awards" id="awardsNavBtn" onclick="showSection('awards', this)" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6" /><path d="M9 12.5V21l3 -2l3 2v-8.5" /></svg>
+          <span class="nav-label">Awards</span>
+        </button>
 
         <!-- GROUP 2: Public website -->
         <div class="sidebar-label">Public website</div>
@@ -4251,6 +4255,20 @@
             <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Category</th><th>Phone</th><th>Campus</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="emergency-list"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">Loading…</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ── AWARDS ── -->
+      <div class="section" id="section-awards">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Awards</div>
+            <div class="section-subtitle">Annual closing ceremony — Context Score, nominations, and shortlist review</div>
+          </div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-text">This section is being built. Context Score submission, nominations, and shortlist review will appear here once ready.</div>
         </div>
       </div>
 
@@ -5470,6 +5488,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let currentUser        = null;
 let currentRole        = null;
 let currentAdminCampus = "";
+let currentAdminDesignation = "";
 let currentPermissions = {
   campus: "All",
   manage_events: true, manage_clubs: true, manage_news: true,
@@ -5555,7 +5574,7 @@ async function handleLogin(){
   }
 
   const { data: adminRow } = await sb.from("admins")
-    .select("email, role, permissions, must_change_password, campus")
+    .select("email, role, permissions, must_change_password, campus, designation")
     .eq("email", email).single();
   if(!adminRow){
     await sb.auth.signOut();
@@ -5569,6 +5588,7 @@ async function handleLogin(){
   currentUser        = data.user;
   currentRole        = adminRow.role || "admin";
   currentAdminCampus = adminRow.campus || "";
+  currentAdminDesignation = adminRow.designation || "";
   currentPermissions = buildPermissions(adminRow.role, adminRow.permissions);
   // Campus admins are restricted to their own campus only
   if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
@@ -5594,12 +5614,13 @@ async function checkSession(){
   const { data: { session } } = await sb.auth.getSession();
   if(session){
     const { data: adminRow } = await sb.from("admins")
-      .select("email, role, permissions, must_change_password, campus")
+      .select("email, role, permissions, must_change_password, campus, designation")
       .eq("email", session.user.email).single();
     if(adminRow){
       currentUser        = session.user;
       currentRole        = adminRow.role || "admin";
       currentAdminCampus = adminRow.campus || "";
+      currentAdminDesignation = adminRow.designation || "";
       currentPermissions = buildPermissions(adminRow.role, adminRow.permissions);
       // Campus admins are restricted to their own campus only
       if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
@@ -5787,6 +5808,15 @@ function showAdminPanel(){
   const isSuper = currentRole === "super_admin";
   document.getElementById("adminsNavBtn").style.display     = isSuper ? "" : "none";
   document.getElementById("settingsNavLabel").style.display = isSuper ? "" : "none";
+
+  // Awards nav — visible to anyone with a scoring permission at their campus,
+  // plus the oversight roles (SMG cross-campus review, VP sign-off) and
+  // Super Admin (troubleshooting access). Uses the same (campus, designation)
+  // lookup that will gate the Context Score and shortlist review forms.
+  const scoringPerm = getScoringPermission(currentAdminCampus, currentAdminDesignation);
+  const hasAwardsAccess = scoringPerm.submit || scoringPerm.review
+    || ["senior_manager_global", "vice_provost", "super_admin"].includes(currentRole);
+  document.getElementById("awardsNavBtn").style.display = hasAwardsAccess ? "" : "none";
 
   // ── Action buttons ──
   applyActionPermission("manage_clubs",    ["#btn-add-club","#btn-import-clubs"]);
