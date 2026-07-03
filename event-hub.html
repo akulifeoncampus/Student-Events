@@ -1328,7 +1328,7 @@
       </div>
     </div>
 
-    <label class="login-label" for="loginEmail">Club Email *</label>
+    <label class="login-label" for="loginEmail" id="loginEmailLabel">Club Email *</label>
     <input class="login-input" id="loginEmail" type="email" placeholder="yourclub@aku.edu" />
     <label class="login-label" for="loginPassword">Password *</label>
     <input class="login-input" id="loginPassword" type="password" placeholder="••••••••" />
@@ -1869,6 +1869,10 @@ function selectAccountType(type){
   document.getElementById("signupFieldsIndividual").style.display = type === "individual" ? "" : "none";
   // Departments serve the whole institution, not one campus — campus is chosen per-event instead
   document.getElementById("signupCampusField").style.display      = type === "department" ? "none" : "";
+  const EMAIL_LABELS = { club: "Club Email", department: "Department Email", individual: "Your Email" };
+  const EMAIL_PLACEHOLDERS = { club: "yourclub@aku.edu", department: "department@aku.edu", individual: "yourname@aku.edu" };
+  document.getElementById("loginEmailLabel").textContent = `${EMAIL_LABELS[type]} *`;
+  document.getElementById("loginEmail").placeholder = EMAIL_PLACEHOLDERS[type];
   if(type === "department") loadDepartmentOptions();
 }
 
@@ -1972,7 +1976,12 @@ function toggleAuthMode(e){
   document.getElementById("loginNote").textContent          = isSignup
     ? "📋 Your request will be reviewed by the OSE team. You will be notified once approved."
     : "🔒 Access is restricted to approved emails. New accounts must request access first.";
-  if(isSignup) selectAccountType("club");
+  if(isSignup){
+    selectAccountType("club");
+  } else {
+    document.getElementById("loginEmailLabel").textContent = "Email *";
+    document.getElementById("loginEmail").placeholder = "you@aku.edu";
+  }
   hideMsg();
 }
 
