@@ -521,6 +521,7 @@
       transition:opacity .15s;
     }
     .organizer-banner:hover span.org-arrow{ opacity:1; }
+    .organizer-banner-static:hover{ filter:none; cursor:default; }
 
     /* Campus tag on card */
     .campus-tag{
@@ -1795,9 +1796,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const venueLine   = `<div class="meta"><span class="meta-icon">📍</span>${escapeHtml(e.venue || "Venue TBC")}</div>`;
       const audienceLine = e.audience ? `<div class="meta"><span class="meta-icon">👥</span>${escapeHtml(e.audience)}</div>` : "";
       const campusTag = e.campus ? `<div class="campus-tag ${campusClass(e.campus)}">🏫 ${escapeHtml(e.campus)}</div>` : "";
-      const bannerHtml = e.organiser
-        ? `<a class="organizer-banner" href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="background:${bannerColor};" title="View ${escapeHtml(e.organiser)} on Clubs page">🎭 ${escapeHtml(e.organiser)}<span class="org-arrow">→</span></a>`
-        : "";
+      const organiserType = e.organiser_type || "club";
+      const bannerHtml = !e.organiser ? "" :
+        organiserType === "club"
+          ? `<a class="organizer-banner" href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="background:${bannerColor};" title="View ${escapeHtml(e.organiser)} on Clubs page">🎭 ${escapeHtml(e.organiser)}<span class="org-arrow">→</span></a>`
+        : organiserType === "department"
+          ? `<span class="organizer-banner organizer-banner-static" style="background:#ede9fe;color:#5b21b6;">🏛️ ${escapeHtml(e.organiser)}</span>`
+          : `<span class="organizer-banner organizer-banner-static" style="background:#fef9c3;color:#854d0e;">🎗️ ${escapeHtml(e.organiser)}</span>`;
       const collabHtml = e.collaborators
         ? `<div class="event-collab-line" style="font-size:11px;color:var(--muted,#6b7280);margin-top:4px;padding:0 2px;">with ${escapeHtml(e.collaborators)}</div>`
         : "";
@@ -1956,9 +1961,11 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>`);
     if(e.organiser) rows.push(`
       <div class="event-modal-row">
-        <span class="event-modal-row-icon">🎭</span>
-        <div><div class="event-modal-label">Organiser</div>
-          <a href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="color:var(--accent);font-weight:600;">${escapeHtml(e.organiser)}</a>
+        <span class="event-modal-row-icon">${e.organiser_type === "department" ? "🏛️" : e.organiser_type === "individual" ? "🎗️" : "🎭"}</span>
+        <div><div class="event-modal-label">${e.organiser_type === "department" ? "Department" : e.organiser_type === "individual" ? "Independent Organiser" : "Organiser"}</div>
+          ${e.organiser_type === "club"
+            ? `<a href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="color:var(--accent);font-weight:600;">${escapeHtml(e.organiser)}</a>`
+            : `<span style="font-weight:600;">${escapeHtml(e.organiser)}</span>`}
         </div>
       </div>`);
     if(e.collaborators) rows.push(`
@@ -2355,6 +2362,7 @@ document.addEventListener("DOMContentLoaded", () => {
       interested: r.interested_count || 0,
       registration_form_url: (r.registration_form_url || "").trim(),
       collaborators: (r.collaborators || "").trim(),
+      organiser_type: (r.organiser_type || "club").trim(),
       _sortTime: parseTimeToMinutes(r.start_time || ""),
     })).filter(e => e.name && e.date)
       .sort((a, b) => {
