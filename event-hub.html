@@ -1369,10 +1369,10 @@
   <div class="login-brand-panel">
     <div class="login-brand-icon">🎉</div>
     <div class="login-brand-title">You're in the queue!</div>
-    <div class="login-brand-sub">The OSEP team reviews all club access requests personally to ensure Life on Campus remains a trusted space for AKU clubs.</div>
+    <div class="login-brand-sub" id="pendingSubText">The OSE team reviews all club access requests personally to ensure Life on Campus remains a trusted space for AKU clubs.</div>
     <div class="login-brand-features" style="margin-top:32px;">
       <div class="login-brand-feature"><div class="login-brand-feature-icon">📋</div><span>Your request has been logged</span></div>
-      <div class="login-brand-feature"><div class="login-brand-feature-icon">👀</div><span>OSEP team will review within 1-2 days</span></div>
+      <div class="login-brand-feature"><div class="login-brand-feature-icon">👀</div><span id="pendingReviewFeature">OSE team will review within 1-2 days</span></div>
       <div class="login-brand-feature"><div class="login-brand-feature-icon">📧</div><span>You'll get an email once approved</span></div>
     </div>
   </div>
@@ -1380,15 +1380,15 @@
     <div class="login-card" style="text-align:center;">
       <div style="width:80px;height:80px;background:linear-gradient(135deg,#2563eb,#3b82f6);border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 24px;box-shadow:0 8px 24px rgba(124,58,237,.35);">⏳</div>
       <div class="login-title" style="text-align:center;">Request Submitted!</div>
-      <div class="login-sub" style="text-align:center;margin-bottom:24px;">
-        Your email has been verified and your access request sent to the OSEP team. You'll receive an approval email within <strong>1–2 working days</strong>.
+      <div class="login-sub" style="text-align:center;margin-bottom:24px;" id="pendingDescText">
+        Your email has been verified and your access request sent to the OSE team. You'll receive an approval email within <strong>1–2 working days</strong>.
       </div>
 
       <!-- What happens next -->
       <div style="background:#eff6ff;border-radius:14px;padding:20px;text-align:left;margin-bottom:24px;">
         <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">What happens next</div>
         <div style="font-size:13px;color:var(--ink);line-height:2;">
-          1️⃣ OSEP team reviews your request<br>
+          1️⃣ <span id="pendingStep1Text">OSE team reviews your request</span><br>
           2️⃣ You receive an approval email<br>
           3️⃣ Sign in with your email and password<br>
           4️⃣ Start submitting event proposals 🎉
@@ -2219,22 +2219,40 @@ async function verifyOTP(){
     return;
   }
 
-  // Notify all admins
-  const { data: staffList } = await sb.from("admins").select("email");
+  // Notify staff — department requests only go to Super Admin, matching
+  // the approval queue's own visibility rules; club/individual go to everyone
+  const TYPE_LABELS = { club: "Club", department: "Department", individual: "Independent Event" };
+  const TYPE_ICONS  = { club: "🎭", department: "🏛️", individual: "🎗️" };
+  const typeLabel = TYPE_LABELS[pending.accountType] || "Club";
+  const typeIcon  = TYPE_ICONS[pending.accountType]  || "🎭";
+
+  const staffQuery = pending.accountType === "department"
+    ? sb.from("admins").select("email").eq("role", "super_admin")
+    : sb.from("admins").select("email");
+  const { data: staffList } = await staffQuery;
   if(staffList?.length){
     await sb.from("notifications").insert(
       staffList.map(s => ({
         recipient: s.email,
         type:      "club_access_request",
-        title:     "🎭 Club Access Request",
-        message:   `${pending.clubName} (${pending.campus}) has requested access to Event Hub. Email: ${pending.email}`,
+        title:     `${typeIcon} ${typeLabel} Access Request`,
+        message:   `${pending.clubName} (${pending.campus}) has requested ${typeLabel.toLowerCase()} access to Event Hub. Email: ${pending.email}`,
         is_read:   false,
       }))
     );
   }
 
-  // Sign out the OTP session — club isn't approved yet
+  // Sign out the OTP session — account isn't approved yet
   await sb.auth.signOut();
+
+  // Update reviewer copy on the pending screen based on account type
+  const reviewerName = pending.accountType === "department" ? "Super Admin" : "OSE team";
+  document.getElementById("pendingSubText").textContent =
+    `${reviewerName} reviews all ${typeLabel.toLowerCase()} access requests personally to ensure Life on Campus remains a trusted space.`;
+  document.getElementById("pendingReviewFeature").textContent = `${reviewerName} will review within 1-2 days`;
+  document.getElementById("pendingDescText").innerHTML =
+    `Your email has been verified and your access request sent to the ${reviewerName}. You'll receive an approval email within <strong>1–2 working days</strong>.`;
+  document.getElementById("pendingStep1Text").textContent = `${reviewerName} reviews your request`;
 
   // Show pending screen
   document.getElementById("otpScreen").style.display    = "none";
