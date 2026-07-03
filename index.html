@@ -1798,6 +1798,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const bannerHtml = e.organiser
         ? `<a class="organizer-banner" href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="background:${bannerColor};" title="View ${escapeHtml(e.organiser)} on Clubs page">🎭 ${escapeHtml(e.organiser)}<span class="org-arrow">→</span></a>`
         : "";
+      const collabHtml = e.collaborators
+        ? `<div class="event-collab-line" style="font-size:11px;color:var(--muted,#6b7280);margin-top:4px;padding:0 2px;">with ${escapeHtml(e.collaborators)}</div>`
+        : "";
 
       // Interested counter + save + reminder — only show for upcoming events
       const isInterested  = hasUserInterested(e.id);
@@ -1858,6 +1861,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${interestedHtml}
           </div>
           ${bannerHtml}
+          ${collabHtml}
         </article>
       `);
     });
@@ -1956,6 +1960,11 @@ document.addEventListener("DOMContentLoaded", () => {
         <div><div class="event-modal-label">Organiser</div>
           <a href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="color:var(--accent);font-weight:600;">${escapeHtml(e.organiser)}</a>
         </div>
+      </div>`);
+    if(e.collaborators) rows.push(`
+      <div class="event-modal-row">
+        <span class="event-modal-row-icon">🤝</span>
+        <div><div class="event-modal-label">Co-hosted With</div>${escapeHtml(e.collaborators)}</div>
       </div>`);
     if(e.campus) rows.push(`
       <div class="event-modal-row">
@@ -2345,6 +2354,7 @@ document.addEventListener("DOMContentLoaded", () => {
       image:     (r.cover_image|| "").trim(),
       interested: r.interested_count || 0,
       registration_form_url: (r.registration_form_url || "").trim(),
+      collaborators: (r.collaborators || "").trim(),
       _sortTime: parseTimeToMinutes(r.start_time || ""),
     })).filter(e => e.name && e.date)
       .sort((a, b) => {
