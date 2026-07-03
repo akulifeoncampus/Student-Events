@@ -4294,6 +4294,13 @@
           </div>
         </div>
 
+        <!-- Tabs — only shown tabs matching what this person can actually see -->
+        <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);">
+          <button id="awardsTabBtn-submit" onclick="switchAwardsTab('submit')" style="display:none;padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">📝 Submit</button>
+          <button id="awardsTabBtn-review" onclick="switchAwardsTab('review')" style="display:none;padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">📋 Review</button>
+          <button id="awardsTabBtn-settings" onclick="switchAwardsTab('settings')" style="display:none;padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">⚙️ Settings</button>
+        </div>
+
         <!-- Shown when the submission window is closed or not yet configured -->
         <div id="awardsWindowNotice" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:16px 20px;margin-bottom:20px;font-size:13px;color:#991b1b;"></div>
 
@@ -10316,21 +10323,42 @@ function toggleExtenuatingNote(){
   if(!category) document.getElementById("csExtenuatingNote").value = "";
 }
 
+function switchAwardsTab(tab){
+  const PANEL_BY_TAB = { submit: "contextScoreSubmitPanel", review: "awardsReviewPanel", settings: "awardsSettingsPanel" };
+  Object.entries(PANEL_BY_TAB).forEach(([t, panelId]) => {
+    document.getElementById(panelId).style.display = (t === tab) ? "" : "none";
+    const btn = document.getElementById(`awardsTabBtn-${t}`);
+    if(btn.style.display !== "none"){
+      btn.style.borderBottomColor = (t === tab) ? "#000060" : "transparent";
+      btn.style.color = (t === tab) ? "#000060" : "var(--muted)";
+    }
+  });
+}
+
 async function loadAwardsSection(){
   const perm = getScoringPermission(currentAdminCampus, currentAdminDesignation);
   const isOversight = ["senior_manager_global", "vice_provost", "super_admin"].includes(currentRole);
+  const isSuperAdmin = currentRole === "super_admin";
 
-  document.getElementById("contextScoreSubmitPanel").style.display = perm.submit ? "" : "none";
-  document.getElementById("awardsReviewPanel").style.display = (perm.review || isOversight) ? "" : "none";
-  document.getElementById("awardsSettingsPanel").style.display = currentRole === "super_admin" ? "" : "none";
+  const tabsAvailable = {
+    submit:   perm.submit,
+    review:   perm.review || isOversight,
+    settings: isSuperAdmin,
+  };
+
+  // Show only the tab buttons this person can actually use
+  Object.entries(tabsAvailable).forEach(([tab, visible]) => {
+    document.getElementById(`awardsTabBtn-${tab}`).style.display = visible ? "" : "none";
+  });
+
   document.getElementById("awardsWindowNotice").style.display = "none";
 
-  if(currentRole === "super_admin"){
+  if(isSuperAdmin){
     loadAwardsWindows();
     loadOutputWeights();
   }
 
-  if(perm.review || isOversight){
+  if(tabsAvailable.review){
     const campusSel = document.getElementById("awardsReviewCampus");
     const selectorWrap = document.getElementById("awardsReviewCampusSelectorWrap");
     if(isOversight){
@@ -10346,7 +10374,11 @@ async function loadAwardsSection(){
     loadReviewSubmissions();
   }
 
-  if(!perm.submit) return; // nothing further to load for a review-only or oversight view yet
+  // Default to the first tab this person actually has, in priority order
+  const defaultTab = tabsAvailable.submit ? "submit" : tabsAvailable.review ? "review" : "settings";
+  switchAwardsTab(defaultTab);
+
+  if(!tabsAvailable.submit) return; // nothing further to load for a review-only or settings-only view
 
   // Load this campus's window and check whether submissions are open
   const { data: windowRow } = await sb.from("site_settings")
