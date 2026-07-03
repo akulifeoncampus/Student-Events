@@ -4459,6 +4459,24 @@
             </div>
             <div id="outputWeightsMeta" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
           </div>
+
+          <!-- ── COMPUTE OUTPUT SCORES ── -->
+          <div id="computeScoresPanel" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:18px 20px;margin-top:20px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">📊 Compute Output Scores</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+              Event count, attendance, and diversity are log-compressed before comparing clubs, so one very large club doesn't automatically dominate every category. Feedback uses its own 1–5 scale directly. Recompute anytime — results are a snapshot, not live.
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+              <select id="computeScoresCampus" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;">
+                <option>Karachi</option>
+                <option>Nairobi</option>
+                <option>Kampala</option>
+                <option>Dar es Salaam</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="computeOutputScores()" id="computeScoresBtn">⚙️ Compute for this campus</button>
+            </div>
+            <div id="computeScoresResults"></div>
+          </div>
         </div>
       </div>
 
@@ -10310,6 +10328,210 @@ async function saveOutputWeights(){
   loadOutputWeights();
 }
 
+/* ── Output Score computation ──
+   Event count, attendance, and diversity are log-compressed
+   (log(1 + value)) before being scored as a percentage of the campus's
+   strongest club on that metric. Log-compression narrows the gap
+   between a very large club and a very small one — e.g. a 10-vs-3 event
+   gap becomes roughly a 2x gap instead of a 3.3x gap — so raw scale
+   doesn't automatically decide the outcome, and the weights set above
+   actually have room to matter. Feedback isn't log-compressed: it
+   already has a natural 1–5 ceiling, so it's scaled directly.
+
+   Attendance and feedback are both stored against event_proposals.id,
+   not events.id (see execFetchAttendance for why) — resolved here the
+   same way, so results are only as good as the data actually recorded. */
+async function resolveEventsToProposalIds(eventIds){
+  if(!eventIds.length) return {};
+  const map = {};
+  const CHUNK = 200;
+  for(let i = 0; i < eventIds.length; i += CHUNK){
+    const slice = eventIds.slice(i, i + CHUNK);
+    const { data, error } = await sb.from("event_proposals")
+      .select("id, published_event_id")
+      .in("published_event_id", slice);
+    if(error){ console.warn("[Output Score] proposal-link chunk failed:", error); continue; }
+    (data || []).forEach(p => { map[p.published_event_id] = p.id; });
+  }
+  return map; // events.id -> event_proposals.id
+}
+
+async function computeOutputScores(){
+  const campus = document.getElementById("computeScoresCampus").value;
+  const btn = document.getElementById("computeScoresBtn");
+  const resultsEl = document.getElementById("computeScoresResults");
+  btn.disabled = true; btn.textContent = "Computing…";
+  resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">Loading…</div>`;
+
+  try {
+    const cycle = currentCycleYear();
+
+    // Weights — required before computing anything
+    const { data: weightRow } = await sb.from("site_settings").select("value").eq("key", "output_score_weights").maybeSingle();
+    if(!weightRow?.value){
+      resultsEl.innerHTML = `<div style="font-size:12px;color:#991b1b;text-align:center;padding:12px;">Set Output Score Weights above first — they haven't been saved yet.</div>`;
+      return;
+    }
+    const weights = JSON.parse(weightRow.value);
+
+    // Activity Window for this campus, if set — otherwise fall back to the whole cycle year
+    const { data: windowRow } = await sb.from("site_settings").select("value").eq("key", `awards_window_${campus}`).maybeSingle();
+    let win = null;
+    try { win = windowRow?.value ? JSON.parse(windowRow.value) : null; } catch(e){ win = null; }
+    const rangeStart = win?.activityStart || `${cycle}-01-01`;
+    const rangeEnd   = win?.activityEnd   || `${cycle}-11-30`;
+
+    // Clubs on this campus
+    const { data: clubs, error: clubsErr } = await sb.from("clubs").select("id, name").eq("campus", campus);
+    if(clubsErr || !clubs){ throw new Error("Could not load clubs for this campus."); }
+    if(!clubs.length){
+      resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">No clubs found for this campus.</div>`;
+      return;
+    }
+
+    // Club events in the activity window — organiser_type='club' only,
+    // since this score feeds Club of the Year / Emerging Clubs specifically
+    const { data: events, error: eventsErr } = await sb.from("events")
+      .select("id, organiser, category")
+      .eq("campus", campus)
+      .eq("organiser_type", "club")
+      .gte("event_date", rangeStart)
+      .lte("event_date", rangeEnd);
+    if(eventsErr){ throw new Error("Could not load events for this campus."); }
+
+    const eventIds = (events || []).map(e => e.id);
+    const proposalMap = await resolveEventsToProposalIds(eventIds); // events.id -> proposal.id
+    const proposalIds = Object.values(proposalMap);
+
+    // Attendance, resolved via proposal ids
+    let attendanceRows = [];
+    if(proposalIds.length){
+      const { data } = await sb.from("event_attendance").select("event_id").in("event_id", proposalIds);
+      attendanceRows = data || [];
+    }
+    // Feedback, resolved via proposal ids
+    let feedbackRows = [];
+    if(proposalIds.length){
+      const { data } = await sb.from("event_feedback").select("event_id, rating").in("event_id", proposalIds);
+      feedbackRows = data || [];
+    }
+
+    // Map proposal id back to events.id, then events.id to club name via organiser
+    const eventIdToOrganiser = {};
+    (events || []).forEach(e => { eventIdToOrganiser[e.id] = e.organiser; });
+    const proposalIdToEventId = {};
+    Object.entries(proposalMap).forEach(([eventId, propId]) => { proposalIdToEventId[propId] = eventId; });
+
+    // Per-club raw metrics
+    const perClub = {}; // club name -> { eventCount, attendance, ratings:[], categories:Set }
+    clubs.forEach(c => { perClub[c.name] = { eventCount: 0, attendance: 0, ratings: [], categories: new Set() }; });
+
+    (events || []).forEach(e => {
+      const bucket = perClub[e.organiser];
+      if(!bucket) return; // event organiser doesn't match a current club record — skip rather than guess
+      bucket.eventCount++;
+      if(e.category) bucket.categories.add(e.category);
+    });
+
+    attendanceRows.forEach(row => {
+      const eventId = proposalIdToEventId[row.event_id];
+      const organiser = eventIdToOrganiser[eventId];
+      if(organiser && perClub[organiser]) perClub[organiser].attendance++;
+    });
+
+    feedbackRows.forEach(row => {
+      const eventId = proposalIdToEventId[row.event_id];
+      const organiser = eventIdToOrganiser[eventId];
+      if(organiser && perClub[organiser] && row.rating) perClub[organiser].ratings.push(row.rating);
+    });
+
+    // Log-compress event count, attendance, diversity; find campus max for each
+    const logC = (v) => Math.log(1 + v);
+    let maxEventLog = 0, maxAttLog = 0, maxDivLog = 0;
+    Object.values(perClub).forEach(c => {
+      maxEventLog = Math.max(maxEventLog, logC(c.eventCount));
+      maxAttLog   = Math.max(maxAttLog,   logC(c.attendance));
+      maxDivLog   = Math.max(maxDivLog,   logC(c.categories.size));
+    });
+
+    // Score each club, upsert results
+    const rows = [];
+    for(const club of clubs){
+      const c = perClub[club.name];
+      const eventScore = maxEventLog > 0 ? (logC(c.eventCount) / maxEventLog) * 100 : 0;
+      const attScore    = maxAttLog   > 0 ? (logC(c.attendance) / maxAttLog) * 100   : 0;
+      const divScore     = maxDivLog   > 0 ? (logC(c.categories.size) / maxDivLog) * 100 : 0;
+      const fbAvg        = c.ratings.length ? c.ratings.reduce((a,b)=>a+b,0) / c.ratings.length : 0;
+      const fbScore       = (fbAvg / 5) * 100;
+
+      const outputScore = (eventScore * weights.eventCount + attScore * weights.attendance
+        + fbScore * weights.feedback + divScore * weights.diversity) / 100;
+
+      rows.push({
+        club_id: club.id, club_name: club.name, campus, cycle_year: cycle,
+        event_count: c.eventCount, attendance_total: c.attendance,
+        feedback_avg: Math.round(fbAvg * 100) / 100, feedback_respondents: c.ratings.length,
+        diversity_count: c.categories.size,
+        event_count_score: Math.round(eventScore * 10) / 10,
+        attendance_score: Math.round(attScore * 10) / 10,
+        feedback_score: Math.round(fbScore * 10) / 10,
+        diversity_score: Math.round(divScore * 10) / 10,
+        output_score: Math.round(outputScore * 10) / 10,
+        computed_at: new Date().toISOString(),
+        computed_by: currentUser.email,
+      });
+    }
+
+    const { error: upsertErr } = await sb.from("club_output_scores")
+      .upsert(rows.map(({club_name, ...rest}) => rest), { onConflict: "club_id,campus,cycle_year" });
+    if(upsertErr){ throw new Error("Saved scores failed: " + upsertErr.message); }
+
+    rows.sort((a,b) => b.output_score - a.output_score);
+    renderComputeScoresResults(rows);
+    showToast(`Output Scores computed for ${clubs.length} ${campus} clubs.`);
+
+  } catch(err){
+    resultsEl.innerHTML = `<div style="font-size:12px;color:#991b1b;text-align:center;padding:12px;">${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = "⚙️ Compute for this campus";
+  }
+}
+
+function renderComputeScoresResults(rows){
+  const resultsEl = document.getElementById("computeScoresResults");
+  if(!rows.length){
+    resultsEl.innerHTML = `<div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">No results.</div>`;
+    return;
+  }
+  resultsEl.innerHTML = `
+    <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:white;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#f9fafb;">
+            <th style="text-align:left;padding:8px 10px;font-weight:700;color:var(--muted);">Club</th>
+            <th style="text-align:right;padding:8px 10px;font-weight:700;color:var(--muted);">Events</th>
+            <th style="text-align:right;padding:8px 10px;font-weight:700;color:var(--muted);">Attendance</th>
+            <th style="text-align:right;padding:8px 10px;font-weight:700;color:var(--muted);">Feedback</th>
+            <th style="text-align:right;padding:8px 10px;font-weight:700;color:var(--muted);">Categories</th>
+            <th style="text-align:right;padding:8px 10px;font-weight:700;color:var(--aku-navy);">Output Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((r,i) => `
+            <tr style="border-top:1px solid #f3f4f6;${i===0?'background:#f0fdf4;':''}">
+              <td style="padding:8px 10px;font-weight:${i===0?'700':'400'};">${i===0?'🏆 ':''}${esc(r.club_name)}</td>
+              <td style="padding:8px 10px;text-align:right;">${r.event_count}</td>
+              <td style="padding:8px 10px;text-align:right;">${r.attendance_total}</td>
+              <td style="padding:8px 10px;text-align:right;">${r.feedback_respondents ? r.feedback_avg.toFixed(1) : "—"}</td>
+              <td style="padding:8px 10px;text-align:right;">${r.diversity_count}</td>
+              <td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--aku-navy);">${r.output_score.toFixed(1)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;">Sorted highest to lowest. Recompute anytime — this replaces the previous snapshot for this campus and cycle.</div>`;
+}
+
 /* ── Context Score submission ──
    One row per (club, submitter, cycle_year) — Karachi's Event Leads and
    Manager each submit their own row for the same club; the shortlist
@@ -10548,19 +10770,20 @@ async function loadReviewSubmissions(){
   const listEl = document.getElementById("awardsReviewList");
   listEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div>`;
 
-  const [{ data: clubs, error: clubsErr }, { data: scores, error: scoresErr }] = await Promise.all([
+  const [{ data: clubs, error: clubsErr }, { data: scores, error: scoresErr }, { data: outputScores }] = await Promise.all([
     sb.from("clubs").select("id,name").eq("campus", campus).order("name"),
     sb.from("award_context_scores").select("*").eq("campus", campus).eq("cycle_year", currentCycleYear()),
+    sb.from("club_output_scores").select("*").eq("campus", campus).eq("cycle_year", currentCycleYear()),
   ]);
 
   if(clubsErr || scoresErr){
     listEl.innerHTML = `<div class="empty-state"><div class="empty-state-text">Failed to load review data.</div></div>`;
     return;
   }
-  renderReviewList(clubs || [], scores || []);
+  renderReviewList(clubs || [], scores || [], outputScores || []);
 }
 
-function renderReviewList(clubs, scores){
+function renderReviewList(clubs, scores, outputScores){
   const listEl = document.getElementById("awardsReviewList");
   if(!clubs.length){
     listEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎭</div><div class="empty-state-text">No clubs found for this campus.</div></div>`;
@@ -10576,6 +10799,8 @@ function renderReviewList(clubs, scores){
 
   const byClub = {};
   scores.forEach(s => { (byClub[s.club_id] ||= []).push(s); });
+  const outputByClub = {};
+  (outputScores || []).forEach(o => { outputByClub[o.club_id] = o; });
 
   listEl.innerHTML = clubs.map(club => {
     const subs = byClub[club.id] || [];
@@ -10598,8 +10823,9 @@ function renderReviewList(clubs, scores){
       <div style="background:var(--color-bg,#f8f9fa);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="font-size:13px;font-weight:700;">${esc(club.name)}</div>
-          <div style="font-size:11px;color:var(--muted);">
-            ${subs.length} submission${subs.length===1?"":"s"} · avg member dev. ${avg("member_development")} · avg conduct ${avg("conduct_collaboration")}
+          <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:10px;">
+            ${outputByClub[club.id] ? `<span style="font-weight:700;color:var(--aku-navy);background:#eff6ff;padding:2px 8px;border-radius:999px;">Output ${outputByClub[club.id].output_score.toFixed(1)}</span>` : `<span style="font-style:italic;">Output Score not yet computed</span>`}
+            <span>${subs.length} submission${subs.length===1?"":"s"} · avg member dev. ${avg("member_development")} · avg conduct ${avg("conduct_collaboration")}</span>
           </div>
         </div>
         ${subs.length ? `
