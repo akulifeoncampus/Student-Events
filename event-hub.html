@@ -2057,7 +2057,7 @@ async function handleSignup(){
   const nameFieldId = { club: "signupClubName", department: "signupDepartmentName", individual: "signupIndividualName" }[accountType];
   const clubName = document.getElementById(nameFieldId).value.trim();
   const campus   = document.getElementById("signupCampus").value;
-  const email    = document.getElementById("loginEmail").value.trim();
+  const email    = document.getElementById("loginEmail").value.trim().toLowerCase();
   const pw       = document.getElementById("loginPassword").value;
   const pwConf   = document.getElementById("loginPasswordConfirm").value;
   const btn      = document.getElementById("loginBtn");
