@@ -4104,12 +4104,18 @@
           </div>
           <div class="field" style="min-width:160px;">
             <label>Campus Access</label>
-            <select id="newAdminCampus">
+            <select id="newAdminCampus" onchange="handleNewCampusChange(this)">
               <option value="All">All Campuses</option>
               <option>Karachi</option>
               <option>Nairobi</option>
               <option>Kampala</option>
               <option>Dar es Salaam</option>
+            </select>
+          </div>
+          <div class="field" style="min-width:180px;" id="newAdminDesignationField">
+            <label>Designation</label>
+            <select id="newAdminDesignation">
+              <option value="">— select campus first —</option>
             </select>
           </div>
           <button class="btn btn-primary" onclick="addAdmin()" style="grid-column:span 1;align-self:flex-end;height:38px;">Add Admin</button>
@@ -5087,6 +5093,18 @@
           </label>
         </div>
         <div id="campusCheckError" style="font-size:12px;color:var(--danger);margin-top:8px;display:none;">Please select at least one campus.</div>
+      </div>
+
+      <!-- Designation — only meaningful for a single-campus Admin/Event Lead -->
+      <div style="margin-bottom:18px;" id="permDesignationSection">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Designation</div>
+        <select id="permDesignation"
+          style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;background:white;outline:none;">
+          <option value="">— select a single campus first —</option>
+        </select>
+        <div id="permDesignationNote" style="font-size:11px;color:var(--muted);margin-top:6px;display:none;">
+          ℹ️ Designation only applies when exactly one campus is selected — it drives who submits vs. reviews awards scoring for that campus.
+        </div>
       </div>
 
       <!-- Permission toggles -->
@@ -9640,6 +9658,52 @@ async function deleteAccBody(id, name){
 /* ══ ADMINS ══ */
 let allAdmins = [];
 
+/* ── Designation, by campus ──
+   Designation sits alongside role (not replacing it) so existing role-based
+   logic elsewhere in this file is untouched. Only Admin/Event Lead roles at
+   a single campus need a designation — global roles (Super Admin, Vice
+   Provost, Senior Manager Global, MM&C) do not. */
+const DESIGNATIONS_BY_CAMPUS = {
+  "Karachi":        ["Associate Director", "Manager", "Associate", "Student Life Coordinator"],
+  "Nairobi":        ["Manager", "Specialist"],
+  "Kampala":        ["Manager", "Sports Manager"],
+  "Dar es Salaam":  ["Associate"],
+};
+
+function populateDesignationSelect(selectEl, campus, selected){
+  const options = DESIGNATIONS_BY_CAMPUS[campus] || [];
+  if(!options.length){
+    selectEl.innerHTML = `<option value="">— select a single campus first —</option>`;
+    selectEl.disabled = true;
+    return;
+  }
+  selectEl.disabled = false;
+  selectEl.innerHTML =
+    `<option value="">— select designation —</option>` +
+    options.map(d => `<option value="${esc(d)}" ${d===selected?"selected":""}>${esc(d)}</option>`).join("");
+}
+
+/* ── Scoring permission lookup ──
+   Same (campus, designation) titled "Associate" at Karachi (Event-Lead tier)
+   and Dar es Salaam (sole SE role, submits AND reviews) mean opposite things
+   — never branch on designation alone. This is the single shared source of
+   truth for Context Score submission and shortlist review access. */
+const SCORING_PERMISSIONS = {
+  "Karachi|Associate Director":       { submit: false, review: true  },
+  "Karachi|Manager":                  { submit: true,  review: false },
+  "Karachi|Associate":                { submit: true,  review: false },
+  "Karachi|Student Life Coordinator": { submit: true,  review: false },
+  "Nairobi|Manager":                  { submit: true,  review: true  },
+  "Nairobi|Specialist":               { submit: true,  review: false },
+  "Kampala|Manager":                  { submit: true,  review: true  },
+  "Kampala|Sports Manager":           { submit: true,  review: false },
+  "Dar es Salaam|Associate":          { submit: true,  review: true  },
+};
+
+function getScoringPermission(campus, designation){
+  return SCORING_PERMISSIONS[`${campus}|${designation}`] || { submit: false, review: false };
+}
+
 async function loadAdmins(){
   const { data, error } = await sb.from("admins").select("*").order("created_at");
   if(error){ return; }
@@ -9719,6 +9783,7 @@ function renderAdmins(list){
           <div class="admin-email">${esc(a.email)}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
             <span class="role-badge ${a.role||"admin"}">${roleLabel}</span>
+            ${a.designation ? `<span style="font-size:var(--text-xs);font-weight:600;color:var(--aku-navy);background:var(--aku-navy-light);padding:2px 8px;border-radius:6px;">${esc(a.designation)}</span>` : ""}
             <span style="font-size:var(--text-xs);color:var(--color-hint);">${perms}</span>
           </div>
           <div style="font-size:var(--text-xs);color:var(--color-hint);margin-top:3px;">
@@ -9799,6 +9864,8 @@ function handlePermRoleChange(sel){
   document.getElementById("permRestrictedSection").style.opacity      = shouldLock ? "0.4" : "1";
   document.getElementById("permRestrictedSection").style.pointerEvents = shouldLock ? "none" : "";
 
+  refreshPermDesignation(document.getElementById("permDesignation").value);
+
   // Auto-set assign_events based on role
   if(isEventLead){
     const assignEl = document.getElementById("permAssign");
@@ -9814,6 +9881,7 @@ function handlePermRoleChange(sel){
 function handleNewRoleChange(sel){
   const role       = sel.value;
   const isViewOnly = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
+  const isSuper    = role === "super_admin";
   const campusSel  = document.getElementById("newAdminCampus");
   if(!campusSel) return;
   if(isViewOnly){
@@ -9822,6 +9890,22 @@ function handleNewRoleChange(sel){
   } else {
     campusSel.disabled = false;
   }
+
+  // Designation only applies to campus-scoped Admin / Event Lead roles
+  const designationField = document.getElementById("newAdminDesignationField");
+  const needsDesignation = !isViewOnly && !isSuper;
+  designationField.style.display = needsDesignation ? "" : "none";
+  if(needsDesignation){
+    populateDesignationSelect(document.getElementById("newAdminDesignation"), campusSel.value, "");
+  }
+}
+
+function handleNewCampusChange(sel){
+  const role = document.getElementById("newAdminRole").value;
+  const isViewOnly = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
+  const isSuper    = role === "super_admin";
+  if(isViewOnly || isSuper) return;
+  populateDesignationSelect(document.getElementById("newAdminDesignation"), sel.value, "");
 }
 
 /* ══ PERMISSIONS MODAL ══ */
@@ -9863,7 +9947,39 @@ function openPermissionsModal(id, email){
   document.getElementById("permImport").checked    = p.import_csv      !== false;
   document.getElementById("campusCheckError").style.display = "none";
 
+  refreshPermDesignation(adminRecord?.designation || "");
+
   document.getElementById("permissionsModal").classList.add("open");
+}
+
+/* Designation depends on exactly one campus being selected — refresh
+   whenever the role or campus checkboxes change, and once on modal open. */
+function refreshPermDesignation(selectedDesignation){
+  const role       = document.getElementById("permRole").value;
+  const isViewOnly = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
+  const isSuper    = role === "super_admin";
+  const section    = document.getElementById("permDesignationSection");
+  const select     = document.getElementById("permDesignation");
+  const note       = document.getElementById("permDesignationNote");
+
+  if(isViewOnly || isSuper){
+    section.style.opacity = "0.4";
+    select.disabled = true;
+    select.innerHTML = `<option value="">— not applicable for this role —</option>`;
+    note.style.display = "none";
+    return;
+  }
+  section.style.opacity = "1";
+
+  const campuses = getSelectedCampuses().filter(c => c !== "All");
+  if(campuses.length !== 1){
+    select.disabled = true;
+    select.innerHTML = `<option value="">— select a single campus first —</option>`;
+    note.style.display = "block";
+    return;
+  }
+  note.style.display = "none";
+  populateDesignationSelect(select, campuses[0], selectedDesignation);
 }
 
 function handleAllCampusToggle(cb){
@@ -9873,12 +9989,14 @@ function handleAllCampusToggle(cb){
     c.disabled = isAll;
   });
   toggleIndividualCampuses(isAll);
+  refreshPermDesignation(document.getElementById("permDesignation").value);
 }
 
 function handleCampusCheck(){
   const allChecked = [...document.querySelectorAll(".campus-check")].every(c => c.checked);
   document.getElementById("permCampusAll").checked = allChecked;
   document.getElementById("campusCheckError").style.display = "none";
+  refreshPermDesignation(document.getElementById("permDesignation").value);
 }
 
 function toggleIndividualCampuses(disabled){
@@ -9908,6 +10026,15 @@ async function savePermissions(){
     return;
   }
 
+  const isViewOnly  = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
+  const needsDesignation = role !== "super_admin" && !isViewOnly;
+  const designation = needsDesignation ? (document.getElementById("permDesignation").value || null) : null;
+
+  if(needsDesignation && campuses.length === 1 && !campuses.includes("All") && !designation){
+    showToast("Select a designation for this admin.", "error");
+    return;
+  }
+
   const perms = role === "super_admin"
     ? { ...ROLE_DEFAULTS.super_admin, campus: ["All"] }
     : {
@@ -9927,6 +10054,7 @@ async function savePermissions(){
   const { error } = await sb.from("admins")
     .update({
       role,
+      designation,
       permissions: perms,
       campus: campuses.includes("All") ? "All" : campuses.join(", ")
     })
@@ -9957,9 +10085,15 @@ async function addAdmin(){
   const email  = document.getElementById("newAdminEmail").value.trim().toLowerCase();
   const role   = document.getElementById("newAdminRole").value;
   const campus = document.getElementById("newAdminCampus").value;
+  const isViewOnly   = role === "vice_provost" || role === "manager_marketing_comms" || role === "senior_manager_global";
+  const isSuper      = role === "super_admin";
+  const designation  = (!isViewOnly && !isSuper)
+    ? (document.getElementById("newAdminDesignation").value || null)
+    : null;
 
   if(!email){ showToast("Enter an email address.", "error"); return; }
   if(!email.includes("@")){ showToast("Enter a valid email address.", "error"); return; }
+  if(!isViewOnly && !isSuper && !designation){ showToast("Select a designation for this admin.", "error"); return; }
 
   const btn = document.querySelector("#addAdminForm .btn-primary");
   if(btn){ btn.disabled = true; btn.textContent = "Creating…"; }
@@ -9972,6 +10106,7 @@ async function addAdmin(){
   const defaultPerms = { ...ROLE_DEFAULTS[role] || ROLE_DEFAULTS.admin, campus: [campus] };
   const { error: insertErr } = await sb.from("admins").upsert({
     email, role, campus,
+    designation,
     permissions: defaultPerms,
     must_change_password: true,
   }, { onConflict: "email" });
@@ -10007,6 +10142,7 @@ async function addAdmin(){
         <strong>Email:</strong> ${esc(email)}<br>
         <strong>Role:</strong> ${roleLabel}<br>
         <strong>Campus:</strong> ${esc(campus)}<br>
+        ${designation ? `<strong>Designation:</strong> ${esc(designation)}<br>` : ""}
         <strong>Temp Password:</strong>
         <span style="font-family:monospace;font-size:14px;font-weight:700;color:#000060;background:#eff6ff;padding:2px 8px;border-radius:4px;letter-spacing:1px;">${esc(tempPw)}</span>
         <button onclick="navigator.clipboard.writeText('${esc(tempPw)}');this.textContent='✅ Copied!';setTimeout(()=>this.textContent='📋 Copy',1500);"
