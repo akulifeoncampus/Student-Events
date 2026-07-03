@@ -6256,13 +6256,45 @@ function execApplyEventDateFilter(query, fromDate, toDate){
   return query;
 }
 
-// Fetch attendance for a list of event IDs. Chunks to stay under URL length limits.
+// Fetch attendance for a list of PUBLISHED event IDs (events.id).
+//
+// event_attendance.event_id actually stores event_proposals.id, not
+// events.id — every QR code this system generates (attend.html?e=...)
+// encodes the proposal's own ID, set the moment a club opens their
+// Attendance tab, well before (and independent of) whether the proposal
+// ever gets published. events.id is a separate UUID, freshly generated
+// by Postgres at publish time. These two IDs have never been the same
+// value, for any event — so a naive event_id-in-(events.id...) filter
+// silently matches nothing, every time, for every event.
+//
+// Fix: resolve the events.id list back to their originating proposal
+// IDs via event_proposals.published_event_id, query attendance using
+// THOSE ids, then remap each result's event_id back to the published
+// event's id before returning — so every caller of this function keeps
+// comparing against events.id exactly as it already does, unchanged.
 async function execFetchAttendance(eventIds){
   if(!eventIds || eventIds.length === 0) return [];
   const CHUNK = 200;
-  const out = [];
+
+  const proposalToEventId = {}; // event_proposals.id -> events.id
   for(let i = 0; i < eventIds.length; i += CHUNK){
     const slice = eventIds.slice(i, i + CHUNK);
+    const { data, error } = await sb.from("event_proposals")
+      .select("id, published_event_id")
+      .in("published_event_id", slice);
+    if(error){
+      console.warn("[Exec Attendance] proposal-link chunk failed, continuing:", error);
+      continue;
+    }
+    (data || []).forEach(p => { proposalToEventId[p.id] = p.published_event_id; });
+  }
+
+  const proposalIds = Object.keys(proposalToEventId);
+  if(proposalIds.length === 0) return [];
+
+  const out = [];
+  for(let i = 0; i < proposalIds.length; i += CHUNK){
+    const slice = proposalIds.slice(i, i + CHUNK);
     const { data, error } = await sb.from("event_attendance")
       .select("student_id, student_name, event_id, event_name, campus, entity, program, gender, education_level")
       .not("student_id", "is", null)
@@ -6272,7 +6304,10 @@ async function execFetchAttendance(eventIds){
       console.warn("[Exec Attendance] chunk failed, continuing with partial data:", error);
       continue;
     }
-    if(data) out.push(...data);
+    if(data){
+      data.forEach(row => { row.event_id = proposalToEventId[row.event_id] || row.event_id; });
+      out.push(...data);
+    }
   }
   return out;
 }
