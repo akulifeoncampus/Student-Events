@@ -4348,10 +4348,23 @@
           </div>
         </div>
 
-        <!-- Placeholder for reviewers (AD-SE, self-reviewing Managers, AM-SE, SMG, VP) — built next -->
-        <div id="awardsReviewPlaceholder" style="display:none;" class="empty-state">
-          <div class="empty-state-icon">🏆</div>
-          <div class="empty-state-text">Shortlist review is being built next. Your Context Score submissions above are saved and will feed into it.</div>
+        <!-- Review panel — for AD-SE, self-reviewing Managers, AM-SE, SMG, VP, Super Admin -->
+        <div id="awardsReviewPanel" style="display:none;">
+          <div class="section-subtitle" style="margin-bottom:4px;">Context Score review</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Every submission is shown individually, not pre-averaged — averages below are a quick-scan aid, not the score itself. Comparing these against the data-driven Efficiency Score is a later step, once that scoring engine is built.</div>
+
+          <div id="awardsReviewCampusSelectorWrap" style="display:none;margin-bottom:16px;">
+            <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:8px;">Campus</label>
+            <select id="awardsReviewCampus" onchange="loadReviewSubmissions()"
+              style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;">
+              <option>Karachi</option>
+              <option>Nairobi</option>
+              <option>Kampala</option>
+              <option>Dar es Salaam</option>
+            </select>
+          </div>
+
+          <div id="awardsReviewList"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div></div>
         </div>
       </div>
 
@@ -9981,8 +9994,24 @@ async function loadAwardsSection(){
   const isOversight = ["senior_manager_global", "vice_provost", "super_admin"].includes(currentRole);
 
   document.getElementById("contextScoreSubmitPanel").style.display = perm.submit ? "" : "none";
-  document.getElementById("awardsReviewPlaceholder").style.display = (perm.review || isOversight) ? "" : "none";
+  document.getElementById("awardsReviewPanel").style.display = (perm.review || isOversight) ? "" : "none";
   document.getElementById("awardsWindowNotice").style.display = "none";
+
+  if(perm.review || isOversight){
+    const campusSel = document.getElementById("awardsReviewCampus");
+    const selectorWrap = document.getElementById("awardsReviewCampusSelectorWrap");
+    if(isOversight){
+      // Oversight roles can look at any campus — Karachi default, switchable
+      selectorWrap.style.display = "";
+      campusSel.value = campusSel.value || "Karachi";
+    } else {
+      // Campus reviewers only ever see their own campus — no selector needed
+      selectorWrap.style.display = "none";
+      campusSel.innerHTML = `<option>${esc(currentAdminCampus)}</option>`;
+      campusSel.value = currentAdminCampus;
+    }
+    loadReviewSubmissions();
+  }
 
   if(!perm.submit) return; // nothing further to load for a review-only or oversight view yet
 
@@ -10132,6 +10161,79 @@ async function deleteContextScore(id){
   if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
   showToast("Submission removed.");
   loadMyContextScores();
+}
+
+/* ── Review view — compiled Context Scores per club, for a given campus ──
+   Shows every submission individually alongside a quick-scan average.
+   Does NOT compute or compare against the data-driven Efficiency Score —
+   that engine (Output Score, Budget Index) doesn't exist yet. This is a
+   compiled view of the human input only, deliberately scoped that way. */
+async function loadReviewSubmissions(){
+  const campus = document.getElementById("awardsReviewCampus").value;
+  const listEl = document.getElementById("awardsReviewList");
+  listEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div>`;
+
+  const [{ data: clubs, error: clubsErr }, { data: scores, error: scoresErr }] = await Promise.all([
+    sb.from("clubs").select("id,name").eq("campus", campus).order("name"),
+    sb.from("award_context_scores").select("*").eq("campus", campus).eq("cycle_year", currentCycleYear()),
+  ]);
+
+  if(clubsErr || scoresErr){
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-state-text">Failed to load review data.</div></div>`;
+    return;
+  }
+  renderReviewList(clubs || [], scores || []);
+}
+
+function renderReviewList(clubs, scores){
+  const listEl = document.getElementById("awardsReviewList");
+  if(!clubs.length){
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎭</div><div class="empty-state-text">No clubs found for this campus.</div></div>`;
+    return;
+  }
+
+  const CATEGORY_LABELS = {
+    leadership_transition: "Leadership transition",
+    health_personal:       "Health / personal",
+    restructuring:         "Restructuring",
+    external_disruption:   "External disruption",
+  };
+
+  const byClub = {};
+  scores.forEach(s => { (byClub[s.club_id] ||= []).push(s); });
+
+  listEl.innerHTML = clubs.map(club => {
+    const subs = byClub[club.id] || [];
+    const avg = (field) => subs.length
+      ? (subs.reduce((sum, s) => sum + (s[field] || 0), 0) / subs.length).toFixed(1)
+      : "—";
+
+    const rows = subs.length
+      ? subs.map(s => `
+          <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 2fr;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;align-items:start;">
+            <div>${esc(s.submitted_by_email)}${s.submitted_by_designation ? `<div style="color:var(--muted);font-size:11px;">${esc(s.submitted_by_designation)}</div>` : ""}</div>
+            <div>${s.member_development ?? "—"}</div>
+            <div>${s.conduct_collaboration ?? "—"}</div>
+            <div>${s.extenuating_category ? esc(CATEGORY_LABELS[s.extenuating_category] || s.extenuating_category) : "—"}</div>
+            <div style="color:var(--muted);">${s.extenuating_note ? esc(s.extenuating_note) : ""}</div>
+          </div>`).join("")
+      : `<div style="padding:8px 0;border-top:1px solid var(--border);font-size:12px;color:var(--muted);">No submissions yet for this club.</div>`;
+
+    return `
+      <div style="background:var(--color-bg,#f8f9fa);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:13px;font-weight:700;">${esc(club.name)}</div>
+          <div style="font-size:11px;color:var(--muted);">
+            ${subs.length} submission${subs.length===1?"":"s"} · avg member dev. ${avg("member_development")} · avg conduct ${avg("conduct_collaboration")}
+          </div>
+        </div>
+        ${subs.length ? `
+          <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 2fr;gap:10px;padding-top:10px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">
+            <div>Submitted by</div><div>Member dev.</div><div>Conduct</div><div>Extenuating</div><div>Note</div>
+          </div>` : ""}
+        ${rows}
+      </div>`;
+  }).join("");
 }
 
 async function loadAdmins(){
