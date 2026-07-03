@@ -1868,7 +1868,7 @@ function selectAccountType(type){
   document.getElementById("signupFieldsDepartment").style.display = type === "department" ? "" : "none";
   document.getElementById("signupFieldsIndividual").style.display = type === "individual" ? "" : "none";
   // Departments serve the whole institution, not one campus — campus is chosen per-event instead
-  document.getElementById("signupCampusField").style.display      = type === "department" ? "none" : "";
+  document.getElementById("signupCampusField").style.display      = "";
   const EMAIL_LABELS = { club: "Club Email", department: "Department Email", individual: "Your Email" };
   const EMAIL_PLACEHOLDERS = { club: "yourclub@aku.edu", department: "department@aku.edu", individual: "yourname@aku.edu" };
   document.getElementById("loginEmailLabel").textContent = `${EMAIL_LABELS[type]} *`;
@@ -2056,8 +2056,7 @@ async function handleSignup(){
   const accountType = signupAccountType || "club";
   const nameFieldId = { club: "signupClubName", department: "signupDepartmentName", individual: "signupIndividualName" }[accountType];
   const clubName = document.getElementById(nameFieldId).value.trim();
-  // Departments serve the whole institution — campus is chosen per-event on the proposal form instead
-  const campus   = accountType === "department" ? "All" : document.getElementById("signupCampus").value;
+  const campus   = document.getElementById("signupCampus").value;
   const email    = document.getElementById("loginEmail").value.trim();
   const pw       = document.getElementById("loginPassword").value;
   const pwConf   = document.getElementById("loginPasswordConfirm").value;
@@ -2065,7 +2064,7 @@ async function handleSignup(){
 
   const NAME_LABELS = { club: "Club name", department: "Department", individual: "Your name" };
   if(!clubName)    { showMsg(`${NAME_LABELS[accountType]} is required.`, "error"); return; }
-  if(accountType !== "department" && !campus){ showMsg("Please select a campus.", "error"); return; }
+  if(!campus)      { showMsg("Please select a campus.", "error"); return; }
   if(!email)       { showMsg("Email is required.", "error"); return; }
   if(pw.length < 8){ showMsg("Password must be at least 8 characters.", "error"); return; }
   if(pw !== pwConf){ showMsg("Passwords do not match.", "error"); return; }
