@@ -4129,15 +4129,8 @@
           ℹ️ A temporary password will be generated and emailed to the new admin. They will be asked to set a new password on first sign in.
         </p>
 
-        <!-- ── AWARDS: ACTIVITY WINDOW & SUBMISSION CLOSE (Super Admin only) ── -->
-        <div id="awardsWindowPanel" style="margin-top:28px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:18px 20px;display:none;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">🏆 Awards: Activity Window &amp; Submission Close</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Set per campus, in coordination with the Vice Provost. Dates can be extended but never shortened once set.</div>
-          <div style="display:flex;flex-direction:column;gap:12px;" id="awardsWindowList"></div>
-        </div>
-
         <!-- ── DEPARTMENTS (Super Admin only) ── -->
-        <div id="departmentsPanel" style="margin-top:20px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:14px;padding:18px 20px;display:none;">
+        <div id="departmentsPanel" style="margin-top:28px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:14px;padding:18px 20px;display:none;">
           <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">🏛️ Departments</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Shown on the Event Hub signup form for department accounts. Rename anytime — existing accounts and events keep whatever name they were created with.</div>
           <div id="departmentsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
@@ -4168,53 +4161,6 @@
               style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
             <button class="btn btn-secondary btn-sm" onclick="addProgram()">+ Add</button>
           </div>
-        </div>
-
-        <!-- ── OUTPUT SCORE WEIGHTS (Super Admin only) ── -->
-        <div id="outputWeightsPanel" style="margin-top:20px;background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:18px 20px;display:none;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">⚖️ Output Score Weights</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-            Feeds the Efficiency Score used in Club of the Year and Emerging Clubs. Must add up to 100%.
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
-            <div class="field">
-              <label style="font-size:10px;">Event Count</label>
-              <div style="position:relative;">
-                <input type="number" id="owEventCount" min="0" max="100" step="1" oninput="updateWeightTotal()"
-                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
-                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
-              </div>
-            </div>
-            <div class="field">
-              <label style="font-size:10px;">Attendance</label>
-              <div style="position:relative;">
-                <input type="number" id="owAttendance" min="0" max="100" step="1" oninput="updateWeightTotal()"
-                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
-                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
-              </div>
-            </div>
-            <div class="field">
-              <label style="font-size:10px;">Feedback Rating</label>
-              <div style="position:relative;">
-                <input type="number" id="owFeedback" min="0" max="100" step="1" oninput="updateWeightTotal()"
-                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
-                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
-              </div>
-            </div>
-            <div class="field">
-              <label style="font-size:10px;">Event Diversity</label>
-              <div style="position:relative;">
-                <input type="number" id="owDiversity" min="0" max="100" step="1" oninput="updateWeightTotal()"
-                  style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
-                <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
-              </div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div id="weightTotalDisplay" style="font-size:12px;font-weight:700;">Total: —</div>
-            <button class="btn btn-secondary btn-sm" onclick="saveOutputWeights()">💾 Save Weights</button>
-          </div>
-          <div id="outputWeightsMeta" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
         </div>
       </div>
 
@@ -4446,6 +4392,66 @@
           </div>
 
           <div id="awardsReviewList"><div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div></div>
+        </div>
+
+        <!-- Settings — Super Admin only, awards-specific configuration -->
+        <div id="awardsSettingsPanel" style="display:none;">
+          <div class="section-subtitle" style="margin-bottom:4px;">Settings</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Configuration specific to the awards cycle. General Event Hub settings — Departments, Programs — stay in Admins.</div>
+
+          <!-- ── AWARDS: ACTIVITY WINDOW & SUBMISSION CLOSE ── -->
+          <div id="awardsWindowPanel" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:18px 20px;margin-bottom:20px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">🏆 Activity Window &amp; Submission Close</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Set per campus, in coordination with the Vice Provost. Dates can be extended but never shortened once set.</div>
+            <div style="display:flex;flex-direction:column;gap:12px;" id="awardsWindowList"></div>
+          </div>
+
+          <!-- ── OUTPUT SCORE WEIGHTS ── -->
+          <div id="outputWeightsPanel" style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:18px 20px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">⚖️ Output Score Weights</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+              Feeds the Efficiency Score used in Club of the Year and Emerging Clubs. Must add up to 100%.
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">
+              <div class="field">
+                <label style="font-size:10px;">Event Count</label>
+                <div style="position:relative;">
+                  <input type="number" id="owEventCount" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                    style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                  <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+                </div>
+              </div>
+              <div class="field">
+                <label style="font-size:10px;">Attendance</label>
+                <div style="position:relative;">
+                  <input type="number" id="owAttendance" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                    style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                  <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+                </div>
+              </div>
+              <div class="field">
+                <label style="font-size:10px;">Feedback Rating</label>
+                <div style="position:relative;">
+                  <input type="number" id="owFeedback" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                    style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                  <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+                </div>
+              </div>
+              <div class="field">
+                <label style="font-size:10px;">Event Diversity</label>
+                <div style="position:relative;">
+                  <input type="number" id="owDiversity" min="0" max="100" step="1" oninput="updateWeightTotal()"
+                    style="padding:8px 24px 8px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;width:100%;" />
+                  <span style="position:absolute;right:10px;top:8px;font-size:12px;color:var(--muted);">%</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div id="weightTotalDisplay" style="font-size:12px;font-weight:700;">Total: —</div>
+              <button class="btn btn-secondary btn-sm" onclick="saveOutputWeights()">💾 Save Weights</button>
+            </div>
+            <div id="outputWeightsMeta" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
+          </div>
         </div>
       </div>
 
@@ -6067,7 +6073,7 @@ function showAdminPanel(){
   adminNotifInterval = setInterval(pollNotifications, 30000);
   startRealtimeSubscriptions();
 
-  if(isSuper){ loadAdmins(); loadAwardsWindows(); loadDepartments(); loadPrograms(); loadOutputWeights(); }
+  if(isSuper){ loadAdmins(); loadDepartments(); loadPrograms(); }
 }
 
 function applyActionPermission(permKey, selectors){
@@ -10316,7 +10322,13 @@ async function loadAwardsSection(){
 
   document.getElementById("contextScoreSubmitPanel").style.display = perm.submit ? "" : "none";
   document.getElementById("awardsReviewPanel").style.display = (perm.review || isOversight) ? "" : "none";
+  document.getElementById("awardsSettingsPanel").style.display = currentRole === "super_admin" ? "" : "none";
   document.getElementById("awardsWindowNotice").style.display = "none";
+
+  if(currentRole === "super_admin"){
+    loadAwardsWindows();
+    loadOutputWeights();
+  }
 
   if(perm.review || isOversight){
     const campusSel = document.getElementById("awardsReviewCampus");
