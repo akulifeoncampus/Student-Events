@@ -4068,6 +4068,7 @@
                 <th>Organiser</th>
                 <th>Date</th>
                 <th>Category</th>
+                <th>Scale</th>
                 <th>Campus</th>
                 <th>Venue</th>
                 <th>Actions</th>
@@ -4968,6 +4969,15 @@
           </select>
         </div>
         <div class="field">
+          <label>Scale of Event</label>
+          <select id="eventType">
+            <option value="">Select…</option>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="mega">Mega</option>
+          </select>
+        </div>
+        <div class="field">
           <label>Date</label>
           <input id="eventDate" type="date" />
         </div>
@@ -5021,6 +5031,17 @@
     </div>
     <div class="modal-body">
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="csvModalDesc"></p>
+      <div class="field" id="csvCampusField" style="display:none;margin-bottom:14px;">
+        <label>Campus for this import *</label>
+        <select id="csvImportCampus">
+          <option value="">Select campus…</option>
+          <option>Karachi</option>
+          <option>Nairobi</option>
+          <option>Kampala</option>
+          <option>Dar es Salaam</option>
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">Applied to every event in this file — split your CSV by campus if it covers more than one.</div>
+      </div>
       <div class="upload-area" onclick="document.getElementById('csvFile').click()">
         <input type="file" id="csvFile" accept=".csv" onchange="handleCSVUpload(this)" />
         📄 Click to select your CSV file
@@ -9584,9 +9605,10 @@ async function loadEvents(){
 function renderEvents(list){
   const tbody = document.getElementById("events-tbody");
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">No events yet. Add one above.</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">No events yet. Add one above.</div></div></td></tr>`;
     return;
   }
+  const SCALE_LABELS = { small: "Small", medium: "Medium", mega: "Mega" };
   tbody.innerHTML = list.map(e => {
     const canEdit = canAccessCampus(e.campus);
     return `
@@ -9595,6 +9617,7 @@ function renderEvents(list){
       <td>${esc(e.organiser || "—")}</td>
       <td>${e.event_date ? new Date(e.event_date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "—"}</td>
       <td>${esc(e.category || "—")}</td>
+      <td>${e.event_type ? SCALE_LABELS[e.event_type] || esc(e.event_type) : "—"}</td>
       <td>${e.campus ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#2563eb;">${esc(e.campus)}</span>` : "—"}</td>
       <td title="${esc(e.venue||'')}">${esc(e.venue || "—")}</td>
       <td><div class="td-actions">
@@ -9619,6 +9642,7 @@ async function openEventModal(id = null){
     document.getElementById("eventOrganiser").value = e.organiser || "";
     document.getElementById("eventCampus").value    = e.campus || "";
     document.getElementById("eventCategory").value  = e.category || "";
+    document.getElementById("eventType").value      = e.event_type || "";
     document.getElementById("eventDate").value      = e.event_date || "";
     document.getElementById("eventTime").value      = e.start_time || "";
     document.getElementById("eventVenue").value       = e.venue || "";
@@ -9627,7 +9651,7 @@ async function openEventModal(id = null){
     document.getElementById("eventImageUrl").value    = e.cover_image || "";
     if(e.cover_image) document.getElementById("eventImagePreviewWrap").innerHTML = `<img src="${esc(e.cover_image)}" class="upload-preview" />`;
   } else {
-    ["eventName","eventDate","eventTime","eventVenue","eventAudience","eventDescription","eventImageUrl"].forEach(i => document.getElementById(i).value = "");
+    ["eventName","eventDate","eventTime","eventVenue","eventAudience","eventDescription","eventImageUrl","eventType"].forEach(i => document.getElementById(i).value = "");
   }
   // Populate lead dropdown
   await populateLeadDropdown("eventAssignLead", id ? (allEvents.find(x=>x.id===id)?.assigned_lead||"") : "");
@@ -9744,6 +9768,7 @@ async function saveEvent(){
     organiser:   document.getElementById("eventOrganiser").value,
     campus,
     category:    document.getElementById("eventCategory").value,
+    event_type:  document.getElementById("eventType").value || null,
     event_date:  document.getElementById("eventDate").value || null,
     start_time:  document.getElementById("eventTime").value || null,
     venue:       document.getElementById("eventVenue").value.trim() || null,
@@ -12819,6 +12844,7 @@ async function updateProposalStatus(status){
       organiser_type:         p.organiser_type          || "club",
       program:                p.program                 || null,
       team_members:           p.team_members            || null,
+      event_type:             p.event_type              || null,
     }).select().single();
 
     if(publishErr){
@@ -13173,6 +13199,7 @@ function importAccCSV(){
   document.getElementById("csvModalDesc").textContent  = "Upload your acc-data.csv. Columns: ACC Name, Faculty, Campus, Description, Year, Program, Rep 1, Rep 2  —  one row per year class. Multiple rows with the same ACC Name are grouped automatically.";
   document.getElementById("csvStatus").innerHTML = "";
   document.getElementById("csvFile").value = "";
+  document.getElementById("csvCampusField").style.display = "none";
   document.getElementById("csvModal").classList.add("open");
 }
 
@@ -13182,15 +13209,18 @@ function importClubsCSV(){
   document.getElementById("csvModalDesc").textContent  = "Upload your clubs-data.csv. Columns: Society Name, Email, Description, Signature Events, Convenor, Co-Convenor, General Secretary, Treasurer, Logo, Campus, Category";
   document.getElementById("csvStatus").innerHTML = "";
   document.getElementById("csvFile").value = "";
+  document.getElementById("csvCampusField").style.display = "none";
   document.getElementById("csvModal").classList.add("open");
 }
 
 function importEventsCSV(){
   csvImportTarget = "events";
   document.getElementById("csvModalTitle").textContent = "Import Events CSV";
-  document.getElementById("csvModalDesc").textContent  = "Upload your website-data.csv. Columns: Event Name, Organiser, Category of the Event, Date of the Event, Start Time, Venue";
+  document.getElementById("csvModalDesc").textContent  = "Upload your website-data.csv. Columns: Event Name, Organiser, Category of the Event, Venue, Start Time, Date of the Event, Audience, Description, Event Lead Email, Scale of Event";
   document.getElementById("csvStatus").innerHTML = "";
   document.getElementById("csvFile").value = "";
+  document.getElementById("csvImportCampus").value = "";
+  document.getElementById("csvCampusField").style.display = "block";
   document.getElementById("csvModal").classList.add("open");
 }
 
@@ -13265,6 +13295,21 @@ function handleCSVUpload(input){
           return map[val.toLowerCase().trim()] || val.trim();
         }
 
+        // Matches the exact values used everywhere else (event-hub.html's
+        // proposal form, the Executive Dashboard's type breakdown) — small,
+        // medium, mega, lowercase. A CSV column will rarely match that
+        // exactly, so normalize common variants rather than requiring it.
+        function normalizeScale(val){
+          if(!val) return null;
+          const v = val.toLowerCase().trim();
+          const map = {
+            'small': 'small', 's': 'small',
+            'medium': 'medium', 'med': 'medium', 'm': 'medium',
+            'mega': 'mega', 'large': 'mega', 'big': 'mega', 'l': 'mega',
+          };
+          return map[v] || null; // unrecognized value — leave blank rather than guess
+        }
+
         rows = res.data.map(r => ({
           name:        (r["Society Name"]       || r["Club Name"]       || "").trim(),
           email:       (r["Email"]              || "").trim(),
@@ -13279,6 +13324,11 @@ function handleCSVUpload(input){
           category:    (r["Category of the Club"] || r["Category"] || r["Club Category"] || r["Type"] || "").trim() || null,
         })).filter(r => r.name);
       } else {
+        const importCampus = document.getElementById("csvImportCampus").value;
+        if(!importCampus){
+          statusEl.innerHTML = "❌ Select a campus for this import before uploading.";
+          return;
+        }
         rows = res.data.map(r => ({
           name:          (r["Event Name"]            || "").trim(),
           organiser:     (r["Organiser"]             || "").trim(),
@@ -13289,6 +13339,9 @@ function handleCSVUpload(input){
           audience:      (r["Audience"]              || "").trim() || null,
           description:   (r["Description"]           || "").trim() || null,
           assigned_lead: (r["Event Lead Email"]      || "").trim() || null,
+          campus:        importCampus,
+          organiser_type: "club",
+          event_type:    normalizeScale(r["Scale of Event"] || ""),
         })).filter(r => r.name);
       }
 
