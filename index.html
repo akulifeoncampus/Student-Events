@@ -1797,15 +1797,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const audienceLine = e.audience ? `<div class="meta"><span class="meta-icon">👥</span>${escapeHtml(e.audience)}</div>` : "";
       const campusTag = e.campus ? `<div class="campus-tag ${campusClass(e.campus)}">🏫 ${escapeHtml(e.campus)}</div>` : "";
       const organiserType = e.organiser_type || "club";
+      const collabSuffix = e.collaborators ? ` · with ${escapeHtml(e.collaborators)}` : "";
       const bannerHtml = !e.organiser ? "" :
         organiserType === "club"
-          ? `<a class="organizer-banner" href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="background:${bannerColor};" title="View ${escapeHtml(e.organiser)} on Clubs page">🎭 ${escapeHtml(e.organiser)}<span class="org-arrow">→</span></a>`
+          ? `<a class="organizer-banner" href="clubs.html?club=${encodeURIComponent(e.organiser)}" style="background:${bannerColor};" title="View ${escapeHtml(e.organiser)} on Clubs page">🎭 ${escapeHtml(e.organiser)}${collabSuffix}<span class="org-arrow">→</span></a>`
         : organiserType === "department"
-          ? `<span class="organizer-banner organizer-banner-static" style="background:#ede9fe;color:#5b21b6;">🏛️ ${escapeHtml(e.organiser)}</span>`
-          : `<span class="organizer-banner organizer-banner-static" style="background:#fef9c3;color:#854d0e;">🎗️ ${escapeHtml(e.organiser)}</span>`;
-      const collabHtml = e.collaborators
-        ? `<div class="event-collab-line" style="font-size:11px;color:var(--muted,#6b7280);margin-top:4px;padding:0 2px;">with ${escapeHtml(e.collaborators)}</div>`
-        : "";
+          ? `<span class="organizer-banner organizer-banner-static" style="background:#ede9fe;color:#5b21b6;">🏛️ ${escapeHtml(e.organiser)}${collabSuffix}</span>`
+          : `<span class="organizer-banner organizer-banner-static" style="background:#fef9c3;color:#854d0e;">🎗️ ${escapeHtml(e.organiser)}${collabSuffix}</span>`;
 
       // Interested counter + save + reminder — only show for upcoming events
       const isInterested  = hasUserInterested(e.id);
@@ -1866,7 +1864,6 @@ document.addEventListener("DOMContentLoaded", () => {
             ${interestedHtml}
           </div>
           ${bannerHtml}
-          ${collabHtml}
         </article>
       `);
     });
