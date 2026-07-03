@@ -4135,6 +4135,18 @@
           <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Set per campus, in coordination with the Vice Provost. Dates can be extended but never shortened once set.</div>
           <div style="display:flex;flex-direction:column;gap:12px;" id="awardsWindowList"></div>
         </div>
+
+        <!-- ── DEPARTMENTS (Super Admin only) ── -->
+        <div id="departmentsPanel" style="margin-top:20px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:14px;padding:18px 20px;display:none;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">🏛️ Departments</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Shown on the Event Hub signup form for department accounts. Rename anytime — existing accounts and events keep whatever name they were created with.</div>
+          <div id="departmentsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+          <div style="display:flex;gap:8px;">
+            <input id="newDepartmentName" type="text" placeholder="New department name…"
+              style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
+            <button class="btn btn-secondary btn-sm" onclick="addDepartment()">+ Add</button>
+          </div>
+        </div>
       </div>
 
       <!-- ── NEWS ── -->
@@ -5986,7 +5998,7 @@ function showAdminPanel(){
   adminNotifInterval = setInterval(pollNotifications, 30000);
   startRealtimeSubscriptions();
 
-  if(isSuper){ loadAdmins(); loadAwardsWindows(); }
+  if(isSuper){ loadAdmins(); loadAwardsWindows(); loadDepartments(); }
 }
 
 function applyActionPermission(permKey, selectors){
@@ -6243,25 +6255,6 @@ async function execFetchAttendance(eventIds){
   return out;
 }
 
-// Fetch attendance for a list of "events" table rows, translating through
-// event_proposals.id (see comment at the call site for why this translation
-// exists), and translating the results back so callers can keep matching on
-// events.id exactly as before.
-async function execFetchAttendanceForEvents(events, proposalIdByEventId){
-  const proposalIdToEventId = {};
-  const proposalIds = [];
-  (events || []).forEach(e => {
-    const pid = proposalIdByEventId[e.id];
-    if(pid){
-      proposalIdToEventId[pid] = e.id;
-      proposalIds.push(pid);
-    }
-  });
-  const rows = await execFetchAttendance(proposalIds);
-  rows.forEach(r => { r.event_id = proposalIdToEventId[r.event_id] || r.event_id; });
-  return rows;
-}
-
 // Toggle skeleton placeholders on all card values.
 function execShowCardsLoading(loading){
   const ids = ["execStatClubs","execStatOnboarded","execStatEvents","execStatUpcoming","execStatUnique","execStatRepeat"];
@@ -6291,7 +6284,7 @@ async function loadExecutiveDashboard(){
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), todayStr, f.dateTo),
-      sb.from("event_proposals").select("id, event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
+      sb.from("event_proposals").select("event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
     ]);
 
     const allClubs       = clubsRes.data       || [];
@@ -6300,15 +6293,8 @@ async function loadExecutiveDashboard(){
     const upcomingEvents = upcomingRes.data    || [];
     const proposals      = proposalsRes.data   || [];
 
-    // event_attendance.event_id is written by attend.html / event-hub.html using the
-    // event_proposals.id (the QR code encodes the proposal id, not the published event
-    // id). Everywhere else in this dashboard keys off events.id, so build a lookup to
-    // translate events.id -> proposal id before querying, and back again after.
-    const proposalIdByEventId = {};
-    proposals.forEach(p => { if(p.published_event_id && p.id) proposalIdByEventId[p.published_event_id] = p.id; });
-
     // ── Wave 2: attendance for events in range ──
-    const attendanceInRange = await execFetchAttendanceForEvents(eventsInRange, proposalIdByEventId);
+    const attendanceInRange = await execFetchAttendance(eventsInRange.map(e => e.id));
 
     // ── Wave 3 (optional): prior period for deltas ──
     let priorEvents = [], priorAttendance = [];
@@ -6319,7 +6305,7 @@ async function loadExecutiveDashboard(){
           sb.from("events").select("id, campus, event_date"), prior.from, prior.to
         );
         priorEvents = priorEventsRes.data || [];
-        priorAttendance = await execFetchAttendanceForEvents(priorEvents, proposalIdByEventId);
+        priorAttendance = await execFetchAttendance(priorEvents.map(e => e.id));
       }
     }
 
@@ -10002,6 +9988,75 @@ async function saveAwardsWindow(campus){
   loadAwardsWindows();
 }
 
+/* ── Departments — managed list for the signup form's Department account type ──
+   Editable at any time by Super Admin. Renaming/deleting a department only
+   affects the signup dropdown going forward — existing accounts and events
+   keep whatever name string they were created with, since that's stored
+   directly on club_accounts.club_name / events.organiser, not referenced live. */
+let allDepartments = [];
+
+async function loadDepartments(){
+  if(currentRole !== "super_admin") return;
+  document.getElementById("departmentsPanel").style.display = "block";
+  const { data, error } = await sb.from("department_types").select("*").order("name");
+  if(error){ showToast("Failed to load departments: " + error.message, "error"); return; }
+  allDepartments = data || [];
+  renderDepartments();
+}
+
+function renderDepartments(){
+  const el = document.getElementById("departmentsList");
+  if(!allDepartments.length){
+    el.innerHTML = `<div style="font-size:12px;color:var(--muted);">No departments yet — add one below.</div>`;
+    return;
+  }
+  el.innerHTML = allDepartments.map(d => `
+    <div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+      <input type="text" value="${esc(d.name)}" id="dept-name-${d.id}"
+        style="flex:1;border:none;font-family:'Poppins',sans-serif;font-size:13px;background:transparent;outline:none;"
+        onchange="renameDepartment('${d.id}', this.value)" />
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;">
+        <input type="checkbox" ${d.active ? "checked" : ""} onchange="toggleDepartmentActive('${d.id}', this.checked)" /> Active
+      </label>
+      <button class="btn btn-danger btn-sm" onclick="deleteDepartment('${d.id}','${safeStr(d.name)}')">🗑️</button>
+    </div>`).join("");
+}
+
+async function addDepartment(){
+  const input = document.getElementById("newDepartmentName");
+  const name = input.value.trim();
+  if(!name){ showToast("Enter a department name.", "error"); return; }
+  const { error } = await sb.from("department_types").insert({ name });
+  if(error){ showToast("Failed to add: " + error.message, "error"); return; }
+  input.value = "";
+  showToast("Department added.");
+  loadDepartments();
+}
+
+async function renameDepartment(id, newName){
+  const name = newName.trim();
+  if(!name){ showToast("Name cannot be empty.", "error"); loadDepartments(); return; }
+  const { error } = await sb.from("department_types").update({ name, updated_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Failed to rename: " + error.message, "error"); return; }
+  showToast("Department renamed.");
+  loadDepartments();
+}
+
+async function toggleDepartmentActive(id, active){
+  const { error } = await sb.from("department_types").update({ active, updated_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Failed to update: " + error.message, "error"); return; }
+  showToast(active ? "Department activated." : "Department deactivated — hidden from new signups.");
+  loadDepartments();
+}
+
+async function deleteDepartment(id, name){
+  if(!confirm(`Delete "${name}"? Existing accounts and events keep their stored name — this only removes it from the signup dropdown.`)) return;
+  const { error } = await sb.from("department_types").delete().eq("id", id);
+  if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
+  showToast("Department removed.");
+  loadDepartments();
+}
+
 /* ── Context Score submission ──
    One row per (club, submitter, cycle_year) — Karachi's Event Leads and
    Manager each submit their own row for the same club; the shortlist
@@ -11807,6 +11862,10 @@ const PROPOSAL_STATUS_CONFIG = {
 
 async function loadProposals(){
   let q = sb.from("event_proposals").select("*").order("submitted_at", { ascending: false });
+  // Department proposals are Super Admin only — never shown to Campus Admins
+  if(currentRole !== "super_admin"){
+    q = q.neq("organiser_type", "department");
+  }
   // Campus admins only see their campus's proposals
   if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
     q = q.eq("campus", currentAdminCampus);
@@ -11863,7 +11922,7 @@ function renderProposalsTable(list){
 
     return `<tr ${needsReport ? 'style="background:#fffbeb;"' : ""}>
       <td style="font-weight:600;max-width:200px;" title="${esc(p.event_name)}">${esc(p.event_name)}</td>
-      <td>${esc(p.club_name)}</td>
+      <td>${esc(p.club_name)}${accountTypeBadge(p.organiser_type)}</td>
       <td>${p.campus ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#2563eb;">${esc(p.campus)}</span>` : "—"}</td>
       <td>${date}</td>
       <td>${esc(p.category || "—")}</td>
@@ -12247,6 +12306,7 @@ async function updateProposalStatus(status){
       audience:             p.audience             || null,
       registration_form_url: p.registration_form_url || null,
       collaborators:          p.collaborators          || null,
+      organiser_type:         p.organiser_type          || "club",
     }).select().single();
     if(newEvent){
       await sb.from("event_proposals").update({ published_event_id: newEvent.id }).eq("id", id);
@@ -12405,7 +12465,11 @@ let allClubAccounts = [];
 
 async function loadClubApprovals(){
   let q = sb.from("club_accounts").select("*").order("created_at", { ascending: false });
-  // Campus admins only see their campus's club requests
+  // Department account requests are Super Admin only — never shown to Campus Admins
+  if(currentRole !== "super_admin"){
+    q = q.neq("account_type", "department");
+  }
+  // Campus admins only see their campus's club/individual requests
   if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
     q = q.eq("campus", currentAdminCampus);
   }
@@ -12431,6 +12495,16 @@ async function loadClubApprovals(){
   renderClubTable("clubs-rejected-tbody", rejected, "rejected", 5);
 }
 
+function accountTypeBadge(type){
+  const MAP = {
+    club:       { icon: "🎭", label: "Club",       bg: "#eff6ff", color: "#2563eb" },
+    department: { icon: "🏛️", label: "Department", bg: "#f5f3ff", color: "#7c3aed" },
+    individual: { icon: "🎗️", label: "Independent", bg: "#fefce8", color: "#a16207" },
+  };
+  const t = MAP[type] || MAP.club;
+  return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:${t.bg};color:${t.color};margin-left:6px;">${t.icon} ${t.label}</span>`;
+}
+
 function renderClubTable(tbodyId, list, type, cols){
   const tbody = document.getElementById(tbodyId);
   if(!list.length){
@@ -12445,7 +12519,7 @@ function renderClubTable(tbodyId, list, type, cols){
 
     if(type === "pending"){
       return `<tr>
-        <td><strong>${esc(c.club_name)}</strong></td>
+        <td><strong>${esc(c.club_name)}</strong>${accountTypeBadge(c.account_type)}</td>
         <td>${esc(c.email)}</td>
         <td>${c.campus ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eff6ff;color:#2563eb;">${esc(c.campus)}</span>` : "—"}</td>
         <td>${date}</td>
@@ -12457,7 +12531,7 @@ function renderClubTable(tbodyId, list, type, cols){
     }
     if(type === "approved"){
       return `<tr>
-        <td><strong>${esc(c.club_name)}</strong></td>
+        <td><strong>${esc(c.club_name)}</strong>${accountTypeBadge(c.account_type)}</td>
         <td>${esc(c.email)}</td>
         <td>${c.campus ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#f0fdf4;color:#15803d;">${esc(c.campus)}</span>` : "—"}</td>
         <td>${esc(c.reviewed_by || "—")}</td>
@@ -12469,7 +12543,7 @@ function renderClubTable(tbodyId, list, type, cols){
     }
     // rejected
     return `<tr>
-      <td><strong>${esc(c.club_name)}</strong></td>
+      <td><strong>${esc(c.club_name)}</strong>${accountTypeBadge(c.account_type)}</td>
       <td>${esc(c.email)}</td>
       <td>${c.campus ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#fef2f2;color:#dc2626;">${esc(c.campus)}</span>` : "—"}</td>
       <td style="max-width:200px;font-size:12px;color:var(--muted);">${esc(c.rejection_reason || "—")}</td>
