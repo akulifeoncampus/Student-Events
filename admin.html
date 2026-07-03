@@ -10101,6 +10101,13 @@ async function submitContextScore(){
   document.getElementById("csConductCollaboration").value = "";
 
   loadMyContextScores();
+
+  // Self-review designations (Nairobi/Kampala Manager, Dar Associate) see
+  // both panels at once — without this, the review panel below would show
+  // stale data until the tab is manually reopened.
+  if(document.getElementById("awardsReviewPanel").style.display !== "none"){
+    loadReviewSubmissions();
+  }
 }
 
 async function loadMyContextScores(){
@@ -10161,6 +10168,9 @@ async function deleteContextScore(id){
   if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
   showToast("Submission removed.");
   loadMyContextScores();
+  if(document.getElementById("awardsReviewPanel").style.display !== "none"){
+    loadReviewSubmissions();
+  }
 }
 
 /* ── Review view — compiled Context Scores per club, for a given campus ──
