@@ -6243,6 +6243,25 @@ async function execFetchAttendance(eventIds){
   return out;
 }
 
+// Fetch attendance for a list of "events" table rows, translating through
+// event_proposals.id (see comment at the call site for why this translation
+// exists), and translating the results back so callers can keep matching on
+// events.id exactly as before.
+async function execFetchAttendanceForEvents(events, proposalIdByEventId){
+  const proposalIdToEventId = {};
+  const proposalIds = [];
+  (events || []).forEach(e => {
+    const pid = proposalIdByEventId[e.id];
+    if(pid){
+      proposalIdToEventId[pid] = e.id;
+      proposalIds.push(pid);
+    }
+  });
+  const rows = await execFetchAttendance(proposalIds);
+  rows.forEach(r => { r.event_id = proposalIdToEventId[r.event_id] || r.event_id; });
+  return rows;
+}
+
 // Toggle skeleton placeholders on all card values.
 function execShowCardsLoading(loading){
   const ids = ["execStatClubs","execStatOnboarded","execStatEvents","execStatUpcoming","execStatUnique","execStatRepeat"];
@@ -6272,7 +6291,7 @@ async function loadExecutiveDashboard(){
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), todayStr, f.dateTo),
-      sb.from("event_proposals").select("event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
+      sb.from("event_proposals").select("id, event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
     ]);
 
     const allClubs       = clubsRes.data       || [];
@@ -6281,8 +6300,15 @@ async function loadExecutiveDashboard(){
     const upcomingEvents = upcomingRes.data    || [];
     const proposals      = proposalsRes.data   || [];
 
+    // event_attendance.event_id is written by attend.html / event-hub.html using the
+    // event_proposals.id (the QR code encodes the proposal id, not the published event
+    // id). Everywhere else in this dashboard keys off events.id, so build a lookup to
+    // translate events.id -> proposal id before querying, and back again after.
+    const proposalIdByEventId = {};
+    proposals.forEach(p => { if(p.published_event_id && p.id) proposalIdByEventId[p.published_event_id] = p.id; });
+
     // ── Wave 2: attendance for events in range ──
-    const attendanceInRange = await execFetchAttendance(eventsInRange.map(e => e.id));
+    const attendanceInRange = await execFetchAttendanceForEvents(eventsInRange, proposalIdByEventId);
 
     // ── Wave 3 (optional): prior period for deltas ──
     let priorEvents = [], priorAttendance = [];
@@ -6293,7 +6319,7 @@ async function loadExecutiveDashboard(){
           sb.from("events").select("id, campus, event_date"), prior.from, prior.to
         );
         priorEvents = priorEventsRes.data || [];
-        priorAttendance = await execFetchAttendance(priorEvents.map(e => e.id));
+        priorAttendance = await execFetchAttendanceForEvents(priorEvents, proposalIdByEventId);
       }
     }
 
