@@ -12384,7 +12384,7 @@ async function updateProposalStatus(status){
 
   // Auto-publish to events table when approved
   if(status === "approved" && p){
-    const { data: newEvent } = await sb.from("events").insert({
+    const { data: newEvent, error: publishErr } = await sb.from("events").insert({
       name:                 p.event_name,
       organiser:            p.club_name,
       category:             p.category,
@@ -12398,7 +12398,15 @@ async function updateProposalStatus(status){
       registration_form_url: p.registration_form_url || null,
       collaborators:          p.collaborators          || null,
       organiser_type:         p.organiser_type          || "club",
+      program:                p.program                 || null,
+      team_members:           p.team_members            || null,
     }).select().single();
+
+    if(publishErr){
+      showToast("⚠️ Proposal approved, but publishing to the public site failed: " + publishErr.message, "error");
+      return;
+    }
+
     if(newEvent){
       await sb.from("event_proposals").update({ published_event_id: newEvent.id }).eq("id", id);
 
