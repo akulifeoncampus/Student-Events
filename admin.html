@@ -6480,9 +6480,9 @@ async function loadExecutiveDashboard(){
     const [clubsRes, onboardedRes, eventsRes, upcomingRes, proposalsRes] = await Promise.all([
       sb.from("clubs").select("id, name, campus"),
       sb.from("club_accounts").select("id, campus").eq("status", "approved"),
-      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), f.dateFrom, f.dateTo),
+      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
-      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date"), todayStr, f.dateTo),
+      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser"), todayStr, f.dateTo),
       sb.from("event_proposals").select("event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
     ]);
 
@@ -6501,7 +6501,7 @@ async function loadExecutiveDashboard(){
       const prior = execPreviousPeriodDates(f.dateFrom, f.dateTo);
       if(prior){
         const priorEventsRes = await execApplyEventDateFilter(
-          sb.from("events").select("id, campus, event_date"), prior.from, prior.to
+          sb.from("events").select("id, campus, event_date, category, event_type, organiser"), prior.from, prior.to
         );
         priorEvents = priorEventsRes.data || [];
         priorAttendance = await execFetchAttendance(priorEvents.map(e => e.id));
@@ -6519,13 +6519,17 @@ async function loadExecutiveDashboard(){
     const fPriorEv   = priorEvents.filter(inCampus);
 
     // ── Compute event-type counts ──
+    // Prefer the event's own event_type column — this covers manually-added
+    // events and bulk-imported historical events, not just proposal-published
+    // ones. Fall back to the linked proposal only for older rows that predate
+    // this column being populated directly on `events`.
     const typeByEventId = {};
     proposals.forEach(p => {
       if(p.published_event_id) typeByEventId[p.published_event_id] = (p.event_type || "").toLowerCase();
     });
     const typeCounts = { small: 0, medium: 0, mega: 0 };
     fEvents.forEach(e => {
-      const t = typeByEventId[e.id];
+      const t = (e.event_type || typeByEventId[e.id] || "").toLowerCase();
       if(t && typeCounts[t] !== undefined) typeCounts[t]++;
     });
 
@@ -6989,7 +6993,9 @@ function renderEventsByCategoryChart(events, proposals){
   if(!canvas || !listEl || !takeEl) return;
   destroyExecChart("byCategory");
 
-  // Map event_id → category (from event_proposals).
+  // Map event_id → category. Prefer the event's own category column so
+  // manually-added and bulk-imported events are counted too, not just
+  // proposal-published ones.
   const catByEventId = {};
   proposals.forEach(p => {
     if(p.published_event_id && p.category){
@@ -7000,7 +7006,7 @@ function renderEventsByCategoryChart(events, proposals){
   // Count categories among filtered events.
   const counts = {};
   events.forEach(e => {
-    const cat = catByEventId[e.id];
+    const cat = e.category || catByEventId[e.id];
     if(cat) counts[cat] = (counts[cat] || 0) + 1;
   });
 
@@ -7186,13 +7192,16 @@ function execNormalizeLabel(value, fallback){
 
 // Build a map: eventId → { category, campus } from the loaded proposals + events lookup.
 function execBuildEventMeta(events, proposals){
+  // Prefer the event's own category column — covers manually-added and
+  // bulk-imported events. Proposal lookup stays as a fallback for legacy
+  // rows created before `events.category` was reliably populated.
   const catByEventId = {};
   proposals.forEach(p => {
     if(p.published_event_id && p.category) catByEventId[p.published_event_id] = p.category;
   });
   const meta = {};
   events.forEach(e => {
-    meta[e.id] = { campus: e.campus || null, category: catByEventId[e.id] || null };
+    meta[e.id] = { campus: e.campus || null, category: e.category || catByEventId[e.id] || null };
   });
   return meta;
 }
@@ -7940,9 +7949,11 @@ function composeExecDsRows(attendance, events, proposals){
       entity:        a.entity         || "",
       program:       a.program        || "",
       level:         a.education_level|| "",
-      category:      p.category       || "",
-      event_type:    p.event_type     || "",
-      club_name:     p.club_name      || "",
+      // Prefer the event's own columns — covers manually-added and
+      // bulk-imported events, not just proposal-published ones.
+      category:      ev.category      || p.category    || "",
+      event_type:    ev.event_type    || p.event_type   || "",
+      club_name:     ev.organiser     || p.club_name    || "",
       checkin_time:  a.created_at     || ""
     };
   });
@@ -8232,6 +8243,9 @@ function renderExecInclusivityPanel(ctx){
   const eventCampusesById = Object.fromEntries(ctx.events.map(e => [e.id, e.campus]));
 
   // A club is "active" if it hosted at least one event in the range. We match by club name.
+  // Prefer the event's own `organiser` column — covers manually-added and
+  // bulk-imported events, not just proposal-published ones. Proposal lookup
+  // stays as a fallback for legacy rows missing `organiser`.
   const propByEventId = {};
   ctx.proposals.forEach(p => {
     if(p.published_event_id && p.club_name){
@@ -8241,8 +8255,8 @@ function renderExecInclusivityPanel(ctx){
   const activeClubNames = new Set();
   ctx.events.forEach(e => {
     if(ctx.campus !== "all" && e.campus !== ctx.campus) return;
-    const info = propByEventId[e.id];
-    if(info && info.club_name) activeClubNames.add(info.club_name);
+    const name = (e.organiser || "").trim().toLowerCase() || propByEventId[e.id]?.club_name;
+    if(name) activeClubNames.add(name);
   });
   // Set of scoped club names (lower-cased)
   const scopedClubNamesLower = new Set(scopedClubs.map(c => (c.name || "").trim().toLowerCase()).filter(Boolean));
