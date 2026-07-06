@@ -5524,6 +5524,49 @@
     <div class="modal-body">
       <input type="hidden" id="reviewProposalId" />
 
+      <!-- Editable core details — name/category/venue/date/time can be corrected before approval -->
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;">✏️ Editable Before Approval</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field" style="grid-column:1/-1;margin-bottom:0;">
+            <label style="font-size:10px;">Event Name</label>
+            <input id="reviewEventName" type="text"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;"
+              oninput="clearTimeout(window._reviewNameTimer); window._reviewNameTimer = setTimeout(() => refreshReviewNameWarning(this.value, document.getElementById('reviewProposalId').dataset.campus), 400);" />
+            <div id="reviewNameWarning" style="display:none;margin-top:6px;font-size:12px;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;"></div>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label style="font-size:10px;">Category</label>
+            <select id="reviewEventCategory" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;">
+              <option value="">Select…</option>
+              <option>Recreational/Social</option>
+              <option>Sports</option>
+              <option>Competition</option>
+              <option>Workshop/Session</option>
+              <option>Orientation</option>
+              <option>Meeting</option>
+              <option>Welfare</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label style="font-size:10px;">Venue</label>
+            <input id="reviewEventVenue" type="text"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label style="font-size:10px;">Proposed Date</label>
+            <input id="reviewEventDate" type="date"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label style="font-size:10px;">Start Time</label>
+            <input id="reviewEventTime" type="time"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;" />
+          </div>
+        </div>
+      </div>
+
       <!-- Proposal details -->
       <div id="reviewProposalDetails" style="margin-bottom:20px;"></div>
 
@@ -12474,7 +12517,16 @@ async function openReviewModal(id){
   const p = allAdminProposals.find(x => x.id === id);
   if(!p) return;
   document.getElementById("reviewProposalId").value          = id;
+  document.getElementById("reviewProposalId").dataset.campus = p.campus || "";
   document.getElementById("reviewProposalTitle").textContent  = p.event_name;
+
+  // Editable core fields — pre-filled from the proposal, correctable before approval
+  document.getElementById("reviewEventName").value     = p.event_name      || "";
+  document.getElementById("reviewEventCategory").value = p.category       || "";
+  document.getElementById("reviewEventVenue").value    = p.proposed_venue || "";
+  document.getElementById("reviewEventDate").value     = p.proposed_date  || "";
+  document.getElementById("reviewEventTime").value     = p.proposed_time  || "";
+  refreshReviewNameWarning(p.event_name, p.campus);
 
   // Status actions — only admin and super admin can change status
   const canChangeStatus = currentRole === "super_admin" || currentRole === "admin";
@@ -12534,11 +12586,7 @@ async function openReviewModal(id){
       ${p.representative_name ? detailRow("Representative", esc(p.representative_name)) : ""}
       ${p.designation ? detailRow("Designation", esc(p.designation)) : ""}
       ${detailRow("Campus", esc(p.campus || "—"))}
-      ${detailRow("Category", esc(p.category || "—"))}
-      ${detailRow("Proposed Date", p.proposed_date ? new Date(p.proposed_date).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}) : "—")}
-      ${detailRow("Start Time", esc(p.proposed_time || "—"))}
       ${p.event_end_time ? detailRow("End Time", esc(p.event_end_time)) : ""}
-      ${detailRow("Venue", esc(p.proposed_venue || "—"))}
       ${detailRow("Expected Attendance", esc(p.expected_attendance || "—"))}
       ${detailRow("Status", `<span style="font-weight:700;color:${sc.color};">${sc.label}</span>`)}
       ${p.assigned_to ? detailRow("Assigned To", esc(p.assigned_to)) : ""}
@@ -12786,6 +12834,58 @@ async function sendResourceUpdate(){
   loadMessageThread(proposalId);
 }
 
+/* ── Duplicate event-name protection ──
+   `events.name` is unique per campus (see migration notes). Students rename
+   events inconsistently, so instead of relying on them to disambiguate,
+   we auto-suffix with a version number: "Freshers Week" → "Freshers Week 2.0". */
+function escapeRegex(str){
+  return (str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function getUniqueEventName(baseName, campus, excludeEventId){
+  const trimmed = (baseName || "").trim();
+  if(!trimmed || !campus) return trimmed;
+
+  const { data, error } = await sb.from("events").select("id,name").eq("campus", campus);
+  if(error || !data) return trimmed; // fail open — never block a publish on a lookup error
+
+  const existingNames = new Set(
+    data.filter(e => e.id !== excludeEventId).map(e => (e.name || "").trim().toLowerCase())
+  );
+  const baseLower = trimmed.toLowerCase();
+  if(!existingNames.has(baseLower)) return trimmed; // no collision at this campus
+
+  let maxVersion = 1; // the unsuffixed name counts as version 1
+  const suffixPattern = new RegExp(`^${escapeRegex(baseLower)} (\\d+)\\.0$`);
+  existingNames.forEach(n => {
+    const m = n.match(suffixPattern);
+    if(m) maxVersion = Math.max(maxVersion, parseInt(m[1], 10));
+  });
+  return `${trimmed} ${maxVersion + 1}.0`;
+}
+
+// Live warning shown in the review modal when the typed name collides with
+// an existing event at the same campus. Admin can accept the suggestion or
+// keep typing — nothing is forced.
+async function refreshReviewNameWarning(name, campus){
+  const warnEl = document.getElementById("reviewNameWarning");
+  if(!warnEl) return;
+  const trimmed = (name || "").trim();
+  if(!trimmed || !campus){ warnEl.style.display = "none"; warnEl.innerHTML = ""; return; }
+
+  const suggestion = await getUniqueEventName(trimmed, campus);
+  if(suggestion === trimmed){
+    warnEl.style.display = "none";
+    warnEl.innerHTML = "";
+    return;
+  }
+  const safeSuggestion = esc(suggestion).replace(/'/g, "\\'");
+  warnEl.style.display = "block";
+  warnEl.innerHTML = `⚠️ "${esc(trimmed)}" is already used at ${esc(campus)}. Suggested: <strong>${esc(suggestion)}</strong>
+    <button type="button" onclick="document.getElementById('reviewEventName').value='${safeSuggestion}'; document.getElementById('reviewNameWarning').style.display='none';"
+      style="margin-left:8px;padding:3px 10px;border-radius:6px;border:1px solid #fed7aa;background:#fff;font-size:11px;font-weight:600;cursor:pointer;">Use suggested name</button>`;
+}
+
 function detailRow(label, value){
   return `<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;">${label}</div><div>${value}</div></div>`;
 }
@@ -12814,8 +12914,21 @@ async function updateProposalStatus(status){
     document.getElementById("assignSection").style.display = "block";
   }
 
+  // Pull the (possibly corrected) core fields straight from the review form —
+  // admin can fix a typo'd name/date/venue before it ever reaches events table.
+  const editedName     = document.getElementById("reviewEventName").value.trim()     || p?.event_name;
+  const editedCategory = document.getElementById("reviewEventCategory").value        || p?.category;
+  const editedVenue    = document.getElementById("reviewEventVenue").value.trim()    || p?.proposed_venue;
+  const editedDate     = document.getElementById("reviewEventDate").value            || p?.proposed_date;
+  const editedTime     = document.getElementById("reviewEventTime").value            || p?.proposed_time;
+
   const update = {
     status,
+    event_name:     editedName,
+    category:       editedCategory,
+    proposed_venue: editedVenue || null,
+    proposed_date:  editedDate  || null,
+    proposed_time:  editedTime  || null,
     admin_note:   note || null,
     reviewed_at:  new Date().toISOString(),
     updated_at:   new Date().toISOString(),
@@ -12826,25 +12939,33 @@ async function updateProposalStatus(status){
   const { error } = await sb.from("event_proposals").update(update).eq("id", id);
   if(error){ showToast("Failed: " + error.message, "error"); return; }
 
+  // Merge edits into a local copy — used for publishing + club notifications below
+  const mergedP = p ? { ...p, ...update } : null;
+
   // Auto-publish to events table when approved
-  if(status === "approved" && p){
+  if(status === "approved" && mergedP){
+    // Guard against duplicate event names within the same campus — students
+    // routinely reuse names, so auto-append a version suffix (e.g. "2.0")
+    // instead of relying on them to disambiguate manually.
+    const finalName = await getUniqueEventName(mergedP.event_name, mergedP.campus);
+
     const { data: newEvent, error: publishErr } = await sb.from("events").insert({
-      name:                 p.event_name,
-      organiser:            p.club_name,
-      category:             p.category,
-      event_date:           p.proposed_date,
-      start_time:           p.proposed_time,
-      venue:                p.proposed_venue,
-      campus:               p.campus,
-      cover_image:          p.cover_image,
-      description:          p.description          || null,
-      audience:             p.audience             || null,
-      registration_form_url: p.registration_form_url || null,
-      collaborators:          p.collaborators          || null,
-      organiser_type:         p.organiser_type          || "club",
-      program:                p.program                 || null,
-      team_members:           p.team_members            || null,
-      event_type:             p.event_type              || null,
+      name:                 finalName,
+      organiser:            mergedP.club_name,
+      category:             mergedP.category,
+      event_date:           mergedP.proposed_date,
+      start_time:           mergedP.proposed_time,
+      venue:                mergedP.proposed_venue,
+      campus:               mergedP.campus,
+      cover_image:          mergedP.cover_image,
+      description:          mergedP.description          || null,
+      audience:             mergedP.audience             || null,
+      registration_form_url: mergedP.registration_form_url || null,
+      collaborators:          mergedP.collaborators          || null,
+      organiser_type:         mergedP.organiser_type          || "club",
+      program:                mergedP.program                 || null,
+      team_members:           mergedP.team_members            || null,
+      event_type:             mergedP.event_type              || null,
     }).select().single();
 
     if(publishErr){
@@ -12853,7 +12974,11 @@ async function updateProposalStatus(status){
     }
 
     if(newEvent){
-      await sb.from("event_proposals").update({ published_event_id: newEvent.id }).eq("id", id);
+      await sb.from("event_proposals").update({ published_event_id: newEvent.id, event_name: finalName }).eq("id", id);
+
+      if(finalName !== mergedP.event_name){
+        showToast(`ℹ️ "${mergedP.event_name}" was already in use at ${mergedP.campus} — published as "${finalName}".`);
+      }
 
       // 🔔 Notify all push subscribers about the new event
       try {
@@ -12880,19 +13005,19 @@ async function updateProposalStatus(status){
   }
 
   // Notify the club
-  if(p){
+  if(mergedP){
     const msgs = {
-      approved:     { title:"🎉 Event Approved!", msg:`Your event "${p.event_name}" has been approved and will appear on the Life on Campus website!` },
-      under_review: { title:"🔍 Event Under Review", msg:`Your event "${p.event_name}" is now being reviewed by the OSE team.` },
-      needs_info:   { title:"💬 More Information Needed", msg:`The OSE team needs more information about "${p.event_name}". ${note ? "Message: " + note : ""}` },
-      declined:     { title:"❌ Event Declined", msg:`Your event "${p.event_name}" was declined. ${note ? "Reason: " + note : "Contact the OSE team for details."}` },
-      postponed:    { title:"⏸️ Event Postponed", msg:`Your event "${p.event_name}" has been postponed. ${note ? note : ""}` },
-      cancelled:    { title:"🚫 Event Cancelled", msg:`Your event "${p.event_name}" has been cancelled. ${note ? "Reason: " + note : ""}` },
+      approved:     { title:"🎉 Event Approved!", msg:`Your event "${mergedP.event_name}" has been approved and will appear on the Life on Campus website!` },
+      under_review: { title:"🔍 Event Under Review", msg:`Your event "${mergedP.event_name}" is now being reviewed by the OSE team.` },
+      needs_info:   { title:"💬 More Information Needed", msg:`The OSE team needs more information about "${mergedP.event_name}". ${note ? "Message: " + note : ""}` },
+      declined:     { title:"❌ Event Declined", msg:`Your event "${mergedP.event_name}" was declined. ${note ? "Reason: " + note : "Contact the OSE team for details."}` },
+      postponed:    { title:"⏸️ Event Postponed", msg:`Your event "${mergedP.event_name}" has been postponed. ${note ? note : ""}` },
+      cancelled:    { title:"🚫 Event Cancelled", msg:`Your event "${mergedP.event_name}" has been cancelled. ${note ? "Reason: " + note : ""}` },
     };
     const notif = msgs[status];
     if(notif){
       await sb.from("notifications").insert({
-        recipient:   p.club_email,
+        recipient:   mergedP.club_email,
         type:        `proposal_${status}`,
         title:       notif.title,
         message:     notif.msg,
