@@ -4053,6 +4053,7 @@
             <div class="section-subtitle">Manage all campus events</div>
           </div>
           <div style="display:flex;gap:10px;">
+            <button id="btn-export-events" class="btn btn-secondary" onclick="exportEventsCSV()">⬇️ Download CSV</button>
             <button id="btn-import-events" class="btn btn-secondary" onclick="importEventsCSV()">📥 Import CSV</button>
             <button id="btn-add-event" class="btn btn-primary" onclick="openEventModal()">+ Add Event</button>
           </div>
@@ -9687,6 +9688,55 @@ function renderEvents(list){
       </div></td>
     </tr>`;
   }).join("");
+}
+
+function exportEventsCSV(){
+  if(!allEvents || !allEvents.length){ showToast("No events to export", "error"); return; }
+
+  // Respects whatever the admin currently sees — same campus scope as the
+  // table, and the same live search text (matches filterTable's own logic).
+  const searchInput = document.querySelector("#section-events .table-search");
+  const q = (searchInput?.value || "").toLowerCase().trim();
+  const SCALE_LABELS = { small: "Small", medium: "Medium", mega: "Mega" };
+
+  const visible = filterByCampus(allEvents).filter(e => {
+    if(!q) return true;
+    const haystack = [e.name, e.organiser, e.event_date, e.category, e.event_type, e.campus, e.venue]
+      .map(v => (v ?? "").toString().toLowerCase()).join(" ");
+    return haystack.includes(q);
+  });
+
+  if(!visible.length){ showToast("No events match the current filter/search", "error"); return; }
+
+  const headers = ["Name","Organiser","Date","Category","Scale","Campus","Venue","Start Time","Audience","Description","Assigned Lead","Registration Form URL"];
+  const rows = visible.map(e => [
+    e.name || "",
+    e.organiser || "",
+    e.event_date || "",
+    e.category || "",
+    e.event_type ? (SCALE_LABELS[e.event_type] || e.event_type) : "",
+    e.campus || "",
+    e.venue || "",
+    e.start_time || "",
+    e.audience || "",
+    e.description || "",
+    e.assigned_lead || "",
+    e.registration_form_url || "",
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell ?? "").replace(/"/g,'""')}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `campus_life_events_${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showToast(`📥 Exported ${visible.length} event${visible.length!==1?"s":""} to CSV`);
 }
 
 async function openEventModal(id = null){
