@@ -544,6 +544,31 @@
     .btn:disabled,
     .btn:disabled:hover { opacity: .5; cursor: not-allowed; }
 
+    /* Status action cards — used in the proposal review modal's Update
+       Status grid. White surface, colored left border only (never a full
+       pastel fill), colored icon carries the meaning. */
+    .status-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      background: #ffffff;
+      color: var(--ink);
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: background .15s, border-color .15s;
+    }
+    .status-action-btn:hover { background: #f9fafb; }
+    .status-action-btn svg { flex-shrink: 0; width: 16px; height: 16px; }
+
     /* Primary — AKU navy fill */
     .btn-primary {
       background: var(--aku-navy);
@@ -1735,22 +1760,15 @@
       margin-bottom: 10px;
     }
     .pipeline-card-exec-btns {
-      display: flex; gap: 4px; flex-wrap: wrap;
+      display: flex; gap: 6px; flex-wrap: wrap;
     }
-    .pipeline-exec-btn {
-      padding: 4px 10px;
-      border-radius: var(--radius-sm);
+    .pipeline-card-exec-btns .status-action-btn {
+      width: auto;
+      padding: 5px 10px 5px 9px;
       font-size: var(--text-xs);
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-ink);
-      font-family: 'Poppins', sans-serif;
-      transition: background .12s, border-color .12s;
+      gap: 6px;
     }
-    .pipeline-exec-btn:hover { background: var(--color-bg); }
-    .pipeline-exec-btn.active { border-color: transparent; }
+    .pipeline-card-exec-btns .status-action-btn svg { width: 13px; height: 13px; }
 
     /* Today's Brief */
     .todays-brief {
@@ -5534,14 +5552,17 @@
 
       <!-- Editable core details — name/category/venue/date/time can be corrected before approval -->
       <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;">✏️ Editable Before Approval</div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#000060" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /> <path d="M13.5 6.5l4 4" /></svg>
+          Editable before approval
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div class="field" style="grid-column:1/-1;margin-bottom:0;">
             <label style="font-size:10px;">Event Name</label>
             <input id="reviewEventName" type="text"
               style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;"
               oninput="clearTimeout(window._reviewNameTimer); window._reviewNameTimer = setTimeout(() => refreshReviewNameWarning(this.value, document.getElementById('reviewProposalId').dataset.campus), 400);" />
-            <div id="reviewNameWarning" style="display:none;margin-top:6px;font-size:12px;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 10px;"></div>
+            <div id="reviewNameWarning" style="display:none;margin-top:6px;font-size:12px;color:#78350f;background:#fdf6ec;border:1px solid #e8c88a;border-radius:8px;padding:10px 12px;"></div>
           </div>
           <div class="field" style="margin-bottom:0;">
             <label style="font-size:10px;">Category</label>
@@ -5581,13 +5602,31 @@
       <!-- Status action — only admins and super admins can change status -->
       <div id="statusActionSection">
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;">Update Status</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-          <button class="btn" style="background:#f0fdf4;color:#15803d;border:1.5px solid #bbf7d0;" onclick="updateProposalStatus('approved')">✅ Approve</button>
-          <button class="btn" style="background:#fef9c3;color:#854d0e;border:1.5px solid #fde68a;" onclick="updateProposalStatus('under_review')">🔍 Mark Under Review</button>
-          <button class="btn" style="background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;" onclick="updateProposalStatus('needs_info')">💬 Request More Info</button>
-          <button class="btn" style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fecaca;" onclick="updateProposalStatus('declined')">❌ Decline</button>
-          <button class="btn" style="background:#f3f4f6;color:#374151;border:1.5px solid #d1d5db;" onclick="updateProposalStatus('postponed')">⏸️ Postpone</button>
-          <button class="btn" style="background:#fef2f2;color:#9f1239;border:1.5px solid #fecaca;" onclick="updateProposalStatus('cancelled')">🚫 Cancel</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <button class="status-action-btn" style="border-left-color:#3b6d11;" onclick="updateProposalStatus('approved')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10 -10" /></svg>
+            Approve
+          </button>
+          <button class="status-action-btn" style="border-left-color:#000060;" onclick="updateProposalStatus('under_review')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#000060" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /> <path d="M21 21l-6 -6" /></svg>
+            Mark under review
+          </button>
+          <button class="status-action-btn" style="border-left-color:#a16207;" onclick="updateProposalStatus('needs_info')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9h8" /> <path d="M8 13h6" /> <path d="M9 18h-3a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-3l-3 3l-3 -3" /></svg>
+            Request more info
+          </button>
+          <button class="status-action-btn" style="border-left-color:#5f5e5a;" onclick="updateProposalStatus('postponed')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#5f5e5a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h2v16h-2z" /> <path d="M13 4h2v16h-2z" /></svg>
+            Postpone
+          </button>
+          <button class="status-action-btn" style="border-left-color:#993c1d;" onclick="updateProposalStatus('declined')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#993c1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6l-12 12" /> <path d="M6 6l12 12" /></svg>
+            Decline
+          </button>
+          <button class="status-action-btn" style="border-left-color:#791f1f;" onclick="updateProposalStatus('cancelled')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#791f1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.7 5.7l12.6 12.6" /> <path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18" /></svg>
+            Cancel
+          </button>
         </div>
       </div>
 
@@ -11974,6 +12013,30 @@ const EXECUTION_STATUS = {
   cancelled:        { label:"Cancelled",            emoji:"🚫", bg:"#fef2f2", color:"#b91c1c" },
 };
 
+// Small filled dot used in place of an emoji inside compact status pills —
+// a tiny outline icon doesn't read at 10px, a solid dot does.
+function statusDotSvg(color){
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6" viewBox="0 0 24 24" fill="${color}" aria-hidden="true"><circle cx="12" cy="12" r="12" /></svg>`;
+}
+
+// Shared icon set for stat cards (Event Lead Portal mini dashboard, Team
+// Overview summary cards) — inline SVG in place of emoji, sized to inherit
+// the surrounding text color via currentColor.
+const STAT_ICON_PATHS = {
+  pin:      '<path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4" /> <path d="M9 15l-4.5 4.5" /> <path d="M14.5 4l5.5 5.5" />',
+  calendar: '<path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12" /> <path d="M16 3l0 4" /> <path d="M8 3l0 4" /> <path d="M4 11l16 0" />',
+  play:     '<path d="M7 4v16l13 -8z" />',
+  pause:    '<path d="M9 4h2v16h-2z" /> <path d="M13 4h2v16h-2z" />',
+  check:    '<path d="M5 12l5 5l10 -10" />',
+  lock:     '<path d="M8 11v-4a4 4 0 1 1 8 0v4" /> <path d="M5 11m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" /> <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />',
+  ban:      '<path d="M5.7 5.7l12.6 12.6" /> <path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18" />',
+  users:    '<path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /> <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /> <path d="M16 3.13a4 4 0 0 1 0 7.75" /> <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />',
+  alert:    '<path d="M12 9v4" /> <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.871l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z" /> <path d="M12 16h.01" />',
+};
+function statIcon(name){
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:2px;">${STAT_ICON_PATHS[name] || ""}</svg>`;
+}
+
 /* ── Pipeline helpers — global scope, no closure issues ── */
 let _pipelineMyList      = [];
 let _pipelineCampusList  = [];
@@ -12139,21 +12202,21 @@ async function loadMyAssignedEvents(){
     const mdCancelled = myList.filter(p => (p.execution_status||"pending") === "cancelled").length;
     dashEl.innerHTML = [
     { num: mdUpcoming + mdUnderPrep + mdRescheduled + mdHeld + mdClosed,
-      label:"Total Assigned",      color:"#7c3aed", icon:"📌" },
+      label:"Total Assigned",      color:"#7c3aed", icon:statIcon("pin") },
     { num: mdUpcoming,
-      label:"Upcoming",            color:"#0891b2", icon:"📅" },
+      label:"Upcoming",            color:"#0891b2", icon:statIcon("calendar") },
     { num: mdUnderPrep,
-      label:"Under Preparation",   color:"#2563eb", icon:"▶️" },
+      label:"Under Preparation",   color:"#2563eb", icon:statIcon("play") },
     { num: mdRescheduled,
-      label:"Rescheduled",         color:"#c2410c", icon:"⏸️" },
+      label:"Rescheduled",         color:"#c2410c", icon:statIcon("pause") },
     { num: mdHeld,
-      label:"Event Held",          color:"#15803d", icon:"🎉" },
+      label:"Event Held",          color:"#15803d", icon:statIcon("check") },
     { num: mdClosed,
-      label:"Event Closed",        color:"#7c3aed", icon:"🔒" },
+      label:"Event Closed",        color:"#7c3aed", icon:statIcon("lock") },
     { num: mdCancelled,
-      label:"Cancelled",           color:"#b91c1c", icon:"🚫" },
+      label:"Cancelled",           color:"#b91c1c", icon:statIcon("ban") },
     { num: campusList.length,
-      label:"Campus Events",       color:"#d97706", icon:"👥" },
+      label:"Campus Events",       color:"#d97706", icon:statIcon("users") },
     ].map(s=>`
     <div style="background:white;border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);border-top:3px solid ${s.color};">
       <div style="font-size:22px;font-weight:800;color:${s.color};">${s.num}</div>
@@ -12335,17 +12398,19 @@ function pipelineCard(p, today, isMine = true){
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px;">Update Status</div>
       <div class="pipeline-card-exec-btns">${
         [
-          { s:"in_progress",     l:"▶️ Preparation Underway" },
-          { s:"completed",       l:"🎉 Event Held" },
-          { s:"report_submitted",l:"🔒 Event Closed" },
-          { s:"postponed",       l:"⏸️ Rescheduled" },
-          { s:"cancelled",       l:"🚫 Cancelled" },
+          { s:"in_progress",      l:"Preparation underway", color:"#000060", path:'<path d="M7 4v16l13 -8z" />' },
+          { s:"completed",        l:"Event held",           color:"#3b6d11", path:'<path d="M5 12l5 5l10 -10" />' },
+          { s:"report_submitted",l:"Event closed",          color:"#173404", path:'<path d="M8 11v-4a4 4 0 1 1 8 0v4" /> <path d="M5 11m0 2a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2z" /> <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />' },
+          { s:"postponed",       l:"Rescheduled",           color:"#5f5e5a", path:'<path d="M9 4h2v16h-2z" /> <path d="M13 4h2v16h-2z" />' },
+          { s:"cancelled",       l:"Cancelled",             color:"#791f1f", path:'<path d="M5.7 5.7l12.6 12.6" /> <path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18" />' },
         ].map(b => {
           const isCurr = (p.execution_status || "pending") === b.s;
-          const sc     = EXECUTION_STATUS[b.s];
-          return `<button class="pipeline-exec-btn ${isCurr ? "active" : ""}"
-            style="${isCurr ? `background:${sc.bg};color:${sc.color};border-color:${sc.color};` : ""}"
-            onclick="updateExecutionStatus('${p.id}','${b.s}')">${b.l}</button>`;
+          return `<button class="status-action-btn ${isCurr ? "active" : ""}"
+            style="border-left-color:${b.color};${isCurr ? `background:#f9fafb;` : ""}"
+            onclick="updateExecutionStatus('${p.id}','${b.s}')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="${b.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${b.path}</svg>
+            ${b.l}
+          </button>`;
         }).join("")}
       </div>
     </div>` : `<div style="font-size:11px;color:var(--muted);margin-top:6px;">👤 ${esc(p.assigned_to || "—")}</div>`;
@@ -12378,7 +12443,7 @@ function pipelineCard(p, today, isMine = true){
             <div class="pipeline-card-name">${esc(p.event_name)}</div>
             <div class="pipeline-card-club">by ${esc(p.club_name)}</div>
           </div>
-          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${execSC.bg};color:${execSC.color};white-space:nowrap;flex-shrink:0;">${execSC.emoji} ${execSC.label}</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${execSC.bg};color:${execSC.color};white-space:nowrap;flex-shrink:0;">${statusDotSvg(execSC.color)} ${execSC.label}</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;font-size:11px;color:var(--muted);">
           <span>📅 ${dateStr} ${dayLabel}</span>
@@ -12979,10 +13044,13 @@ async function refreshReviewNameWarning(name, campus){
     return;
   }
   const safeSuggestion = esc(suggestion).replace(/'/g, "\\'");
-  warnEl.style.display = "block";
-  warnEl.innerHTML = `⚠️ "${esc(trimmed)}" is already used at ${esc(campus)}. Suggested: <strong>${esc(suggestion)}</strong>
+  warnEl.style.display = "flex";
+  warnEl.style.alignItems = "flex-start";
+  warnEl.style.gap = "8px";
+  warnEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a16207" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:2px;"><path d="M12 9v4" /> <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.871l-8.106 -13.534a1.914 1.914 0 0 0 -3.274 0z" /> <path d="M12 16h.01" /></svg>
+    <span>"${esc(trimmed)}" is already used at ${esc(campus)}. Suggested: <strong>${esc(suggestion)}</strong>
     <button type="button" onclick="document.getElementById('reviewEventName').value='${safeSuggestion}'; document.getElementById('reviewNameWarning').style.display='none';"
-      style="margin-left:8px;padding:3px 10px;border-radius:6px;border:1px solid #fed7aa;background:#fff;font-size:11px;font-weight:600;cursor:pointer;">Use suggested name</button>`;
+      style="margin-left:8px;padding:3px 10px;border-radius:6px;border:1px solid #e8c88a;background:#fff;font-size:11px;font-weight:600;color:#a16207;cursor:pointer;">Use suggested name</button></span>`;
 }
 
 function detailRow(label, value){
@@ -15113,15 +15181,15 @@ async function loadTeamOverview(){
 
   // ── Summary stat cards — matches execution status buttons ──
   document.getElementById("teamStatCards").innerHTML = [
-    { num:filteredLeads.length,          label:"Team Members",         color:"#7c3aed", icon:"👥" },
-    { num:teamTotal,                     label:"Total Assigned",        color:"#2563eb", icon:"📌" },
-    { num:teamUpcoming,                  label:"Upcoming",              color:"#0891b2", icon:"📅" },
-    { num:teamUnderPrep,                 label:"Under Preparation",     color:"#2563eb", icon:"▶️" },
-    { num:teamRescheduled,               label:"Rescheduled",           color:"#c2410c", icon:"⏸️" },
-    { num:teamHeld,                      label:"Event Held",            color:"#15803d", icon:"🎉" },
-    { num:teamClosed,                    label:"Event Closed",          color:"#7c3aed", icon:"🔒" },
-    { num:teamCancelled,                 label:"Cancelled",             color:"#b91c1c", icon:"🚫" },
-    { num:totalOverdue,                  label:"Overdue (No Report)",   color:"#dc2626", icon:"⚠️" },
+    { num:filteredLeads.length,          label:"Team Members",         color:"#7c3aed", icon:statIcon("users") },
+    { num:teamTotal,                     label:"Total Assigned",        color:"#2563eb", icon:statIcon("pin") },
+    { num:teamUpcoming,                  label:"Upcoming",              color:"#0891b2", icon:statIcon("calendar") },
+    { num:teamUnderPrep,                 label:"Under Preparation",     color:"#2563eb", icon:statIcon("play") },
+    { num:teamRescheduled,               label:"Rescheduled",           color:"#c2410c", icon:statIcon("pause") },
+    { num:teamHeld,                      label:"Event Held",            color:"#15803d", icon:statIcon("check") },
+    { num:teamClosed,                    label:"Event Closed",          color:"#7c3aed", icon:statIcon("lock") },
+    { num:teamCancelled,                 label:"Cancelled",             color:"#b91c1c", icon:statIcon("ban") },
+    { num:totalOverdue,                  label:"Overdue (No Report)",   color:"#dc2626", icon:statIcon("alert") },
   ].map(s=>`
     <div style="background:white;border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid ${s.color};">
       <div style="font-size:26px;font-weight:800;color:${s.color};">${s.num}</div>
@@ -15187,13 +15255,13 @@ async function loadTeamOverview(){
             <div style="font-size:12px;color:var(--muted);">📍 ${campus}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">📌 ${assignedTotal}</span>
-            ${upcoming> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#ecfeff;color:#0891b2;">📅 ${upcoming}</span>` : ""}
-            ${prep   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#eff6ff;color:#2563eb;">▶️ ${prep}</span>` : ""}
-            ${rescheduled > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fff7ed;color:#c2410c;">⏸️ ${rescheduled}</span>` : ""}
-            ${held   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f0fdf4;color:#15803d;">🎉 ${held}</span>` : ""}
-            ${closed > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">🔒 ${closed}</span>` : ""}
-            ${overdue> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fef2f2;color:#dc2626;">⚠️ ${overdue} overdue</span>` : ""}
+            <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">${statIcon("pin")} ${assignedTotal}</span>
+            ${upcoming> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#ecfeff;color:#0891b2;">${statIcon("calendar")} ${upcoming}</span>` : ""}
+            ${prep   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#eff6ff;color:#2563eb;">${statIcon("play")} ${prep}</span>` : ""}
+            ${rescheduled > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fff7ed;color:#c2410c;">${statIcon("pause")} ${rescheduled}</span>` : ""}
+            ${held   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f0fdf4;color:#15803d;">${statIcon("check")} ${held}</span>` : ""}
+            ${closed > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">${statIcon("lock")} ${closed}</span>` : ""}
+            ${overdue> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fef2f2;color:#dc2626;">${statIcon("alert")} ${overdue} overdue</span>` : ""}
             <span style="color:var(--muted);font-size:14px;" id="${cardId}-arrow">▸</span>
           </div>
         </div>
