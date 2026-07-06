@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co https://studentexperience.github.io; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://api.groq.com;">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="manifest" href="admin-manifest.json" />
+  <meta name="theme-color" content="#000060" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="LoC Admin" />
+  <link rel="apple-touch-icon" href="https://studentexperience.github.io/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15850,6 +15857,18 @@ function showForceChangePassword(){
 }
 
 handleAuthRedirect();
+</script>
+<script>
+// Reuses the same sw.js as index.html — it already treats /admin.html as a
+// no-cache path (network-first, never stale), so registering it here only
+// adds installability, not any caching behavior change.
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js")
+      .then(reg => console.log("[PWA] Service worker registered:", reg.scope))
+      .catch(err => console.warn("[PWA] Service worker failed:", err));
+  });
+}
 </script>
 </body>
 </html>
