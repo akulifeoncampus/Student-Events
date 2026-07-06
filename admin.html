@@ -9708,19 +9708,23 @@ function exportEventsCSV(){
 
   if(!visible.length){ showToast("No events match the current filter/search", "error"); return; }
 
-  const headers = ["Name","Organiser","Date","Category","Scale","Campus","Venue","Start Time","Audience","Description","Assigned Lead","Registration Form URL"];
+  // Headers match the Import CSV template exactly ("Event Name", "Date of
+  // the Event", etc.) so a downloaded file can be edited and re-uploaded
+  // without a column mismatch. Campus/Registration URL are extra reference
+  // columns the importer ignores (campus comes from the import dropdown).
+  const headers = ["Event Name","Organiser","Category of the Event","Venue","Start Time","Date of the Event","Audience","Description","Event Lead Email","Scale of Event","Campus","Registration Form URL"];
   const rows = visible.map(e => [
     e.name || "",
     e.organiser || "",
-    e.event_date || "",
     e.category || "",
-    e.event_type ? (SCALE_LABELS[e.event_type] || e.event_type) : "",
-    e.campus || "",
     e.venue || "",
     e.start_time || "",
+    e.event_date || "",
     e.audience || "",
     e.description || "",
     e.assigned_lead || "",
+    e.event_type ? (SCALE_LABELS[e.event_type] || e.event_type) : "",
+    e.campus || "",
     e.registration_form_url || "",
   ]);
 
