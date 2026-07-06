@@ -13438,6 +13438,39 @@ function handleCSVUpload(input){
       statusEl.innerHTML = `⏳ Importing ${res.data.length} rows…`;
 
       let rows;
+
+      // Normalize campus values — handles typos and case variations
+      function normalizeCampus(val){
+        if(!val) return null;
+        const map = {
+          'karachi':        'Karachi',
+          'nairobi':        'Nairobi',
+          'kampala':        'Kampala',
+          'kampla':         'Kampala',  // common typo
+          'dar es salaam':  'Dar es Salaam',
+          'dares salaam':   'Dar es Salaam',
+          'dar-es-salaam':  'Dar es Salaam',
+          'daressalaam':    'Dar es Salaam',
+          'dar':            'Dar es Salaam',
+        };
+        return map[val.toLowerCase().trim()] || val.trim();
+      }
+
+      // Matches the exact values used everywhere else (event-hub.html's
+      // proposal form, the Executive Dashboard's type breakdown) — small,
+      // medium, mega, lowercase. A CSV column will rarely match that
+      // exactly, so normalize common variants rather than requiring it.
+      function normalizeScale(val){
+        if(!val) return null;
+        const v = val.toLowerCase().trim();
+        const map = {
+          'small': 'small', 's': 'small',
+          'medium': 'medium', 'med': 'medium', 'm': 'medium',
+          'mega': 'mega', 'large': 'mega', 'big': 'mega', 'l': 'mega',
+        };
+        return map[v] || null; // unrecognized value — leave blank rather than guess
+      }
+
       if(csvImportTarget === "acc_bodies"){
         // Group rows by ACC Name — each CSV row is one year class
         const grouped = new Map();
@@ -13478,38 +13511,6 @@ function handleCSVUpload(input){
         return;
 
       } else if(csvImportTarget === "clubs"){
-        // Normalize campus values — handles typos and case variations
-        function normalizeCampus(val){
-          if(!val) return null;
-          const map = {
-            'karachi':        'Karachi',
-            'nairobi':        'Nairobi',
-            'kampala':        'Kampala',
-            'kampla':         'Kampala',  // common typo
-            'dar es salaam':  'Dar es Salaam',
-            'dares salaam':   'Dar es Salaam',
-            'dar-es-salaam':  'Dar es Salaam',
-            'daressalaam':    'Dar es Salaam',
-            'dar':            'Dar es Salaam',
-          };
-          return map[val.toLowerCase().trim()] || val.trim();
-        }
-
-        // Matches the exact values used everywhere else (event-hub.html's
-        // proposal form, the Executive Dashboard's type breakdown) — small,
-        // medium, mega, lowercase. A CSV column will rarely match that
-        // exactly, so normalize common variants rather than requiring it.
-        function normalizeScale(val){
-          if(!val) return null;
-          const v = val.toLowerCase().trim();
-          const map = {
-            'small': 'small', 's': 'small',
-            'medium': 'medium', 'med': 'medium', 'm': 'medium',
-            'mega': 'mega', 'large': 'mega', 'big': 'mega', 'l': 'mega',
-          };
-          return map[v] || null; // unrecognized value — leave blank rather than guess
-        }
-
         rows = res.data.map(r => ({
           name:        (r["Society Name"]       || r["Club Name"]       || "").trim(),
           email:       (r["Email"]              || "").trim(),
