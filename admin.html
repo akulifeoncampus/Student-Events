@@ -93,61 +93,73 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+      background: var(--aku-navy);
     }
     .login-box {
       background: white;
-      border-radius: 20px;
-      padding: 40px;
+      border-radius: 14px;
+      padding: 40px 36px;
       width: 100%;
-      max-width: 420px;
-      box-shadow: 0 24px 60px rgba(0,0,0,.2);
+      max-width: 380px;
     }
     .login-logo {
-      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 21px;
       font-weight: 700;
       color: var(--ink);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .login-accent-line {
+      height: 3px;
+      width: 38px;
+      background: #a16207;
+      border-radius: 2px;
+      margin-bottom: 18px;
     }
     .login-sub {
       font-size: 13px;
       color: var(--muted);
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
     .login-label {
       display: block;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
       margin-bottom: 6px;
-      color: var(--ink);
+      color: var(--muted);
     }
     .login-input {
       width: 100%;
       padding: 11px 14px;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px;
       font-family: 'Poppins', sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       margin-bottom: 16px;
       outline: none;
       transition: border .15s;
+      box-sizing: border-box;
     }
-    .login-input:focus { border-color: var(--accent); }
+    .login-input:focus { border-color: var(--aku-navy); }
     .login-btn {
       width: 100%;
-      padding: 12px;
-      background: var(--accent);
+      padding: 13px;
+      background: var(--aku-navy);
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       font-family: 'Poppins', sans-serif;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: background .15s;
     }
-    .login-btn:hover { background: #1d4ed8; }
-    .login-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+    .login-btn:hover { background: var(--aku-navy-dark); }
+    .login-btn:disabled { background: #9ca3af; cursor: not-allowed; }
     .login-msg {
       margin-top: 14px;
       font-size: 13px;
@@ -2838,8 +2850,12 @@
 <!-- ══ LOGIN SCREEN ══ -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">🎓 Life on Campus</div>
-    <div class="login-sub" id="loginSubText">Admin Panel — Authorised Access Only</div>
+    <div class="login-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000060" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 9l-10 -4l-10 4l10 4l10 -4v6" /> <path d="M6 10.6v5.4a6 3 0 0 0 12 0v-5.4" /></svg>
+      Life on Campus
+    </div>
+    <div class="login-accent-line"></div>
+    <div class="login-sub" id="loginSubText">Admin panel, authorised access only</div>
 
     <!-- ── Sign In Form ── -->
     <div id="signinForm">
@@ -2853,7 +2869,7 @@
         <label class="login-label" for="loginPasswordConfirm">Confirm Password</label>
         <input class="login-input" id="loginPasswordConfirm" type="password" placeholder="••••••••" />
       </div>
-      <button class="login-btn" id="loginBtn" onclick="handleAuthAction()">Sign In</button>
+      <button class="login-btn" id="loginBtn" onclick="handleAuthAction()">Sign in</button>
       <div class="login-msg" id="loginMsg"></div>
       <div style="text-align:center;margin-top:12px;">
         <a href="#" onclick="showForgotPassword(event)"
@@ -2881,7 +2897,7 @@
       <div style="text-align:center;margin-top:12px;">
         <a href="#" onclick="hideForgotPassword(event)"
           style="font-size:12px;color:var(--muted);text-decoration:none;">
-          ← Back to Sign In
+          ← Back to sign in
         </a>
       </div>
     </div>
@@ -5825,10 +5841,10 @@ function toggleAuthMode(e){
   e.preventDefault();
   authMode = authMode === "login" ? "signup" : "login";
   const isSignup = authMode === "signup";
-  document.getElementById("loginSubText").textContent    = isSignup ? "Create your admin account" : "Admin Panel — Authorised Access Only";
-  document.getElementById("loginBtn").textContent        = isSignup ? "Create Account" : "Sign In";
+  document.getElementById("loginSubText").textContent    = isSignup ? "Create your admin account" : "Admin panel, authorised access only";
+  document.getElementById("loginBtn").textContent        = isSignup ? "Create account" : "Sign in";
   document.getElementById("authToggleText").textContent  = isSignup ? "Already have an account? " : "New admin? ";
-  document.getElementById("authToggleLink").textContent  = isSignup ? "Sign In" : "Create Account";
+  document.getElementById("authToggleLink").textContent  = isSignup ? "Sign in" : "Create account";
   document.getElementById("signupPasswordRow").style.display = isSignup ? "block" : "none";
   document.getElementById("loginMsg").textContent        = "";
 }
@@ -5891,7 +5907,7 @@ async function handleLogin(){
     msg.textContent = error.message;
     msg.className = "login-msg error";
     btn.disabled = false;
-    btn.textContent = "Sign In";
+    btn.textContent = "Sign in";
     return;
   }
 
@@ -5903,7 +5919,7 @@ async function handleLogin(){
     msg.textContent = "Access denied. Your email is not an authorised admin.";
     msg.className = "login-msg error";
     btn.disabled = false;
-    btn.textContent = "Sign In";
+    btn.textContent = "Sign in";
     return;
   }
 
