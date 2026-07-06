@@ -1,0 +1,25 @@
+{
+  "name": "Life on Campus Admin",
+  "short_name": "LoC Admin",
+  "description": "Life on Campus admin panel for the Aga Khan University Student Experience team.",
+  "start_url": "/admin.html",
+  "scope": "/admin.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#000060",
+  "theme_color": "#000060",
+  "icons": [
+    {
+      "src": "https://studentexperience.github.io/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://studentexperience.github.io/icon-192.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
