@@ -4061,6 +4061,13 @@
         <div class="table-wrap">
           <div class="table-toolbar">
             <input class="table-search" placeholder="🔍 Search events…" oninput="filterTable('events-table', this.value)" />
+            <select id="eventsCampusFilter" onchange="applyEventsCampusFilter()" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;">
+              <option value="">All Campuses</option>
+              <option value="Karachi">Karachi</option>
+              <option value="Nairobi">Nairobi</option>
+              <option value="Kampala">Kampala</option>
+              <option value="Dar es Salaam">Dar es Salaam</option>
+            </select>
           </div>
           <table id="events-table">
             <thead>
@@ -9659,7 +9666,17 @@ async function loadEvents(){
   const { data, error } = await sb.from("events").select("*").order("event_date", { ascending: false });
   if(error){ showToast("Failed to load events", "error"); return; }
   allEvents = data || [];
-  renderEvents(filterByCampus(allEvents));
+  lockCampusSelect("eventsCampusFilter");
+  applyEventsCampusFilter();
+}
+
+// Applies both the role-based campus restriction (filterByCampus) and the
+// admin's own campus dropdown selection, then re-renders the table.
+function applyEventsCampusFilter(){
+  const selected = document.getElementById("eventsCampusFilter")?.value || "";
+  let list = filterByCampus(allEvents);
+  if(selected) list = list.filter(e => e.campus === selected);
+  renderEvents(list);
 }
 
 function renderEvents(list){
@@ -9693,18 +9710,22 @@ function renderEvents(list){
 function exportEventsCSV(){
   if(!allEvents || !allEvents.length){ showToast("No events to export", "error"); return; }
 
-  // Respects whatever the admin currently sees — same campus scope as the
-  // table, and the same live search text (matches filterTable's own logic).
+  // Respects whatever the admin currently sees — same campus scope, same
+  // campus dropdown selection, and the same live search text (matches
+  // filterTable's own logic).
   const searchInput = document.querySelector("#section-events .table-search");
   const q = (searchInput?.value || "").toLowerCase().trim();
+  const selectedCampus = document.getElementById("eventsCampusFilter")?.value || "";
   const SCALE_LABELS = { small: "Small", medium: "Medium", mega: "Mega" };
 
-  const visible = filterByCampus(allEvents).filter(e => {
-    if(!q) return true;
-    const haystack = [e.name, e.organiser, e.event_date, e.category, e.event_type, e.campus, e.venue]
-      .map(v => (v ?? "").toString().toLowerCase()).join(" ");
-    return haystack.includes(q);
-  });
+  const visible = filterByCampus(allEvents)
+    .filter(e => !selectedCampus || e.campus === selectedCampus)
+    .filter(e => {
+      if(!q) return true;
+      const haystack = [e.name, e.organiser, e.event_date, e.category, e.event_type, e.campus, e.venue]
+        .map(v => (v ?? "").toString().toLowerCase()).join(" ");
+      return haystack.includes(q);
+    });
 
   if(!visible.length){ showToast("No events match the current filter/search", "error"); return; }
 
