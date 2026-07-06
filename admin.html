@@ -5647,10 +5647,13 @@
       </div>
 
       <!-- Note / reason field -->
-      <div class="field" id="reviewNoteField" style="display:none;">
-        <label id="reviewNoteLabel">Note / Reason</label>
-        <textarea id="reviewNote" rows="3" placeholder="Write your message to the club…"></textarea>
-        <button class="btn btn-primary" id="sendNoteBtn" onclick="sendProposalMessage()" style="margin-top:8px;width:100%;">📨 Send Message to Club</button>
+      <div id="reviewNoteField" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:16px;">
+        <label id="reviewNoteLabel" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Note / Reason</label>
+        <textarea id="reviewNote" rows="3" placeholder="Write your message to the club…" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;resize:vertical;"></textarea>
+        <button class="btn btn-primary" id="sendNoteBtn" onclick="sendProposalMessage()" style="margin-top:10px;width:100%;justify-content:center;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14l11 -11" /> <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" /></svg>
+          Send message to club
+        </button>
       </div>
 
       <!-- Resource Booking Section — only shown post-approval -->
