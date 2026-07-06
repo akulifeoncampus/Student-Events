@@ -9308,7 +9308,8 @@ async function loadTeamWorkloadChart(){
     teamWorkloadRows = leadEmails.map(email => {
       const mine      = (proposals || []).filter(p => p.assigned_to === email);
       const upcoming  = mine.filter(p => (p.execution_status||"pending") === "pending").length;
-      const underprep = mine.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
+      const underprep = mine.filter(p => (p.execution_status||"pending") === "in_progress").length;
+      const rescheduled = mine.filter(p => (p.execution_status||"pending") === "postponed").length;
       const held      = mine.filter(p => (p.execution_status||"pending") === "completed").length;
       const closed    = mine.filter(p => (p.execution_status||"pending") === "report_submitted").length;
 
@@ -9320,7 +9321,7 @@ async function loadTeamWorkloadChart(){
       const unspecified   = notCancelled.length - small - medium - mega;
 
       return {
-        email, upcoming, underprep, held, closed, total: upcoming+underprep+held+closed,
+        email, upcoming, underprep, rescheduled, held, closed, total: upcoming+underprep+rescheduled+held+closed,
         small, medium, mega, unspecified, scaleTotal: small+medium+mega+unspecified,
       };
     }).sort((a,b) => b.total - a.total);
@@ -9361,10 +9362,11 @@ function renderTeamWorkloadChart(){
       data: {
         labels,
         datasets: [
-          { label:"Upcoming",   data:teamWorkloadRows.map(r=>r.upcoming),  backgroundColor:"#0891b2", borderRadius:4 },
-          { label:"Under Prep", data:teamWorkloadRows.map(r=>r.underprep), backgroundColor:"#2563eb", borderRadius:4 },
-          { label:"Held",       data:teamWorkloadRows.map(r=>r.held),      backgroundColor:"#15803d", borderRadius:4 },
-          { label:"Closed",     data:teamWorkloadRows.map(r=>r.closed),    backgroundColor:"#7c3aed", borderRadius:4 },
+          { label:"Upcoming",    data:teamWorkloadRows.map(r=>r.upcoming),    backgroundColor:"#0891b2", borderRadius:4 },
+          { label:"Under Prep",  data:teamWorkloadRows.map(r=>r.underprep),   backgroundColor:"#2563eb", borderRadius:4 },
+          { label:"Rescheduled", data:teamWorkloadRows.map(r=>r.rescheduled), backgroundColor:"#c2410c", borderRadius:4 },
+          { label:"Held",        data:teamWorkloadRows.map(r=>r.held),        backgroundColor:"#15803d", borderRadius:4 },
+          { label:"Closed",      data:teamWorkloadRows.map(r=>r.closed),      backgroundColor:"#7c3aed", borderRadius:4 },
         ]
       },
       options: {
@@ -11989,9 +11991,13 @@ async function loadMyAssignedEvents(){
     }
   }
 
-  // Nav badge
+  // Nav badge — excludes cancelled to match the "Total Assigned" card definition
   const badge = document.getElementById("myEventsBadge");
-  if(badge){ badge.textContent = myList.length; badge.style.display = myList.length > 0 ? "inline-block" : "none"; }
+  if(badge){
+    const activeCount = myList.filter(p => (p.execution_status||"pending") !== "cancelled").length;
+    badge.textContent = activeCount;
+    badge.style.display = activeCount > 0 ? "inline-block" : "none";
+  }
 
   // Cache for client-side search filtering
   _pipelineMyList      = myList;
@@ -12039,10 +12045,11 @@ async function loadMyAssignedEvents(){
   }
 
   const briefEl = document.getElementById("todaysBrief");
+  const myActiveCount = myList.filter(p => (p.execution_status||"pending") !== "cancelled").length;
   if(briefEl) briefEl.innerHTML = myList.length === 0 ? "" : `
     <div class="todays-brief">
       <div class="brief-greeting">${isAdminView ? `📊 Event Overview, ${myName}! 👋` : `Good ${getTimeOfDay()}, ${myName}! 👋`}</div>
-      <div style="font-size:13px;opacity:.8;">${todayStr} · ${isAdminView ? `<strong>${myList.length}</strong> events assigned across all leads` : (hasTodayEvent ? `<strong>${nudges.length}</strong> event${nudges.length!==1?"s":""} today` : "No events today")}</div>
+      <div style="font-size:13px;opacity:.8;">${todayStr} · ${isAdminView ? `<strong>${myActiveCount}</strong> events assigned across all leads` : (hasTodayEvent ? `<strong>${nudges.length}</strong> event${nudges.length!==1?"s":""} today` : "No events today")}</div>
       <div class="brief-items">${nudges.map(n=>`<div class="brief-item ${n.cls}">${n.emoji} ${n.text}</div>`).join("")}</div>
     </div>`;
 
@@ -12050,17 +12057,20 @@ async function loadMyAssignedEvents(){
   const dashEl = document.getElementById("leadDashboard");
   if(dashEl){
     const mdUpcoming  = myList.filter(p => (p.execution_status||"pending") === "pending").length;
-    const mdUnderPrep = myList.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
+    const mdUnderPrep = myList.filter(p => (p.execution_status||"pending") === "in_progress").length;
+    const mdRescheduled = myList.filter(p => (p.execution_status||"pending") === "postponed").length;
     const mdHeld      = myList.filter(p => (p.execution_status||"pending") === "completed").length;
     const mdClosed    = myList.filter(p => (p.execution_status||"pending") === "report_submitted").length;
     const mdCancelled = myList.filter(p => (p.execution_status||"pending") === "cancelled").length;
     dashEl.innerHTML = [
-    { num: mdUpcoming + mdUnderPrep + mdHeld + mdClosed,
+    { num: mdUpcoming + mdUnderPrep + mdRescheduled + mdHeld + mdClosed,
       label:"Total Assigned",      color:"#7c3aed", icon:"📌" },
     { num: mdUpcoming,
       label:"Upcoming",            color:"#0891b2", icon:"📅" },
     { num: mdUnderPrep,
       label:"Under Preparation",   color:"#2563eb", icon:"▶️" },
+    { num: mdRescheduled,
+      label:"Rescheduled",         color:"#c2410c", icon:"⏸️" },
     { num: mdHeld,
       label:"Event Held",          color:"#15803d", icon:"🎉" },
     { num: mdClosed,
@@ -15003,13 +15013,14 @@ async function loadTeamOverview(){
     return new Date(p.proposed_date) < today;
   }).length;
 
-  // Same bucketing as Dashboard/Campus cards: Upcoming(pending) + UnderPrep(in_progress+postponed) + Held + Closed = Total Assigned
-  const teamUpcoming  = count("pending");
-  const teamUnderPrep = count("in_progress") + count("postponed");
-  const teamHeld      = count("completed");
-  const teamClosed    = count("report_submitted");
-  const teamCancelled = count("cancelled");
-  const teamTotal     = teamUpcoming + teamUnderPrep + teamHeld + teamClosed;
+  // Same bucketing as Dashboard/Campus cards: Upcoming(pending) + UnderPrep(in_progress) + Rescheduled(postponed) + Held + Closed = Total Assigned
+  const teamUpcoming    = count("pending");
+  const teamUnderPrep   = count("in_progress");
+  const teamRescheduled = count("postponed");
+  const teamHeld        = count("completed");
+  const teamClosed      = count("report_submitted");
+  const teamCancelled   = count("cancelled");
+  const teamTotal       = teamUpcoming + teamUnderPrep + teamRescheduled + teamHeld + teamClosed;
 
   // ── Summary stat cards — matches execution status buttons ──
   document.getElementById("teamStatCards").innerHTML = [
@@ -15017,6 +15028,7 @@ async function loadTeamOverview(){
     { num:teamTotal,                     label:"Total Assigned",        color:"#2563eb", icon:"📌" },
     { num:teamUpcoming,                  label:"Upcoming",              color:"#0891b2", icon:"📅" },
     { num:teamUnderPrep,                 label:"Under Preparation",     color:"#2563eb", icon:"▶️" },
+    { num:teamRescheduled,               label:"Rescheduled",           color:"#c2410c", icon:"⏸️" },
     { num:teamHeld,                      label:"Event Held",            color:"#15803d", icon:"🎉" },
     { num:teamClosed,                    label:"Event Closed",          color:"#7c3aed", icon:"🔒" },
     { num:teamCancelled,                 label:"Cancelled",             color:"#b91c1c", icon:"🚫" },
@@ -15046,10 +15058,11 @@ async function loadTeamOverview(){
         return da.localeCompare(db); // closest date first
       });
     const upcoming = myEvents.filter(p => (p.execution_status||"pending") === "pending").length;
-    const prep     = myEvents.filter(p => ["in_progress","postponed"].includes(p.execution_status||"pending")).length;
+    const prep     = myEvents.filter(p => (p.execution_status||"pending") === "in_progress").length;
+    const rescheduled = myEvents.filter(p => (p.execution_status||"pending") === "postponed").length;
     const held     = myEvents.filter(p => (p.execution_status||"pending") === "completed").length;
     const closed   = myEvents.filter(p => (p.execution_status||"pending") === "report_submitted").length;
-    const assignedTotal = upcoming + prep + held + closed; // matches Total Assigned definition (Cancelled excluded)
+    const assignedTotal = upcoming + prep + rescheduled + held + closed; // matches Total Assigned definition (Cancelled excluded)
     const overdue  = myEvents.filter(p => {
       if(!p.proposed_date || DONE.includes(p.execution_status||"pending")) return false;
       return new Date(p.proposed_date) < today;
@@ -15088,6 +15101,7 @@ async function loadTeamOverview(){
             <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">📌 ${assignedTotal}</span>
             ${upcoming> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#ecfeff;color:#0891b2;">📅 ${upcoming}</span>` : ""}
             ${prep   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#eff6ff;color:#2563eb;">▶️ ${prep}</span>` : ""}
+            ${rescheduled > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fff7ed;color:#c2410c;">⏸️ ${rescheduled}</span>` : ""}
             ${held   > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f0fdf4;color:#15803d;">🎉 ${held}</span>` : ""}
             ${closed > 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#f5f3ff;color:#7c3aed;">🔒 ${closed}</span>` : ""}
             ${overdue> 0 ? `<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#fef2f2;color:#dc2626;">⚠️ ${overdue} overdue</span>` : ""}
