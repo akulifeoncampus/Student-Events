@@ -12283,7 +12283,7 @@ function pipelineCard(p, today, isMine = true){
   const notesHtml = `
     <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e5e7eb;">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px;">📝 Lead Notes</div>
-      ${isMine ? `
+      ${canUpdateStatus ? `
         <textarea id="note-${p.id}"
           style="width:100%;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;resize:vertical;min-height:60px;outline:none;"
           onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='#e5e7eb'"
