@@ -13432,6 +13432,7 @@ function handleCSVUpload(input){
     header: true,
     skipEmptyLines: true,
     complete: async (res) => {
+      try {
       if(!res.data.length){ statusEl.innerHTML = "❌ No data found in CSV."; return; }
 
       statusEl.innerHTML = `⏳ Importing ${res.data.length} rows…`;
@@ -13573,11 +13574,15 @@ function handleCSVUpload(input){
         if(eventsWithLead.length){
           statusEl.innerHTML = `⏳ Syncing ${eventsWithLead.length} events to lead portal…`;
 
-          // Fetch inserted event IDs
+          // Fetch inserted event IDs — scoped to this import's campus too,
+          // since events.name is no longer globally unique (it's unique
+          // per campus now), a name could exist at more than one campus.
+          // (rows[0].campus, not importCampus, which is out of scope here.)
           const names = eventsWithLead.map(r => r.name);
           const { data: insertedEvents } = await sb.from("events")
             .select("id,name,organiser,category,campus,event_date,start_time,venue,audience,description,cover_image,assigned_lead")
-            .in("name", names);
+            .in("name", names)
+            .eq("campus", rows[0]?.campus);
 
           const eventMap = {};
           (insertedEvents||[]).forEach(e => eventMap[e.name] = e);
@@ -13642,6 +13647,10 @@ function handleCSVUpload(input){
       loadDashboard();
       buildPivotTable();
       setTimeout(() => closeModal("csvModal"), 2500);
+      } catch(err){
+        console.error("[CSV Import] Unexpected error:", err);
+        statusEl.innerHTML = `❌ Import failed unexpectedly: ${err.message || err}`;
+      }
     },
     error: () => { statusEl.innerHTML = "❌ Failed to parse CSV file."; }
   });
