@@ -2012,8 +2012,34 @@
       #changePasswordBtn { display: none; }
       .topbar-user-name { display: none; }
       .topbar-search-kbd { display: none; }
-      .topbar-search { width: 180px; }
+      .topbar-search { width: 100px; }
       .topbar-brand-name { display: none; }
+      .topbar { padding: 0 8px; gap: 0; }
+      .topbar-left { gap: 4px; }
+      .topbar-center { padding: 0 6px; }
+      .topbar-user-btn { padding: 4px; gap: 0; }
+      .topbar-divider { margin: 0 4px; }
+      .topbar-user-btn .role-badge { display: none; }
+    }
+
+    /* Even tighter phones (iPhone SE and similar, <380px) */
+    @media (max-width: 380px) {
+      .topbar-brand-icon { display: none; }
+      .topbar-search { width: 70px; }
+    }
+
+    /* Date-range filter group — stack cleanly instead of leaving the
+       arrow separator floating next to the first input while the second
+       input wraps alone onto its own line. */
+    @media (max-width: 768px) {
+      .filter-group:has(.filter-date-input) {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 6px;
+      }
+      .filter-group:has(.filter-date-input) .filter-date-input { width: 100%; box-sizing: border-box; }
+      .filter-date-separator { align-self: center; transform: rotate(90deg); }
     }
 
     /* ═══════════════════════════════════════════════════════════════
