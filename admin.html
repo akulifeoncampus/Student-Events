@@ -2919,16 +2919,9 @@
     <!-- ── Forgot Password Form ── -->
     <div id="forgotForm" style="display:none;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
-        Enter your email and we'll send you a link to reset your password.
+        To reset your password, please contact <strong>waqas.haider@aku.edu</strong> or <strong>tariq.huma@aku.edu</strong> from your email registered on the Admin Portal to get your password reset.
       </div>
-      <label class="login-label" for="forgotEmail">Email</label>
-      <input class="login-input" id="forgotEmail" type="email" placeholder="your@email.com"
-        onkeydown="if(event.key==='Enter') sendAdminResetEmail()" />
-      <button class="login-btn" id="forgotBtn" onclick="sendAdminResetEmail()">
-        Send Reset Link
-      </button>
-      <div class="login-msg" id="forgotMsg"></div>
-      <div style="text-align:center;margin-top:12px;">
+      <div style="text-align:center;margin-top:4px;">
         <a href="#" onclick="hideForgotPassword(event)"
           style="font-size:12px;color:var(--muted);text-decoration:none;">
           ← Back to sign in
@@ -5804,6 +5797,52 @@
   </div>
 </div>
 
+<!-- ── Reset Password Modal (Super Admin → Event Hub accounts) ── -->
+<div class="modal-backdrop" id="resetClubPasswordModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Reset Event Hub Password</div>
+      <button class="modal-close" onclick="closeModal('resetClubPasswordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resetClubTargetEmailInput" />
+      <div id="resetClubPasswordTarget" style="font-size:13px;color:var(--muted);margin-bottom:20px;padding:10px 14px;background:#f9fafb;border-radius:10px;"></div>
+
+      <div class="field">
+        <label>New Password *</label>
+        <div style="position:relative;">
+          <input type="password" id="resetClubNewPassword" placeholder="Enter new password" style="padding-right:44px;" />
+          <button type="button" onclick="togglePwdVisibility('resetClubNewPassword',this)"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;font-size:16px;color:var(--muted);">👁</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Confirm Password *</label>
+        <div style="position:relative;">
+          <input type="password" id="resetClubConfirmPassword" placeholder="Confirm new password" style="padding-right:44px;" />
+          <button type="button" onclick="togglePwdVisibility('resetClubConfirmPassword',this)"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;font-size:16px;color:var(--muted);">👁</button>
+        </div>
+      </div>
+
+      <!-- Password strength -->
+      <div id="resetClubPwdStrengthBar" style="height:4px;border-radius:2px;background:#e5e7eb;margin:-8px 0 16px;overflow:hidden;">
+        <div id="resetClubPwdStrengthFill" style="height:100%;width:0;transition:width .3s,background .3s;border-radius:2px;"></div>
+      </div>
+      <div id="resetClubPwdStrengthLabel" style="font-size:11px;color:var(--muted);margin-bottom:16px;"></div>
+
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400e;margin-bottom:16px;">
+        ⚠️ This account will be required to change this password on their next Event Hub login. No email will be sent — share this password with them directly.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('resetClubPasswordModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitResetClubPassword()" style="background:#c2410c;border-color:#c2410c;">🔑 Reset Password</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="changePasswordModal">
   <div class="modal" style="max-width:420px;">
     <div class="modal-header">
@@ -5849,6 +5888,16 @@
 const SUPABASE_URL = "https://dgzuqvffnbfybngoadse.supabase.co";
 const SUPABASE_KEY = "sb_publishable_77t5gCD7M620CzcMwESN-A_oAuqz6B8";
 const sbAnonKey    = SUPABASE_KEY;
+
+/* Returns the current admin's real session token when available, falling
+   back to the publishable key. Used only for calls to bright-processor
+   types that now verify super_admin server-side (invite_admin, delete_user,
+   reset_password, reset_club_password). Every other bright-processor call
+   in this file is untouched and keeps using SUPABASE_KEY directly. */
+async function authedBearer(){
+  const { data: { session } } = await sb.auth.getSession();
+  return session?.access_token || SUPABASE_KEY;
+}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     storageKey: "aku-admin-session",
@@ -11503,7 +11552,7 @@ async function addAdmin(){
   // Step 2 — Create Supabase Auth account + send email with temp password
   const res    = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await authedBearer()}` },
     body: JSON.stringify({ type: "invite_admin", user_email: email, temp_password: tempPw, role, campus }),
   });
   const result = await res.json();
@@ -11589,7 +11638,7 @@ async function doDelete(type, id){
     if(!error && adminEmail){
       await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await authedBearer()}` },
         body: JSON.stringify({ type: "delete_user", user_email: adminEmail }),
       });
     }
@@ -13425,7 +13474,7 @@ function renderClubTable(tbodyId, list, type, cols){
         <td>${c.campus ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#f0fdf4;color:#15803d;">${esc(c.campus)}</span>` : "—"}</td>
         <td>${esc(c.reviewed_by || "—")}</td>
         <td><div class="td-actions">
-          <button class="btn btn-secondary btn-sm" onclick="sendClubPasswordReset('${esc(c.email)}','${esc(c.club_name)}')">🔑 Reset Password</button>
+          <button class="btn btn-secondary btn-sm" onclick="openClubResetPasswordModal('${esc(c.email)}','${esc(c.club_name)}')">🔑 Reset Password</button>
           <button class="btn btn-danger btn-sm" onclick="revokeClub('${c.id}','${esc(c.club_name)}')">Revoke</button>
         </div></td>
       </tr>`;
@@ -13520,12 +13569,67 @@ async function confirmRejectClub(){
   loadClubApprovals();
 }
 
+// NOTE: sendClubPasswordReset (below) is the old email-based flow.
+// It is no longer called from the UI — the Reset Password button now opens
+// openClubResetPasswordModal instead. Left in place, unused, rather than
+// deleted, to avoid touching working code paths unnecessarily.
 async function sendClubPasswordReset(email, clubName){
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin + "/Student-Events/event-hub.html"
   });
   if(error){ showToast("Failed: " + error.message, "error"); return; }
   showToast(`🔑 Password reset email sent to ${clubName}`);
+}
+
+/* ══ RESET PASSWORD (Super Admin → Event Hub accounts) ══ */
+function openClubResetPasswordModal(email, clubName){
+  document.getElementById("resetClubTargetEmailInput").value = email;
+  document.getElementById("resetClubPasswordTarget").innerHTML =
+    `Resetting password for: <strong>${esc(clubName)}</strong> (${esc(email)})`;
+  document.getElementById("resetClubNewPassword").value     = "";
+  document.getElementById("resetClubConfirmPassword").value = "";
+  document.getElementById("resetClubPwdStrengthFill").style.width  = "0";
+  document.getElementById("resetClubPwdStrengthLabel").textContent = "";
+  document.getElementById("resetClubPasswordModal").classList.add("open");
+}
+
+async function submitResetClubPassword(){
+  const newPw       = document.getElementById("resetClubNewPassword").value;
+  const confirmPw    = document.getElementById("resetClubConfirmPassword").value;
+  const targetEmail = (document.getElementById("resetClubTargetEmailInput")?.value || "").trim();
+
+  if(!targetEmail)       { showToast("No target account — please close and reopen the modal", "error"); return; }
+  if(!newPw)             { showToast("Please enter a new password", "error"); return; }
+  if(newPw.length < 8)   { showToast("Password must be at least 8 characters", "error"); return; }
+  if(newPw !== confirmPw){ showToast("Passwords do not match", "error"); return; }
+
+  const btn = document.querySelector("#resetClubPasswordModal .btn-primary");
+  btn.disabled = true; btn.textContent = "Resetting…";
+  const reset = () => { btn.disabled = false; btn.textContent = "🔑 Reset Password"; };
+
+  const payload = { type: "reset_club_password", user_email: targetEmail, new_password: newPw };
+
+  try {
+    const res = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await authedBearer()}` },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+
+    if(!res.ok || result.error){
+      showToast("Failed: " + (result.error || `HTTP ${res.status}`), "error");
+      reset(); return;
+    }
+
+    showToast(`✅ Password reset for ${targetEmail}. They must change it on next Event Hub login.`);
+    reset();
+    closeModal("resetClubPasswordModal");
+  } catch(err){
+    showToast("Network error: " + err.message, "error");
+    reset();
+  }
 }
 
 async function revokeClub(id, name){
@@ -13900,7 +14004,7 @@ async function submitResetPassword(){
   try {
     const res = await fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sbAnonKey}` },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${await authedBearer()}` },
       body: JSON.stringify(payload),
     });
 
@@ -13937,6 +14041,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const labels = ["","Too weak","Weak","Fair","Strong","Very strong"];
     const fill   = document.getElementById("resetPwdStrengthFill");
     const label  = document.getElementById("resetPwdStrengthLabel");
+    fill.style.width      = (score * 20) + "%";
+    fill.style.background = colors[score] || "";
+    label.textContent     = labels[score] || "";
+    label.style.color     = colors[score] || "";
+  });
+});
+
+// Password strength indicator for club reset modal (same logic as above)
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("resetClubNewPassword");
+  if(inp) inp.addEventListener("input", () => {
+    const v = inp.value;
+    let score = 0;
+    if(v.length >= 8)              score++;
+    if(v.length >= 12)             score++;
+    if(/[A-Z]/.test(v))            score++;
+    if(/[0-9]/.test(v))            score++;
+    if(/[^A-Za-z0-9]/.test(v))    score++;
+    const colors = ["","#ef4444","#f59e0b","#eab308","#22c55e","#16a34a"];
+    const labels = ["","Too weak","Weak","Fair","Strong","Very strong"];
+    const fill   = document.getElementById("resetClubPwdStrengthFill");
+    const label  = document.getElementById("resetClubPwdStrengthLabel");
     fill.style.width      = (score * 20) + "%";
     fill.style.background = colors[score] || "";
     label.textContent     = labels[score] || "";
