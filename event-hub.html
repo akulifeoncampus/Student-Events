@@ -1347,9 +1347,9 @@
 
     <div id="forgotPasswordRow" style="display:none;margin-top:14px;padding:16px;background:#eff6ff;border-radius:12px;border:1px solid #bfdbfe;">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px;color:var(--accent);">Reset Password</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Enter your club email and we'll send you a reset link.</div>
-      <input class="login-input" id="resetEmail" type="email" placeholder="yourclub@aku.edu" style="margin-bottom:8px;" />
-      <button class="login-btn" onclick="sendPasswordReset()" style="font-size:13px;padding:10px;">Send Temporary Password</button>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+        To reset your password, please contact <strong>waqas.haider@aku.edu</strong> or <strong>tariq.huma@aku.edu</strong> from your email registered on Event-Hub to get your password reset.
+      </div>
     </div>
 
     <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted);">
@@ -4569,6 +4569,15 @@ async function submitHubNewPassword(){
   btn.disabled = true; btn.textContent = "Saving…";
   const { error } = await sb.auth.updateUser({ password: pw });
   if(error){ errEl.textContent = "❌ " + error.message; btn.disabled = false; btn.textContent = "Set Password"; return; }
+
+  // Clear the forced-change flag if it was set (manual reset by super admin).
+  // Harmless no-op for the original recovery-link path where the flag is
+  // already false.
+  const { data: { user } } = await sb.auth.getUser();
+  if(user?.email){
+    await sb.from("club_accounts").update({ must_change_password: false }).eq("email", user.email);
+  }
+
   // Password set — now load the portal
   await init();
 }
@@ -4743,6 +4752,13 @@ async function init(){
   if(session){
     const { data: clubRow } = await sb.from("club_accounts")
       .select("*").eq("email", session.user.email).single();
+
+    if(clubRow && clubRow.authorized && clubRow.must_change_password){
+      // Super admin issued a manual password reset — force a new password
+      // before letting this account into the portal.
+      showSetPasswordScreen();
+      return;
+    }
 
     if(clubRow && clubRow.authorized){
       currentSession = session;
