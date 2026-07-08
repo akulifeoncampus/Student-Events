@@ -201,7 +201,6 @@
         <div class="progress-dot" id="dot5"></div>
         <div class="progress-dot" id="dot6"></div>
         <div class="progress-dot" id="dot7"></div>
-        <div class="progress-dot" id="dot8" style="display:none;"></div>
       </div>
 
       <!-- Step 1: Who are you? -->
@@ -450,6 +449,8 @@ let deviceFingerprint = null;
 let doneKey    = null;
 let customQuestions   = [];   // department-defined attendance questions for this event
 let corePayloadPending = null; // fixed-field payload, held while custom questions are answered
+let customQuestionIndex   = 0;  // which custom question is currently shown
+let customQuestionAnswers = {}; // accumulated answers as the person moves through custom questions
 
 /* ══════════════════════════════════════════════════════════════
    DEVICE ID HELPERS
@@ -578,8 +579,18 @@ function setCookie(name, value, days){
     if(cqRes.ok) customQuestions = await cqRes.json();
   } catch(e){ console.warn("Could not load custom questions:", e); customQuestions = []; }
   if(customQuestions.length > 0){
-    const dot8 = document.getElementById("dot8");
-    if(dot8) dot8.style.display = "block";
+    const progressBar = document.querySelector(".progress");
+    customQuestions.forEach((_, i) => {
+      const dot = document.createElement("div");
+      dot.className = "progress-dot";
+      dot.id = `dot${8 + i}`;
+      progressBar.appendChild(dot);
+    });
+    progressBar.setAttribute("aria-valuemax", 7 + customQuestions.length);
+    // Step 7's button no longer checks anyone in directly when custom
+    // questions follow it — relabel so it doesn't overclaim.
+    const submitBtn = document.getElementById("btnSubmit");
+    if(submitBtn) submitBtn.textContent = "Next →";
   }
 
   // 10. Show the form
@@ -607,7 +618,7 @@ function showInactive(msg, title){
    STEP NAVIGATION
 ══════════════════════════════════════════════════════════════ */
 function updateDots(step){
-  const total = customQuestions.length > 0 ? 8 : 7;
+  const total = 7 + customQuestions.length;
   for(let i = 1; i <= total; i++){
     const dot = document.getElementById(`dot${i}`);
     if(!dot) continue;
@@ -832,58 +843,77 @@ function showCustomQuestionsStep(){
     const el = document.getElementById(`step${i}`);
     if(el) el.style.display = "none";
   });
+  customQuestionIndex   = 0;
+  customQuestionAnswers = {};
   renderCustomQuestionsScreen();
   document.getElementById("stepCustom").style.display = "block";
   updateDots(8);
 }
 
 function backFromCustomQuestions(){
-  document.getElementById("stepCustom").style.display = "none";
-  if(attendeeType === "student"){ showStep(7); } else { goToStep1(); }
+  if(customQuestionIndex === 0){
+    document.getElementById("stepCustom").style.display = "none";
+    if(attendeeType === "student"){ showStep(7); } else { goToStep1(); }
+    return;
+  }
+  customQuestionIndex--;
+  renderCustomQuestionsScreen();
+  updateDots(7 + customQuestionIndex + 1);
 }
 
 function renderCustomQuestionsScreen(){
-  const el = document.getElementById("stepCustom");
-  const fields = customQuestions.map((q, idx) => {
-    const reqMark = q.required ? ` <span style="color:#dc2626;">*</span>` : "";
-    const desc = q.question_description
-      ? `<div style="font-size:11px;color:#6b7280;margin-bottom:8px;">${escHtml(q.question_description)}</div>` : "";
-    let control = "";
-    if(q.question_type === "mcq" || q.question_type === "likert"){
-      const opts = (q.options || []).map(o => `<option value="${escHtml(o)}">${escHtml(o)}</option>`).join("");
-      control = `<select class="field-select" id="cqAns-${idx}"><option value="">— Select —</option>${opts}</select>`;
-    } else if(q.question_type === "rating"){
-      const opts = [1,2,3,4,5].map(n => `<option value="${n}">${n}</option>`).join("");
-      control = `<select class="field-select" id="cqAns-${idx}"><option value="">— Select a rating —</option>${opts}</select>`;
-    } else {
-      control = `<input class="field-input" type="text" id="cqAns-${idx}" maxlength="300">`;
-    }
-    return `<div class="field-group">
-      <label class="field-label" for="cqAns-${idx}">${escHtml(q.question_text)}${reqMark}</label>
-      ${desc}
-      ${control}
-    </div>`;
-  }).join("");
+  const el  = document.getElementById("stepCustom");
+  const q   = customQuestions[customQuestionIndex];
+  const isLast = customQuestionIndex === customQuestions.length - 1;
+
+  const reqMark = q.required ? ` <span style="color:#dc2626;">*</span>` : "";
+  const desc = q.question_description
+    ? `<div style="font-size:12px;color:#6b7280;margin-bottom:12px;">${escHtml(q.question_description)}</div>` : "";
+
+  let control = "";
+  if(q.question_type === "mcq" || q.question_type === "likert"){
+    const opts = (q.options || []).map(o => `<option value="${escHtml(o)}">${escHtml(o)}</option>`).join("");
+    control = `<select class="field-select" id="cqAns"><option value="">— Select —</option>${opts}</select>`;
+  } else if(q.question_type === "rating"){
+    const opts = [1,2,3,4,5].map(n => `<option value="${n}">${n}</option>`).join("");
+    control = `<select class="field-select" id="cqAns"><option value="">— Select a rating —</option>${opts}</select>`;
+  } else {
+    control = `<input class="field-input" type="text" id="cqAns" maxlength="300">`;
+  }
 
   el.innerHTML = `
-    <div class="step-label">A few more questions</div>
-    <div class="step-question">From the event organiser</div>
-    ${fields}
-    <button class="btn-primary" onclick="finishCheckinWithCustomAnswers()" id="btnCustomSubmit">Check In ✓</button>
+    <div class="step-label">Question ${customQuestionIndex + 1} of ${customQuestions.length}</div>
+    <div class="step-question">${escHtml(q.question_text)}${reqMark}</div>
+    ${desc}
+    <div class="field-group">${control}</div>
+    <button class="btn-primary" onclick="${isLast ? "finishCheckinWithCustomAnswers()" : "goToNextCustomQuestion()"}" id="btnCustomNext">${isLast ? "Check In ✓" : "Next →"}</button>
     <button class="btn-back" onclick="backFromCustomQuestions()">← Back</button>`;
+
+  const prevVal = customQuestionAnswers[q.id];
+  if(prevVal !== undefined) document.getElementById("cqAns").value = prevVal;
+}
+
+function goToNextCustomQuestion(){
+  const q = customQuestions[customQuestionIndex];
+  const field = document.getElementById("cqAns");
+  const val = field.value.trim();
+  if(q.required && !val){ field.focus(); return; }
+  if(val) customQuestionAnswers[q.id] = val; else delete customQuestionAnswers[q.id];
+
+  customQuestionIndex++;
+  renderCustomQuestionsScreen();
+  updateDots(7 + customQuestionIndex + 1);
 }
 
 async function finishCheckinWithCustomAnswers(){
-  const responses = {};
-  for(let idx = 0; idx < customQuestions.length; idx++){
-    const q = customQuestions[idx];
-    const field = document.getElementById(`cqAns-${idx}`);
-    const val = field.value.trim();
-    if(q.required && !val){ field.focus(); return; }
-    if(val) responses[q.id] = val;
-  }
-  const payload = { ...corePayloadPending, custom_responses: Object.keys(responses).length ? responses : null };
-  const btn = document.getElementById("btnCustomSubmit");
+  const q = customQuestions[customQuestionIndex];
+  const field = document.getElementById("cqAns");
+  const val = field.value.trim();
+  if(q.required && !val){ field.focus(); return; }
+  if(val) customQuestionAnswers[q.id] = val; else delete customQuestionAnswers[q.id];
+
+  const payload = { ...corePayloadPending, custom_responses: Object.keys(customQuestionAnswers).length ? customQuestionAnswers : null };
+  const btn = document.getElementById("btnCustomNext");
   await postCheckin(payload, btn);
 }
 </script>
