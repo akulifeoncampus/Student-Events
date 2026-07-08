@@ -15307,7 +15307,7 @@ async function subscribeStaffPush(){
       endpoint:  j.endpoint,
       p256dh:    j.keys.p256dh,
       auth:      j.keys.auth,
-    }, { onConflict: "endpoint" });
+    }, { onConflict: "endpoint,recipient" });
     return sub;
   } catch(e){
     console.warn("[Push] Staff subscribe failed:", e);
