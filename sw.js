@@ -140,7 +140,16 @@ self.addEventListener("push", event => {
     data:  { url: data.url || "/index.html" },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    // If the person already has this app open and focused, the in-page
+    // realtime listener is already handling this event with an in-page
+    // toast + sound — an OS popup on top of that would be a duplicate.
+    // Only show the native notification when no focused tab has the app open.
+    const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const hasFocusedClient = clientList.some(c => c.focused);
+    if(hasFocusedClient) return;
+    return self.registration.showNotification(title, options);
+  })());
 });
 
 // ── Notification click: open relevant page ──
