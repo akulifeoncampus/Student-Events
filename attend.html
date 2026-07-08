@@ -205,7 +205,7 @@
 
       <!-- Step 1: Who are you? -->
       <div id="step1">
-        <div class="step-label">Step 1 of 7</div>
+        <div class="step-label" id="stepLabel1">Step 1 of 7</div>
         <div class="step-question" id="step1Question">You are a…</div>
         <div class="type-grid" role="group" aria-label="Attendee type">
           <button class="type-btn" onclick="selectType('student')" aria-label="Student">
@@ -230,7 +230,7 @@
 
       <!-- Step 2: Entity (students only) -->
       <div id="step2" style="display:none;">
-        <div class="step-label">Step 2 of 7</div>
+        <div class="step-label" id="stepLabel2">Step 2 of 7</div>
         <div class="step-question">Which faculty or school?</div>
         <div class="field-group">
           <label class="field-label" for="selEntity">Your entity</label>
@@ -244,7 +244,7 @@
 
       <!-- Step 3: Level (students only) -->
       <div id="step3" style="display:none;">
-        <div class="step-label">Step 3 of 7</div>
+        <div class="step-label" id="stepLabel3">Step 3 of 7</div>
         <div class="step-question">Your level of education?</div>
         <div class="field-group">
           <label class="field-label" for="selLevel">Level</label>
@@ -258,7 +258,7 @@
 
       <!-- Step 4: Program (students only) -->
       <div id="step4" style="display:none;">
-        <div class="step-label">Step 4 of 7</div>
+        <div class="step-label" id="stepLabel4">Step 4 of 7</div>
         <div class="step-question">Your programme?</div>
         <div class="field-group">
           <label class="field-label" for="selProgram">Programme</label>
@@ -272,7 +272,7 @@
 
       <!-- Step 5: Gender (students only) -->
       <div id="step5" style="display:none;">
-        <div class="step-label">Step 5 of 7</div>
+        <div class="step-label" id="stepLabel5">Step 5 of 7</div>
         <div class="step-question">Your gender?</div>
         <div class="field-group">
           <label class="field-label" for="selGender">Gender</label>
@@ -289,7 +289,7 @@
 
       <!-- Step 6: Name (students only) -->
       <div id="step6" style="display:none;">
-        <div class="step-label">Step 6 of 7</div>
+        <div class="step-label" id="stepLabel6">Step 6 of 7</div>
         <div class="step-question">Your name?</div>
         <div class="field-group">
           <label class="field-label" for="inpName">Your Name</label>
@@ -301,7 +301,7 @@
 
       <!-- Step 7: Student ID (students only) -->
       <div id="step7" style="display:none;">
-        <div class="step-label">Step 7 of 7</div>
+        <div class="step-label" id="stepLabel7">Step 7 of 7</div>
         <div class="step-question">Your Student ID?</div>
         <div class="field-group">
           <label class="field-label" for="inpStudentId">Student ID</label>
@@ -591,6 +591,14 @@ function setCookie(name, value, days){
     // questions follow it — relabel so it doesn't overclaim.
     const submitBtn = document.getElementById("btnSubmit");
     if(submitBtn) submitBtn.textContent = "Next →";
+    // Core step labels are static "Step N of 7" text — correct the
+    // denominator so it matches the real total once custom questions
+    // extend the flow beyond 7.
+    const total = 7 + customQuestions.length;
+    for(let i = 1; i <= 7; i++){
+      const label = document.getElementById(`stepLabel${i}`);
+      if(label) label.textContent = `Step ${i} of ${total}`;
+    }
   }
 
   // 10. Show the form
