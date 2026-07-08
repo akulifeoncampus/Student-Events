@@ -3168,6 +3168,8 @@ function proposalCardHTML(p){
           </div>
           <div id="attend-list-${p.id}" style="display:none;margin-top:12px;max-height:320px;overflow-y:auto;" role="region" aria-label="Participant list"></div>
 
+          ${p.organiser_type === "department" ? `<div id="cq-builder-attendance-${p.id}"></div>` : ""}
+
         </div>
       </div>` : ""}
 
@@ -3208,6 +3210,8 @@ function proposalCardHTML(p){
           </div>
           <div id="fb-list-${p.id}" style="display:none;margin-top:12px;max-height:320px;overflow-y:auto;" role="region" aria-label="Feedback responses"></div>
 
+          ${p.organiser_type === "department" ? `<div id="cq-builder-feedback-${p.id}"></div>` : ""}
+
         </div>
       </div>` : ""}
 
@@ -3245,7 +3249,7 @@ function isAttendanceActive(date, time){
   const t   = (time || "00:00").substring(0, 5);
   const start = new Date(`${date}T${t}:00`);
   const now   = new Date();
-  return now >= new Date(start - 2 * 3600000) && now <= new Date(start.getTime() + 5 * 3600000);
+  return now >= new Date(start - 0.5 * 3600000) && now <= new Date(start.getTime() + 5 * 3600000);
 }
 
 function getAttendanceStatus(date, time){
@@ -3253,7 +3257,7 @@ function getAttendanceStatus(date, time){
   const t     = (time || "00:00").substring(0, 5);
   const start = new Date(`${date}T${t}:00`);
   const now   = new Date();
-  const opens = new Date(start - 2 * 3600000);
+  const opens = new Date(start - 0.5 * 3600000);
   const closes= new Date(start.getTime() + 5 * 3600000);
   if(now < opens){
     const mins = Math.round((opens - now) / 60000);
@@ -3300,6 +3304,8 @@ async function initAttendanceTab(proposalId){
   await loadAttendanceStats(proposalId);
   stopAttendancePolling();
   attendancePollInterval = setInterval(() => loadAttendanceStats(proposalId), 10000);
+
+  if(p.organiser_type === "department") initCustomQuestionsBuilder(proposalId, "attendance");
 }
 
 async function loadAttendanceStats(proposalId){
@@ -3427,6 +3433,8 @@ async function initFeedbackTab(proposalId){
   await loadFeedbackStats(proposalId);
   stopFeedbackPolling();
   feedbackPollInterval = setInterval(() => loadFeedbackStats(proposalId), 10000);
+
+  if(p.organiser_type === "department") initCustomQuestionsBuilder(proposalId, "feedback");
 }
 
 async function loadFeedbackStats(proposalId){
@@ -3608,6 +3616,241 @@ function closeFullscreenQR(){
 document.addEventListener("keydown", e => {
   if(e.key === "Escape") closeFullscreenQR();
 });
+
+/* ── CUSTOM QUESTIONS BUILDER (Department accounts only) ──────────
+   Two-layer model: fixed attendance/feedback fields stay untouched
+   and keep feeding admin.html's dashboards. This layer is additive —
+   department-defined questions stored separately and appended to
+   the check-in / feedback flow, never replacing the core fields.
+   Editable until the first response lands; then locked. ──────── */
+const CUSTOM_Q_CAP = { attendance: 3, feedback: 8 };
+const LIKERT_MAX_POINTS = 6;
+
+async function initCustomQuestionsBuilder(proposalId, formType){
+  const p = allProposals.find(x => x.id === proposalId);
+  if(!p || p.organiser_type !== "department") return;
+  const mount = document.getElementById(`cq-builder-${formType}-${proposalId}`);
+  if(!mount) return;
+
+  mount.innerHTML = `<div style="border-top:1px solid #f3f4f6;margin-top:16px;padding-top:14px;font-size:12px;color:var(--muted);text-align:center;">Loading custom questions…</div>`;
+
+  const responseTable = formType === "attendance" ? "event_attendance" : "event_feedback";
+  const { count: responseCount } = await sb.from(responseTable)
+    .select("*", { count: "exact", head: true }).eq("event_id", proposalId);
+  const hasResponses = (responseCount || 0) > 0;
+
+  const { data: questions, error } = await sb.from("event_custom_questions")
+    .select("*").eq("proposal_id", proposalId).eq("form_type", formType).order("sort_order");
+
+  if(error){
+    mount.innerHTML = `<p style="font-size:12px;color:var(--muted);text-align:center;">Could not load custom questions.</p>`;
+    return;
+  }
+
+  // Flip locked flag server-side once responses exist (idempotent, app-enforced)
+  if(hasResponses && questions.some(q => !q.locked)){
+    await sb.from("event_custom_questions").update({ locked: true })
+      .eq("proposal_id", proposalId).eq("form_type", formType);
+    questions.forEach(q => q.locked = true);
+  }
+
+  renderCustomQuestionsBuilder(proposalId, formType, questions, hasResponses);
+}
+
+function renderCustomQuestionsBuilder(proposalId, formType, questions, locked){
+  const mount = document.getElementById(`cq-builder-${formType}-${proposalId}`);
+  if(!mount) return;
+  const cap = CUSTOM_Q_CAP[formType];
+  const atCap = questions.length >= cap;
+
+  mount.innerHTML = `
+    <div style="border-top:1px solid #f3f4f6;margin-top:16px;padding-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:800;color:#000060;">Custom questions</div>
+        <div style="font-size:11px;color:var(--muted);">${questions.length} / ${cap}</div>
+      </div>
+      ${locked ? `<p style="font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:10px;">This form has responses, so questions can no longer be added, edited, or removed.</p>` : ""}
+
+      <div id="cq-list-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:8px;">
+        ${questions.map(q => customQuestionRowHTML(q, locked)).join("")}
+      </div>
+
+      ${!locked && !atCap ? `
+      <button onclick="showAddCustomQuestionForm('${proposalId}','${formType}')"
+        style="margin-top:10px;width:100%;padding:9px;background:white;color:#000060;border:1.5px dashed #c7d2fe;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+        + Add question
+      </button>` : ""}
+      ${!locked && atCap ? `<p style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Maximum of ${cap} custom questions reached.</p>` : ""}
+
+      <div id="cq-form-${formType}-${proposalId}" style="margin-top:10px;"></div>
+    </div>`;
+}
+
+function customQuestionRowHTML(q, locked){
+  const typeLabel = { text:"Text", mcq:"Multiple choice", likert:"Likert scale", rating:"Rating" }[q.question_type] || q.question_type;
+  return `
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;color:#111827;">${esc(q.question_text)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${typeLabel}${q.required ? " · Required" : " · Optional"}</div>
+          ${q.question_type === "mcq" && q.options?.length ? `<div style="font-size:10px;color:#6b7280;margin-top:4px;">${q.options.map(esc).join(" · ")}</div>` : ""}
+          ${q.question_type === "likert" && q.options?.length ? `<div style="font-size:10px;color:#6b7280;margin-top:4px;">${q.options.map(esc).join(" → ")}</div>` : ""}
+        </div>
+        ${!locked ? `<button onclick="deleteCustomQuestion('${q.id}','${q.proposal_id}','${q.form_type}')"
+          aria-label="Delete question" style="background:none;border:none;color:#b91c1c;font-size:14px;cursor:pointer;padding:2px 6px;">✕</button>` : ""}
+      </div>
+    </div>`;
+}
+
+function showAddCustomQuestionForm(proposalId, formType){
+  const holder = document.getElementById(`cq-form-${formType}-${proposalId}`);
+  if(!holder) return;
+  holder.innerHTML = `
+    <div style="background:white;border:1.5px solid #c7d2fe;border-radius:10px;padding:12px;">
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Question text</label>
+        <input type="text" id="cq-text-${formType}-${proposalId}" maxlength="150"
+          style="width:100%;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;box-sizing:border-box;" />
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Question type</label>
+        <select id="cq-type-${formType}-${proposalId}" onchange="onCustomQuestionTypeChange('${proposalId}','${formType}')"
+          style="width:100%;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;">
+          <option value="text">Text</option>
+          <option value="mcq">Multiple choice</option>
+          <option value="likert">Likert scale</option>
+          <option value="rating">Rating (1–5)</option>
+        </select>
+      </div>
+      <div id="cq-typeoptions-${formType}-${proposalId}"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;margin:8px 0;">
+        <input type="checkbox" id="cq-required-${formType}-${proposalId}" /> Required
+      </label>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button onclick="saveCustomQuestion('${proposalId}','${formType}')"
+          style="flex:1;padding:9px;background:#000060;color:white;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Save question</button>
+        <button onclick="document.getElementById('cq-form-${formType}-${proposalId}').innerHTML=''"
+          style="padding:9px 14px;background:white;color:#6b7280;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Cancel</button>
+      </div>
+    </div>`;
+  onCustomQuestionTypeChange(proposalId, formType);
+}
+
+function onCustomQuestionTypeChange(proposalId, formType){
+  const type = document.getElementById(`cq-type-${formType}-${proposalId}`).value;
+  const holder = document.getElementById(`cq-typeoptions-${formType}-${proposalId}`);
+  if(type === "mcq"){
+    holder.innerHTML = `
+      <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Choices</label>
+      <div id="cq-mcqoptions-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;"></div>
+      <button type="button" onclick="addMcqOptionField('${proposalId}','${formType}')"
+        style="padding:6px 10px;background:white;color:#000060;border:1px dashed #c7d2fe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add choice</button>`;
+    addMcqOptionField(proposalId, formType);
+    addMcqOptionField(proposalId, formType);
+  } else if(type === "likert"){
+    holder.innerHTML = `
+      <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Scale labels (max ${LIKERT_MAX_POINTS})</label>
+      <div id="cq-likertoptions-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;"></div>
+      <button type="button" onclick="addLikertOptionField('${proposalId}','${formType}')"
+        style="padding:6px 10px;background:white;color:#000060;border:1px dashed #c7d2fe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add scale point</button>`;
+    addLikertOptionField(proposalId, formType);
+    addLikertOptionField(proposalId, formType);
+  } else {
+    holder.innerHTML = "";
+  }
+}
+
+function addMcqOptionField(proposalId, formType){
+  const list = document.getElementById(`cq-mcqoptions-${formType}-${proposalId}`);
+  if(!list) return;
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:6px;";
+  row.innerHTML = `
+    <input type="text" class="cq-mcq-option" maxlength="80"
+      style="flex:1;padding:7px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-family:'Poppins',sans-serif;font-size:11px;box-sizing:border-box;" />
+    <button type="button" onclick="this.parentElement.remove()"
+      style="background:none;border:none;color:#b91c1c;font-size:13px;cursor:pointer;">✕</button>`;
+  list.appendChild(row);
+}
+
+function addLikertOptionField(proposalId, formType){
+  const list = document.getElementById(`cq-likertoptions-${formType}-${proposalId}`);
+  if(!list) return;
+  if(list.querySelectorAll(".cq-likert-option").length >= LIKERT_MAX_POINTS){
+    showToast(`Likert scale is capped at ${LIKERT_MAX_POINTS} points`, "error");
+    return;
+  }
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:6px;";
+  row.innerHTML = `
+    <input type="text" class="cq-likert-option" maxlength="40"
+      style="flex:1;padding:7px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-family:'Poppins',sans-serif;font-size:11px;box-sizing:border-box;" />
+    <button type="button" onclick="this.parentElement.remove()"
+      style="background:none;border:none;color:#b91c1c;font-size:13px;cursor:pointer;">✕</button>`;
+  list.appendChild(row);
+}
+
+async function saveCustomQuestion(proposalId, formType){
+  const text = document.getElementById(`cq-text-${formType}-${proposalId}`).value.trim();
+  const type = document.getElementById(`cq-type-${formType}-${proposalId}`).value;
+  const required = document.getElementById(`cq-required-${formType}-${proposalId}`).checked;
+
+  if(!text){ showToast("Question text is required", "error"); return; }
+
+  let options = null;
+  if(type === "mcq"){
+    options = [...document.querySelectorAll(`#cq-mcqoptions-${formType}-${proposalId} .cq-mcq-option`)]
+      .map(i => i.value.trim()).filter(Boolean);
+    if(options.length < 2){ showToast("Add at least 2 choices", "error"); return; }
+  } else if(type === "likert"){
+    options = [...document.querySelectorAll(`#cq-likertoptions-${formType}-${proposalId} .cq-likert-option`)]
+      .map(i => i.value.trim()).filter(Boolean);
+    if(options.length < 2){ showToast("Add at least 2 scale labels", "error"); return; }
+    if(options.length > LIKERT_MAX_POINTS){ showToast(`Likert scale is capped at ${LIKERT_MAX_POINTS} points`, "error"); return; }
+  }
+
+  // Re-check cap and lock state server-side (guards against two tabs open at once)
+  const responseTable = formType === "attendance" ? "event_attendance" : "event_feedback";
+  const { count: responseCount } = await sb.from(responseTable)
+    .select("*", { count: "exact", head: true }).eq("event_id", proposalId);
+  if((responseCount || 0) > 0){
+    showToast("This form already has responses and is locked", "error");
+    initCustomQuestionsBuilder(proposalId, formType);
+    return;
+  }
+  const { count } = await sb.from("event_custom_questions")
+    .select("*", { count: "exact", head: true }).eq("proposal_id", proposalId).eq("form_type", formType);
+  if((count || 0) >= CUSTOM_Q_CAP[formType]){
+    showToast(`Maximum of ${CUSTOM_Q_CAP[formType]} custom questions reached`, "error");
+    initCustomQuestionsBuilder(proposalId, formType);
+    return;
+  }
+
+  const { error } = await sb.from("event_custom_questions").insert({
+    proposal_id:   proposalId,
+    form_type:     formType,
+    question_text: text,
+    question_type: type,
+    options,
+    required,
+    sort_order:    count || 0
+  });
+
+  if(error){ showToast("Failed to save question: " + error.message, "error"); return; }
+
+  showToast("Question added ✨");
+  initCustomQuestionsBuilder(proposalId, formType);
+}
+
+async function deleteCustomQuestion(id, proposalId, formType){
+  if(!confirm("Delete this question?")) return;
+  const { error } = await sb.from("event_custom_questions").delete().eq("id", id);
+  if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
+  showToast("Question deleted");
+  initCustomQuestionsBuilder(proposalId, formType);
+}
+
 async function downloadAttendanceExcel(proposalId){
   const btn = document.querySelector(`#attend-stats-${proposalId} .att-download-btn`);
   if(btn){ btn.disabled = true; btn.textContent = "⏳ Preparing…"; }
