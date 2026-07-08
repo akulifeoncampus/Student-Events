@@ -3686,19 +3686,46 @@ function renderCustomQuestionsBuilder(proposalId, formType, questions, locked){
     </div>`;
 }
 
+const CQ_TRASH_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>`;
+
 function customQuestionRowHTML(q, locked){
-  const typeLabel = { text:"Text", mcq:"Multiple choice", likert:"Likert scale", rating:"Rating" }[q.question_type] || q.question_type;
+  const typeIcon = { text:"✎", mcq:"◉", likert:"◉", rating:"★" }[q.question_type] || "";
+  const typeLabel = { text:"Text", mcq:"Multiple choice", likert:"Likert scale", rating:"Rating (1–5)" }[q.question_type] || q.question_type;
+
+  let previewHtml = "";
+  if(q.question_type === "mcq" && q.options?.length){
+    previewHtml = `<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      ${q.options.map(o => `<div style="display:flex;align-items:center;gap:10px;color:#9ca3af;">
+        <span style="width:16px;height:16px;border:1.5px solid #d1d5db;border-radius:50%;flex-shrink:0;"></span>
+        <span style="font-size:12px;color:#4b5563;">${esc(o)}</span>
+      </div>`).join("")}
+    </div>`;
+  } else if(q.question_type === "likert" && q.options?.length){
+    previewHtml = `<div style="display:flex;justify-content:space-between;gap:6px;margin-top:14px;">
+      ${q.options.map(o => `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;">
+        <span style="width:14px;height:14px;border:1.5px solid #d1d5db;border-radius:50%;"></span>
+        <span style="font-size:9px;color:#9ca3af;text-align:center;line-height:1.3;">${esc(o)}</span>
+      </div>`).join("")}
+    </div>`;
+  } else if(q.question_type === "rating"){
+    previewHtml = `<div style="display:flex;gap:4px;margin-top:12px;color:#d1d5db;font-size:16px;">★★★★★</div>`;
+  } else if(q.question_type === "text"){
+    previewHtml = `<div style="margin-top:12px;padding-bottom:6px;border-bottom:1px solid #e5e7eb;width:60%;"><span style="font-size:12px;color:#9ca3af;font-style:italic;">Short answer text</span></div>`;
+  }
+
   return `
-    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;color:#111827;">${esc(q.question_text)}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${typeLabel}${q.required ? " · Required" : " · Optional"}</div>
-          ${q.question_type === "mcq" && q.options?.length ? `<div style="font-size:10px;color:#6b7280;margin-top:4px;">${q.options.map(esc).join(" · ")}</div>` : ""}
-          ${q.question_type === "likert" && q.options?.length ? `<div style="font-size:10px;color:#6b7280;margin-top:4px;">${q.options.map(esc).join(" → ")}</div>` : ""}
-        </div>
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#000060;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="font-size:14px;font-weight:700;color:#111827;line-height:1.4;">${esc(q.question_text)}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0;">${typeIcon} ${typeLabel}</div>
+      </div>
+      ${previewHtml}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid #f3f4f6;">
+        <span style="font-size:11px;color:var(--muted);">${q.required ? "Required" : "Optional"}</span>
         ${!locked ? `<button onclick="deleteCustomQuestion('${q.id}','${q.proposal_id}','${q.form_type}')"
-          aria-label="Delete question" style="background:none;border:none;color:#b91c1c;font-size:14px;cursor:pointer;padding:2px 6px;">✕</button>` : ""}
+          aria-label="Delete question" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:4px;display:flex;align-items:center;transition:color .15s;"
+          onmouseover="this.style.color='#b91c1c'" onmouseout="this.style.color='#9ca3af'">${CQ_TRASH_ICON}</button>` : ""}
       </div>
     </div>`;
 }
@@ -3707,31 +3734,42 @@ function showAddCustomQuestionForm(proposalId, formType){
   const holder = document.getElementById(`cq-form-${formType}-${proposalId}`);
   if(!holder) return;
   holder.innerHTML = `
-    <div style="background:white;border:1.5px solid #c7d2fe;border-radius:10px;padding:12px;">
-      <div style="margin-bottom:8px;">
-        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Question text</label>
-        <input type="text" id="cq-text-${formType}-${proposalId}" maxlength="150"
-          style="width:100%;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;box-sizing:border-box;" />
-      </div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Question type</label>
+    <div style="background:white;border:1px solid #e5e7eb;border-left:4px solid #2563eb;border-radius:12px;padding:18px;">
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px;">
+        <div style="flex:1;">
+          <input type="text" id="cq-text-${formType}-${proposalId}" maxlength="150" placeholder="Untitled question"
+            style="width:100%;padding:6px 2px 10px;border:none;border-bottom:1.5px solid #e5e7eb;font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;color:#111827;box-sizing:border-box;outline:none;background:transparent;"
+            onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#e5e7eb'" />
+        </div>
         <select id="cq-type-${formType}-${proposalId}" onchange="onCustomQuestionTypeChange('${proposalId}','${formType}')"
-          style="width:100%;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;">
-          <option value="text">Text</option>
-          <option value="mcq">Multiple choice</option>
-          <option value="likert">Likert scale</option>
-          <option value="rating">Rating (1–5)</option>
+          style="padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;color:#111827;background:white;flex-shrink:0;">
+          <option value="text">✎ Text</option>
+          <option value="mcq">◉ Multiple choice</option>
+          <option value="likert">◉ Likert scale</option>
+          <option value="rating">★ Rating (1–5)</option>
         </select>
       </div>
+
       <div id="cq-typeoptions-${formType}-${proposalId}"></div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;margin:8px 0;">
-        <input type="checkbox" id="cq-required-${formType}-${proposalId}" /> Required
-      </label>
-      <div style="display:flex;gap:8px;margin-top:6px;">
-        <button onclick="saveCustomQuestion('${proposalId}','${formType}')"
-          style="flex:1;padding:9px;background:#000060;color:white;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Save question</button>
-        <button onclick="document.getElementById('cq-form-${formType}-${proposalId}').innerHTML=''"
-          style="padding:9px 14px;background:white;color:#6b7280;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Cancel</button>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid #f3f4f6;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#374151;font-weight:600;cursor:pointer;">
+          <span style="position:relative;display:inline-block;width:34px;height:19px;">
+            <input type="checkbox" id="cq-required-${formType}-${proposalId}" style="opacity:0;width:0;height:0;position:absolute;"
+              onchange="document.getElementById('cq-required-track-${formType}-${proposalId}').style.background=this.checked?'#000060':'#d1d5db'; document.getElementById('cq-required-knob-${formType}-${proposalId}').style.left=this.checked?'17px':'2px';" />
+            <span id="cq-required-track-${formType}-${proposalId}" onclick="const c=this.previousElementSibling;c.checked=!c.checked;c.dispatchEvent(new Event('change'));"
+              style="position:absolute;inset:0;background:#d1d5db;border-radius:999px;cursor:pointer;transition:background .15s;"></span>
+            <span id="cq-required-knob-${formType}-${proposalId}"
+              style="position:absolute;top:2px;left:2px;width:15px;height:15px;background:white;border-radius:50%;transition:left .15s;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.2);"></span>
+          </span>
+          Required
+        </label>
+        <div style="display:flex;gap:8px;">
+          <button onclick="document.getElementById('cq-form-${formType}-${proposalId}').innerHTML=''"
+            style="padding:8px 16px;background:white;color:#6b7280;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Cancel</button>
+          <button onclick="saveCustomQuestion('${proposalId}','${formType}')"
+            style="padding:8px 18px;background:#000060;color:white;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Save question</button>
+        </div>
       </div>
     </div>`;
   onCustomQuestionTypeChange(proposalId, formType);
@@ -3742,22 +3780,30 @@ function onCustomQuestionTypeChange(proposalId, formType){
   const holder = document.getElementById(`cq-typeoptions-${formType}-${proposalId}`);
   if(type === "mcq"){
     holder.innerHTML = `
-      <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Choices</label>
-      <div id="cq-mcqoptions-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;"></div>
-      <button type="button" onclick="addMcqOptionField('${proposalId}','${formType}')"
-        style="padding:6px 10px;background:white;color:#000060;border:1px dashed #c7d2fe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add choice</button>`;
+      <div id="cq-mcqoptions-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+        <span style="width:16px;height:16px;border:1.5px solid #d1d5db;border-radius:50%;flex-shrink:0;"></span>
+        <button type="button" onclick="addMcqOptionField('${proposalId}','${formType}')"
+          style="background:none;border:none;color:#2563eb;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Add option</button>
+      </div>`;
     addMcqOptionField(proposalId, formType);
     addMcqOptionField(proposalId, formType);
   } else if(type === "likert"){
     holder.innerHTML = `
-      <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:4px;">Scale labels (max ${LIKERT_MAX_POINTS})</label>
-      <div id="cq-likertoptions-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;"></div>
-      <button type="button" onclick="addLikertOptionField('${proposalId}','${formType}')"
-        style="padding:6px 10px;background:white;color:#000060;border:1px dashed #c7d2fe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">+ Add scale point</button>`;
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Scale labels, left to right (max ${LIKERT_MAX_POINTS})</div>
+      <div id="cq-likertoptions-${formType}-${proposalId}" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+        <span style="width:14px;height:14px;border:1.5px solid #d1d5db;border-radius:50%;flex-shrink:0;"></span>
+        <button type="button" onclick="addLikertOptionField('${proposalId}','${formType}')"
+          style="background:none;border:none;color:#2563eb;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Add scale point</button>
+      </div>`;
     addLikertOptionField(proposalId, formType);
     addLikertOptionField(proposalId, formType);
+  } else if(type === "rating"){
+    holder.innerHTML = `<div style="display:flex;gap:4px;color:#d1d5db;font-size:20px;margin-top:4px;">★★★★★</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Fixed 1–5 star scale</div>`;
   } else {
-    holder.innerHTML = "";
+    holder.innerHTML = `<div style="padding-bottom:6px;border-bottom:1px solid #e5e7eb;width:60%;margin-top:4px;"><span style="font-size:12px;color:#9ca3af;font-style:italic;">Short answer text</span></div>`;
   }
 }
 
@@ -3765,12 +3811,14 @@ function addMcqOptionField(proposalId, formType){
   const list = document.getElementById(`cq-mcqoptions-${formType}-${proposalId}`);
   if(!list) return;
   const row = document.createElement("div");
-  row.style.cssText = "display:flex;gap:6px;";
+  row.style.cssText = "display:flex;align-items:center;gap:10px;";
   row.innerHTML = `
-    <input type="text" class="cq-mcq-option" maxlength="80"
-      style="flex:1;padding:7px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-family:'Poppins',sans-serif;font-size:11px;box-sizing:border-box;" />
-    <button type="button" onclick="this.parentElement.remove()"
-      style="background:none;border:none;color:#b91c1c;font-size:13px;cursor:pointer;">✕</button>`;
+    <span style="width:16px;height:16px;border:1.5px solid #d1d5db;border-radius:50%;flex-shrink:0;"></span>
+    <input type="text" class="cq-mcq-option" maxlength="80" placeholder="Option"
+      style="flex:1;padding:6px 2px;border:none;border-bottom:1px solid #e5e7eb;font-family:'Poppins',sans-serif;font-size:12px;box-sizing:border-box;outline:none;"
+      onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#e5e7eb'" />
+    <button type="button" onclick="this.parentElement.remove()" aria-label="Remove option"
+      style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:2px;display:flex;">${CQ_TRASH_ICON}</button>`;
   list.appendChild(row);
 }
 
@@ -3782,12 +3830,14 @@ function addLikertOptionField(proposalId, formType){
     return;
   }
   const row = document.createElement("div");
-  row.style.cssText = "display:flex;gap:6px;";
+  row.style.cssText = "display:flex;align-items:center;gap:10px;";
   row.innerHTML = `
-    <input type="text" class="cq-likert-option" maxlength="40"
-      style="flex:1;padding:7px 9px;border:1.5px solid #e5e7eb;border-radius:6px;font-family:'Poppins',sans-serif;font-size:11px;box-sizing:border-box;" />
-    <button type="button" onclick="this.parentElement.remove()"
-      style="background:none;border:none;color:#b91c1c;font-size:13px;cursor:pointer;">✕</button>`;
+    <span style="width:14px;height:14px;border:1.5px solid #d1d5db;border-radius:50%;flex-shrink:0;"></span>
+    <input type="text" class="cq-likert-option" maxlength="40" placeholder="Scale label, e.g. Strongly agree"
+      style="flex:1;padding:6px 2px;border:none;border-bottom:1px solid #e5e7eb;font-family:'Poppins',sans-serif;font-size:12px;box-sizing:border-box;outline:none;"
+      onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#e5e7eb'" />
+    <button type="button" onclick="this.parentElement.remove()" aria-label="Remove scale point"
+      style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:2px;display:flex;">${CQ_TRASH_ICON}</button>`;
   list.appendChild(row);
 }
 
