@@ -4223,6 +4223,31 @@ async function loadCardMessages(proposalId){
   container.scrollTop = container.scrollHeight;
 }
 
+// Resolves who should be notified about a message on this proposal.
+// Department accounts route to Super Admin only (matches the approval
+// routing already in place at signup). Club/individual accounts route to
+// admins scoped to the proposal's campus (or admins with "All" campus
+// access), plus the assigned event lead if one exists. Super admins always
+// see everything regardless of campus.
+async function resolveProposalMessageRecipients(p){
+  if(currentClub?.account_type === "department"){
+    const { data: supers } = await sb.from("admins").select("email").eq("role", "super_admin");
+    return (supers || []).map(a => a.email);
+  }
+
+  const { data: admins } = await sb.from("admins").select("email, role, permissions").in("role", ["admin","super_admin"]);
+  const recipients = (admins || [])
+    .filter(a => {
+      if(a.role === "super_admin") return true;
+      const campusList = a.permissions?.campus || ["All"];
+      return campusList.includes("All") || campusList.includes(p.campus);
+    })
+    .map(a => a.email);
+
+  if(p.assigned_to && !recipients.includes(p.assigned_to)) recipients.push(p.assigned_to);
+  return recipients;
+}
+
 async function sendCardReply(proposalId){
   const textarea = document.getElementById(`thread-reply-${proposalId}`);
   const text = textarea?.value.trim();
@@ -4238,14 +4263,7 @@ async function sendCardReply(proposalId){
 
   const p = allProposals.find(x => x.id === proposalId);
   if(p){
-    // Notify admins + super admins
-    const { data: admins } = await sb.from("admins").select("email").in("role",["admin","super_admin"]);
-    const recipients = (admins || []).map(a => a.email);
-
-    // Also notify assigned event lead
-    if(p.assigned_to && !recipients.includes(p.assigned_to)){
-      recipients.push(p.assigned_to);
-    }
+    const recipients = await resolveProposalMessageRecipients(p);
 
     if(recipients.length){
       await sb.from("notifications").insert(recipients.map(email => ({
@@ -4379,9 +4397,7 @@ async function sendHubReply(proposalId){
 
   const p = allProposals.find(x => x.id === proposalId);
   if(p){
-    const { data: admins } = await sb.from("admins").select("email").in("role",["admin","super_admin"]);
-    const recipients = (admins || []).map(a => a.email);
-    if(p.assigned_to && !recipients.includes(p.assigned_to)) recipients.push(p.assigned_to);
+    const recipients = await resolveProposalMessageRecipients(p);
     if(recipients.length){
       await sb.from("notifications").insert(recipients.map(email => ({
         recipient: email, type: "proposal_message",
