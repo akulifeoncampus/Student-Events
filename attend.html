@@ -201,6 +201,7 @@
         <div class="progress-dot" id="dot5"></div>
         <div class="progress-dot" id="dot6"></div>
         <div class="progress-dot" id="dot7"></div>
+        <div class="progress-dot" id="dot8" style="display:none;"></div>
       </div>
 
       <!-- Step 1: Who are you? -->
@@ -310,6 +311,9 @@
         <button class="btn-primary" onclick="submitCheckin()" id="btnSubmit">Check In ✓</button>
         <button class="btn-back" onclick="goToStep6()">← Back</button>
       </div>
+
+      <!-- Step 8: Department custom questions (only rendered when present) -->
+      <div id="stepCustom" style="display:none;"></div>
 
     </div>
   </section>
@@ -444,6 +448,8 @@ let eventData  = null;
 let attendeeType = null;
 let deviceFingerprint = null;
 let doneKey    = null;
+let customQuestions   = [];   // department-defined attendance questions for this event
+let corePayloadPending = null; // fixed-field payload, held while custom questions are answered
 
 /* ══════════════════════════════════════════════════════════════
    DEVICE ID HELPERS
@@ -564,6 +570,18 @@ function setCookie(name, value, days){
   // 9. Populate entity dropdown for this campus
   populateEntities(event.campus);
 
+  // 9b. Load department custom questions for this event, if any
+  try {
+    const cqRes = await fetch(`${SUPABASE_URL}/rest/v1/event_custom_questions?proposal_id=eq.${eventId}&form_type=eq.attendance&order=sort_order`, {
+      headers: { "apikey": SUPABASE_KEY }
+    });
+    if(cqRes.ok) customQuestions = await cqRes.json();
+  } catch(e){ console.warn("Could not load custom questions:", e); customQuestions = []; }
+  if(customQuestions.length > 0){
+    const dot8 = document.getElementById("dot8");
+    if(dot8) dot8.style.display = "block";
+  }
+
   // 10. Show the form
   showScreen("screenForm");
 })();
@@ -589,13 +607,16 @@ function showInactive(msg, title){
    STEP NAVIGATION
 ══════════════════════════════════════════════════════════════ */
 function updateDots(step){
-  [1,2,3,4,5,6,7].forEach(i => {
+  const total = customQuestions.length > 0 ? 8 : 7;
+  for(let i = 1; i <= total; i++){
     const dot = document.getElementById(`dot${i}`);
+    if(!dot) continue;
     dot.classList.remove("active","done");
     if(i < step)  dot.classList.add("done");
     if(i === step) dot.classList.add("active");
-  });
+  }
 }
+function escHtml(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 function showStep(n){
   [1,2,3,4,5,6,7].forEach(i => {
@@ -730,7 +751,6 @@ goToStep4 = function(){
 ══════════════════════════════════════════════════════════════ */
 async function submitCheckin(){
   const btn = document.getElementById("btnSubmit") || document.querySelector(".btn-primary");
-  if(btn){ btn.disabled = true; btn.textContent = "Checking in…"; }
 
   const entity     = attendeeType === "student" ? document.getElementById("selEntity").value     : null;
   const level      = attendeeType === "student" ? document.getElementById("selLevel").value       : null;
@@ -740,7 +760,6 @@ async function submitCheckin(){
   const studentId  = attendeeType === "student" ? document.getElementById("inpStudentId").value.trim() : null;
 
   if(attendeeType === "student" && (!entity || !level || !program || !gender || !studentName || !studentId)){
-    if(btn){ btn.disabled = false; btn.textContent = "Check In ✓"; }
     return;
   }
 
@@ -758,6 +777,19 @@ async function submitCheckin(){
     device_hash:     deviceFingerprint,
   };
 
+  // Department events with custom questions: hold the core payload and
+  // route to the additional-questions screen instead of submitting yet.
+  if(customQuestions.length > 0){
+    corePayloadPending = payload;
+    showCustomQuestionsStep();
+    return;
+  }
+
+  await postCheckin(payload, btn);
+}
+
+async function postCheckin(payload, btn){
+  if(btn){ btn.disabled = true; btn.textContent = "Checking in…"; }
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/event_attendance`, {
       method:  "POST",
@@ -786,6 +818,71 @@ async function submitCheckin(){
     alert("Could not submit. Please try again or check your internet connection.");
     console.error("Check-in error:", e);
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DEPARTMENT CUSTOM QUESTIONS SCREEN
+   Shown after the core flow (or immediately after type selection for
+   faculty/staff/guests) only when this event has custom questions.
+══════════════════════════════════════════════════════════════ */
+function showCustomQuestionsStep(){
+  [1,2,3,4,5,6,7].forEach(i => {
+    const el = document.getElementById(`step${i}`);
+    if(el) el.style.display = "none";
+  });
+  renderCustomQuestionsScreen();
+  document.getElementById("stepCustom").style.display = "block";
+  updateDots(8);
+}
+
+function backFromCustomQuestions(){
+  document.getElementById("stepCustom").style.display = "none";
+  if(attendeeType === "student"){ showStep(7); } else { goToStep1(); }
+}
+
+function renderCustomQuestionsScreen(){
+  const el = document.getElementById("stepCustom");
+  const fields = customQuestions.map((q, idx) => {
+    const reqMark = q.required ? ` <span style="color:#dc2626;">*</span>` : "";
+    const desc = q.question_description
+      ? `<div style="font-size:11px;color:#6b7280;margin-bottom:8px;">${escHtml(q.question_description)}</div>` : "";
+    let control = "";
+    if(q.question_type === "mcq" || q.question_type === "likert"){
+      const opts = (q.options || []).map(o => `<option value="${escHtml(o)}">${escHtml(o)}</option>`).join("");
+      control = `<select class="field-select" id="cqAns-${idx}"><option value="">— Select —</option>${opts}</select>`;
+    } else if(q.question_type === "rating"){
+      const opts = [1,2,3,4,5].map(n => `<option value="${n}">${n}</option>`).join("");
+      control = `<select class="field-select" id="cqAns-${idx}"><option value="">— Select a rating —</option>${opts}</select>`;
+    } else {
+      control = `<input class="field-input" type="text" id="cqAns-${idx}" maxlength="300">`;
+    }
+    return `<div class="field-group">
+      <label class="field-label" for="cqAns-${idx}">${escHtml(q.question_text)}${reqMark}</label>
+      ${desc}
+      ${control}
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="step-label">A few more questions</div>
+    <div class="step-question">From the event organiser</div>
+    ${fields}
+    <button class="btn-primary" onclick="finishCheckinWithCustomAnswers()" id="btnCustomSubmit">Check In ✓</button>
+    <button class="btn-back" onclick="backFromCustomQuestions()">← Back</button>`;
+}
+
+async function finishCheckinWithCustomAnswers(){
+  const responses = {};
+  for(let idx = 0; idx < customQuestions.length; idx++){
+    const q = customQuestions[idx];
+    const field = document.getElementById(`cqAns-${idx}`);
+    const val = field.value.trim();
+    if(q.required && !val){ field.focus(); return; }
+    if(val) responses[q.id] = val;
+  }
+  const payload = { ...corePayloadPending, custom_responses: Object.keys(responses).length ? responses : null };
+  const btn = document.getElementById("btnCustomSubmit");
+  await postCheckin(payload, btn);
 }
 </script>
 </body>
