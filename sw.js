@@ -140,7 +140,11 @@ self.addEventListener("push", event => {
     data:  { url: data.url || "/index.html" },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+      .then(() => console.log("[SW] showNotification resolved successfully — title:", title))
+      .catch(err => console.error("[SW] showNotification FAILED:", err))
+  );
 });
 
 // ── Notification click: open relevant page ──
