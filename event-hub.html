@@ -3468,6 +3468,13 @@ async function loadFeedbackStats(proposalId){
         <div style="font-size:18px;font-weight:800;color:#111827;">${count}</div>
         <div style="font-size:10px;color:var(--muted);">Responses</div>
       </div>
+    </div>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="fb-download-btn" onclick="downloadFeedbackExcel('${proposalId}')"
+        aria-label="Download feedback data as Excel spreadsheet"
+        style="padding:9px 20px;background:white;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;">
+        ⬇️ Download Excel
+      </button>
     </div>`;
 }
 
@@ -3948,6 +3955,12 @@ async function downloadAttendanceExcel(proposalId){
     if(error || !data) throw new Error("Could not fetch attendance data");
     if(!data.length){ showToast("No check-ins to download yet.", "info"); return; }
 
+    // Department custom questions for this event, if any — appended as
+    // extra columns on the detail sheet, in the order they were added.
+    const { data: customQs } = await sb.from("event_custom_questions")
+      .select("*").eq("proposal_id", proposalId).eq("form_type", "attendance").order("sort_order");
+    const cqList = customQs || [];
+
     const wb = window.XLSX.utils.book_new();
 
     // ── Sheet 1: Summary ──────────────────────────────────────
@@ -4001,7 +4014,7 @@ async function downloadAttendanceExcel(proposalId){
 
     // ── Sheet 2: All Check-ins ────────────────────────────────
     const typeLabel = t => t === "external_guest" ? "External Guest" : t.charAt(0).toUpperCase() + t.slice(1);
-    const headers = ["#", "Type", "Entity", "Level", "Programme", "Checked In At"];
+    const headers = ["#", "Type", "Entity", "Level", "Programme", "Checked In At", ...cqList.map(q => q.question_text)];
     const rows = data.map((r, i) => [
       i + 1,
       typeLabel(r.attendee_type),
@@ -4009,16 +4022,97 @@ async function downloadAttendanceExcel(proposalId){
       r.education_level || "—",
       r.program         || "—",
       new Date(r.scanned_at).toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }),
+      ...cqList.map(q => (r.custom_responses && r.custom_responses[q.id]) || "—"),
     ]);
 
     const detailSheet = window.XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    detailSheet["!cols"] = [{ wch: 5 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 30 }, { wch: 24 }];
+    detailSheet["!cols"] = [{ wch: 5 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, ...cqList.map(() => ({ wch: 28 }))];
     window.XLSX.utils.book_append_sheet(wb, detailSheet, "All Check-ins");
 
     // Download
     const safeName = (p?.event_name || "event").replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "_");
     const dateStr  = new Date().toISOString().substring(0, 10);
     window.XLSX.writeFile(wb, `Attendance_${safeName}_${dateStr}.xlsx`);
+
+    showToast("✅ Excel file downloaded!", "success");
+
+  } catch(e){
+    console.error("Excel export error:", e);
+    showToast("❌ Could not generate Excel file. Please try again.", "error");
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = "⬇️ Download Excel"; }
+  }
+}
+
+async function downloadFeedbackExcel(proposalId){
+  const btn = document.querySelector(`#fb-stats-${proposalId} .fb-download-btn`);
+  if(btn){ btn.disabled = true; btn.textContent = "⏳ Preparing…"; }
+
+  try {
+    await loadXLSXLib();
+
+    const p = allProposals.find(x => x.id === proposalId);
+
+    const { data, error } = await sb.from("event_feedback")
+      .select("*")
+      .eq("event_id", proposalId)
+      .order("created_at", { ascending: true });
+
+    if(error || !data) throw new Error("Could not fetch feedback data");
+    if(!data.length){ showToast("No feedback to download yet.", "info"); return; }
+
+    const { data: customQs } = await sb.from("event_custom_questions")
+      .select("*").eq("proposal_id", proposalId).eq("form_type", "feedback").order("sort_order");
+    const cqList = customQs || [];
+
+    const wb = window.XLSX.utils.book_new();
+
+    // ── Sheet 1: Summary ──────────────────────────────────────
+    const avg = (data.reduce((s, r) => s + (r.rating || 0), 0) / data.length).toFixed(1);
+    const dist = [5,4,3,2,1].map(star => data.filter(r => r.rating === star).length);
+
+    const summaryRows = [
+      ["Event Feedback Report"],
+      [],
+      ["Event Name",   p?.event_name  || ""],
+      ["Campus",       p?.campus      || ""],
+      ["Event Date",   p?.proposed_date ? formatDate(p.proposed_date) : ""],
+      ["Downloaded at", new Date().toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })],
+      [],
+      ["FEEDBACK SUMMARY"],
+      ["Total Responses", data.length],
+      ["Average Rating",  avg],
+      [],
+      ["RATING BREAKDOWN", "Count"],
+      ["5 stars", dist[0]],
+      ["4 stars", dist[1]],
+      ["3 stars", dist[2]],
+      ["2 stars", dist[3]],
+      ["1 star",  dist[4]],
+    ];
+
+    const summarySheet = window.XLSX.utils.aoa_to_sheet(summaryRows);
+    summarySheet["!cols"] = [{ wch: 28 }, { wch: 18 }];
+    window.XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
+
+    // ── Sheet 2: All Responses ────────────────────────────────
+    const headers = ["#", "Rating", "What stood out", "What could be better", "Submitted At", ...cqList.map(q => q.question_text)];
+    const rows = data.map((r, i) => [
+      i + 1,
+      r.rating || "—",
+      r.highlights   || "—",
+      r.improvements || "—",
+      new Date(r.created_at).toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }),
+      ...cqList.map(q => (r.custom_responses && r.custom_responses[q.id]) || "—"),
+    ]);
+
+    const detailSheet = window.XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    detailSheet["!cols"] = [{ wch: 5 }, { wch: 10 }, { wch: 36 }, { wch: 36 }, { wch: 24 }, ...cqList.map(() => ({ wch: 28 }))];
+    window.XLSX.utils.book_append_sheet(wb, detailSheet, "All Responses");
+
+    const safeName = (p?.event_name || "event").replace(/[^a-zA-Z0-9\s]/g, "").trim().replace(/\s+/g, "_");
+    const dateStr  = new Date().toISOString().substring(0, 10);
+    window.XLSX.writeFile(wb, `Feedback_${safeName}_${dateStr}.xlsx`);
 
     showToast("✅ Excel file downloaded!", "success");
 
