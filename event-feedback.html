@@ -199,6 +199,8 @@
         <textarea class="field-input" id="inpImprovements" rows="2" maxlength="200" placeholder="Any suggestions for next time…"></textarea>
       </div>
 
+      <div id="customFieldsContainer"></div>
+
       <button class="btn-primary" onclick="submitFeedback()" id="btnSubmitFeedback">Send Feedback</button>
     </div>
   </section>
@@ -237,12 +239,40 @@ let eventId    = null;
 let eventData  = null;
 let deviceFingerprint = null;
 let doneKey    = null;
+let customQuestions = []; // department-defined feedback questions for this event
 
 /* ══════════════════════════════════════════════════════════════
    DEVICE ID HELPERS (localStorage + cookie fallback, same approach
    used on the attendance check-in page for reliability on all
    phones/browsers)
 ══════════════════════════════════════════════════════════════ */
+function escHtml(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function renderCustomQuestions(){
+  const el = document.getElementById("customFieldsContainer");
+  if(!el) return;
+  el.innerHTML = customQuestions.map((q, idx) => {
+    const reqMark = q.required ? ` <span style="color:#dc2626;">*</span>` : ` <span class="field-hint">(optional)</span>`;
+    const desc = q.question_description
+      ? `<div style="font-size:11px;color:#6b7280;margin-bottom:6px;">${escHtml(q.question_description)}</div>` : "";
+    let control = "";
+    if(q.question_type === "mcq" || q.question_type === "likert"){
+      const opts = (q.options || []).map(o => `<option value="${escHtml(o)}">${escHtml(o)}</option>`).join("");
+      control = `<select class="field-select" id="cqAns-${idx}"><option value="">— Select —</option>${opts}</select>`;
+    } else if(q.question_type === "rating"){
+      const opts = [1,2,3,4,5].map(n => `<option value="${n}">${n}</option>`).join("");
+      control = `<select class="field-select" id="cqAns-${idx}"><option value="">— Select a rating —</option>${opts}</select>`;
+    } else {
+      control = `<textarea class="field-input" id="cqAns-${idx}" rows="2" maxlength="300"></textarea>`;
+    }
+    return `<div class="field-group">
+      <label class="field-label" for="cqAns-${idx}">${escHtml(q.question_text)}${reqMark}</label>
+      ${desc}
+      ${control}
+    </div>`;
+  }).join("");
+}
+
 function safeLocalGet(key){
   try { return localStorage.getItem(key); } catch(e){ return null; }
 }
@@ -352,6 +382,15 @@ function getFeedbackWindow(date, time, endTime){
     }
   }
 
+  // 7b. Load department custom questions for this event, if any
+  try {
+    const cqRes = await fetch(`${SUPABASE_URL}/rest/v1/event_custom_questions?proposal_id=eq.${eventId}&form_type=eq.feedback&order=sort_order`, {
+      headers: { "apikey": SUPABASE_KEY }
+    });
+    if(cqRes.ok) customQuestions = await cqRes.json();
+  } catch(e){ console.warn("Could not load custom questions:", e); customQuestions = []; }
+  renderCustomQuestions();
+
   // 8. Show the form
   showScreen("screenForm");
 })();
@@ -395,6 +434,15 @@ async function submitFeedback(){
     return;
   }
 
+  const customResponses = {};
+  for(let idx = 0; idx < customQuestions.length; idx++){
+    const q = customQuestions[idx];
+    const field = document.getElementById(`cqAns-${idx}`);
+    const val = field.value.trim();
+    if(q.required && !val){ field.focus(); return; }
+    if(val) customResponses[q.id] = val;
+  }
+
   const btn = document.getElementById("btnSubmitFeedback");
   if(btn){ btn.disabled = true; btn.textContent = "Sending…"; }
 
@@ -405,6 +453,7 @@ async function submitFeedback(){
     rating:       parseInt(selected.value, 10),
     highlights:   document.getElementById("inpHighlights").value.trim()   || null,
     improvements: document.getElementById("inpImprovements").value.trim() || null,
+    custom_responses: Object.keys(customResponses).length ? customResponses : null,
     device_hash:  deviceFingerprint
   };
 
