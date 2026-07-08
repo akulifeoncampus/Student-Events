@@ -3665,6 +3665,13 @@ function renderCustomQuestionsBuilder(proposalId, formType, questions, locked){
 
   mount.innerHTML = `
     <div style="border-top:1px solid #f3f4f6;margin-top:16px;padding-top:14px;">
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:800;color:#374151;margin-bottom:6px;display:flex;align-items:center;gap:6px;">${CQ_LOCK_ICON} Core fields — already asked on every event</div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${CORE_FIELDS[formType].map(f => `<div style="font-size:11px;color:#6b7280;">${esc(f)}</div>`).join("")}
+        </div>
+      </div>
+
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div style="font-size:13px;font-weight:800;color:#000060;">Custom questions</div>
         <div style="font-size:11px;color:var(--muted);">${questions.length} / ${cap}</div>
@@ -3687,6 +3694,24 @@ function renderCustomQuestionsBuilder(proposalId, formType, questions, locked){
 }
 
 const CQ_TRASH_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>`;
+const CQ_LOCK_ICON  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+
+const CORE_FIELDS = {
+  attendance: [
+    "Attendee type — student, faculty, staff, or external guest",
+    "Faculty or school (students)",
+    "Level of education (students)",
+    "Programme (students)",
+    "Gender (students)",
+    "Name (students)",
+    "Student ID (students)"
+  ],
+  feedback: [
+    "Star rating, 1–5 (required)",
+    "\u201cWhat stood out to you?\u201d (optional)",
+    "\u201cWhat could be better?\u201d (optional)"
+  ]
+};
 
 function customQuestionRowHTML(q, locked){
   const typeIcon = { text:"✎", mcq:"◉", likert:"◉", rating:"★" }[q.question_type] || "";
@@ -3720,6 +3745,7 @@ function customQuestionRowHTML(q, locked){
         <div style="font-size:14px;font-weight:700;color:#111827;line-height:1.4;">${esc(q.question_text)}</div>
         <div style="font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0;">${typeIcon} ${typeLabel}</div>
       </div>
+      ${q.question_description ? `<div style="font-size:12px;color:#6b7280;font-style:italic;margin-top:4px;">${esc(q.question_description)}</div>` : ""}
       ${previewHtml}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid #f3f4f6;">
         <span style="font-size:11px;color:var(--muted);">${q.required ? "Required" : "Optional"}</span>
@@ -3736,8 +3762,12 @@ function showAddCustomQuestionForm(proposalId, formType){
   holder.innerHTML = `
     <div style="background:white;border:1px solid #e5e7eb;border-left:4px solid #2563eb;border-radius:12px;padding:18px;">
       <input type="text" id="cq-text-${formType}-${proposalId}" maxlength="150" placeholder="Untitled question"
-        style="display:block;width:100%;padding:6px 2px 10px;border:none;border-bottom:1.5px solid #e5e7eb;font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;color:#111827;box-sizing:border-box;outline:none;background:transparent;margin-bottom:12px;"
+        style="display:block;width:100%;padding:6px 2px 10px;border:none;border-bottom:1.5px solid #e5e7eb;font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;color:#111827;box-sizing:border-box;outline:none;background:transparent;margin-bottom:8px;"
         onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#e5e7eb'" />
+
+      <input type="text" id="cq-desc-${formType}-${proposalId}" maxlength="200" placeholder="Description (optional)"
+        style="display:block;width:100%;padding:4px 2px 8px;border:none;border-bottom:1px solid #f3f4f6;font-family:'Poppins',sans-serif;font-size:12px;font-style:italic;color:#6b7280;box-sizing:border-box;outline:none;background:transparent;margin-bottom:16px;"
+        onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#f3f4f6'" />
 
       <select id="cq-type-${formType}-${proposalId}" onchange="onCustomQuestionTypeChange('${proposalId}','${formType}')"
         style="display:inline-block;width:auto;max-width:180px;padding:6px 8px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;color:#111827;background:white;margin-bottom:16px;">
@@ -3754,7 +3784,7 @@ function showAddCustomQuestionForm(proposalId, formType){
           <span style="position:relative;display:inline-block;width:34px;height:19px;">
             <input type="checkbox" id="cq-required-${formType}-${proposalId}" style="opacity:0;width:0;height:0;position:absolute;"
               onchange="document.getElementById('cq-required-track-${formType}-${proposalId}').style.background=this.checked?'#000060':'#d1d5db'; document.getElementById('cq-required-knob-${formType}-${proposalId}').style.left=this.checked?'17px':'2px';" />
-            <span id="cq-required-track-${formType}-${proposalId}" onclick="const c=this.previousElementSibling;c.checked=!c.checked;c.dispatchEvent(new Event('change'));"
+            <span id="cq-required-track-${formType}-${proposalId}"
               style="position:absolute;inset:0;background:#d1d5db;border-radius:999px;cursor:pointer;transition:background .15s;"></span>
             <span id="cq-required-knob-${formType}-${proposalId}"
               style="position:absolute;top:2px;left:2px;width:15px;height:15px;background:white;border-radius:50%;transition:left .15s;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.2);"></span>
@@ -3840,6 +3870,7 @@ function addLikertOptionField(proposalId, formType){
 
 async function saveCustomQuestion(proposalId, formType){
   const text = document.getElementById(`cq-text-${formType}-${proposalId}`).value.trim();
+  const description = document.getElementById(`cq-desc-${formType}-${proposalId}`).value.trim();
   const type = document.getElementById(`cq-type-${formType}-${proposalId}`).value;
   const required = document.getElementById(`cq-required-${formType}-${proposalId}`).checked;
 
@@ -3878,6 +3909,7 @@ async function saveCustomQuestion(proposalId, formType){
     proposal_id:   proposalId,
     form_type:     formType,
     question_text: text,
+    question_description: description || null,
     question_type: type,
     options,
     required,
