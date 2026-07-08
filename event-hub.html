@@ -4377,9 +4377,13 @@ function subscribeToProposalUpdates(){
       event: "INSERT", schema: "public", table: "notifications",
       filter: `recipient=eq.${currentClub.email}`
     }, payload => {
+      // Toast for instant in-page feedback. Deliberately NOT calling
+      // sendBrowserPush() here — real Web Push (service worker) already
+      // handles the OS-level popup for the unfocused/closed-tab case, and
+      // sw.js's own focused-client check already skips it when this tab is
+      // focused. Firing a local Notification() here too would double-pop.
       loadNotifications();
-      showToast("🔔 You have a new notification!", "success");
-      if(payload.new) sendBrowserPush(payload.new.title || "Campus Life", payload.new.message || "You have a new notification.");
+      showToast(payload.new?.title || "🔔 You have a new notification!", "success");
     }).subscribe();
 
   _akuHubChannels = [proposalsChannel, messagesChannel, notifsChannel];
