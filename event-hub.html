@@ -4319,7 +4319,7 @@ async function sendCardReply(proposalId){
         recipient:   email,
         type:        "proposal_message",
         title:       `💬 ${senderTypeLabel()} Replied on Proposal`,
-        message:     `Re: "${p.event_name}" from ${currentClub.name} — ${text.substring(0,100)}${text.length>100?"…":""}`,
+        message:     `Re: "${p.event_name}" from ${currentClub.club_name || currentClub.email} — ${text.substring(0,100)}${text.length>100?"…":""}`,
         proposal_id: proposalId,
         is_read:     false,
       })));
@@ -4455,7 +4455,7 @@ async function sendHubReply(proposalId){
       await sb.from("notifications").insert(recipients.map(email => ({
         recipient: email, type: "proposal_message",
         title: `💬 ${senderTypeLabel()} Replied on Proposal`,
-        message: `Re: "${p.event_name}" from ${currentClub.name} — ${text.substring(0,100)}${text.length>100?"…":""}`,
+        message: `Re: "${p.event_name}" from ${currentClub.club_name || currentClub.email} — ${text.substring(0,100)}${text.length>100?"…":""}`,
         proposal_id: proposalId, is_read: false,
       })));
     }
