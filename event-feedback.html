@@ -20,7 +20,7 @@
     /* ── Header ── */
     .header {
       background: linear-gradient(135deg, #000060 0%, #2563eb 60%, #3b82f6 100%);
-      padding: 16px 20px;
+      padding: calc(16px + env(safe-area-inset-top)) 20px 16px;
       text-align: center;
       flex-shrink: 0;
     }
@@ -36,14 +36,29 @@
     .card {
       background: white;
       border-radius: 20px;
-      padding: 28px 24px;
+      padding: 32px 26px;
       width: 100%;
       max-width: 420px;
       box-shadow: 0 4px 24px rgba(0,0,96,.1);
       text-align: center;
     }
 
-    .screen-icon { font-size: 52px; margin-bottom: 14px; line-height: 1; }
+    /* ── Icon badges (replaces emoji glyphs) ── */
+    .icon-badge {
+      width: 60px; height: 60px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .icon-badge svg { width: 28px; height: 28px; }
+    .icon-badge--info    { background: #eff6ff; color: #2563eb; }
+    .icon-badge--warn    { background: #fffbeb; color: #b45309; }
+    .icon-badge--success { background: #f0fdf4; color: #15803d; }
+    .icon-badge--error   { background: #fef2f2; color: #b91c1c; }
+    .icon-spin { animation: spin 0.9s linear infinite; transform-origin: center; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .icon-pop  { animation: pop .4s ease; }
+    @keyframes pop { 0%{transform:scale(.5);opacity:0} 80%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+
     .screen-title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
     .screen-sub   { font-size: 14px; color: #6b7280; line-height: 1.6; }
 
@@ -52,77 +67,97 @@
       letter-spacing: .8px; color: #9ca3af; margin-bottom: 8px;
     }
     .step-question {
-      font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 18px; line-height: 1.4;
+      font-size: 19px; font-weight: 800; color: #111827; margin-bottom: 20px; line-height: 1.35;
     }
 
-    /* ── Star rating (native radios, CSS-only fill) ── */
+    /* ── Section grouping ── */
+    .section-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 26px 0 16px;
+    }
+    .section-divider::before, .section-divider::after {
+      content: ""; flex: 1; height: 1px; background: #e5e7eb;
+    }
+    .section-eyebrow {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: #9ca3af; white-space: nowrap;
+    }
+
+    /* ── Rating panel ── */
+    .rating-panel {
+      background: #f8fafc; border: 1px solid #eef2f7; border-radius: 14px;
+      padding: 18px 12px 14px; margin-bottom: 22px;
+    }
     .star-rating {
       display: flex; flex-direction: row-reverse; justify-content: center;
-      gap: 2px; margin-bottom: 6px; border: none; padding: 0;
+      gap: 2px; margin-bottom: 4px; border: none; padding: 0;
     }
     .star-rating input {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
       overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
     }
     .star-rating label {
-      font-size: 40px; line-height: 1; color: #e5e7eb; cursor: pointer;
-      padding: 4px 6px; border-radius: 8px; transition: color .12s;
+      font-size: 38px; line-height: 1; color: #dbe2ea; cursor: pointer;
+      padding: 4px 5px; border-radius: 8px; transition: color .12s, transform .12s;
       -webkit-tap-highlight-color: transparent;
     }
     .star-rating input:checked ~ label,
     .star-rating label:hover,
     .star-rating label:hover ~ label { color: #f59e0b; }
+    .star-rating input:checked + label { transform: scale(1.08); }
     .star-rating input:focus-visible + label { outline: 2px solid #2563eb; outline-offset: 2px; }
 
-    .rating-caption { font-size: 12px; font-weight: 600; color: #6b7280; min-height: 16px; margin-bottom: 18px; }
-    .error-inline { font-size: 12px; color: #b91c1c; font-weight: 700; margin: -10px 0 16px; text-align: center; display: none; }
+    .rating-caption { font-size: 13px; font-weight: 700; color: #b45309; min-height: 18px; }
+    .rating-caption:empty::before { content: "Tap a star to rate"; font-weight: 600; color: #9ca3af; }
+    .error-inline { font-size: 12px; color: #b91c1c; font-weight: 700; margin: 8px 0 -4px; text-align: center; display: none; }
 
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
     /* ── Fields ── */
-    .field-group { text-align: left; margin-bottom: 16px; }
-    .field-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
+    .field-group { text-align: left; margin-bottom: 18px; }
+    .field-label { font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
     .field-hint  { font-weight: 400; color: #9ca3af; }
-    .field-input {
+    .field-input, .field-select {
       width: 100%; padding: 13px 14px; border: 1.5px solid #e5e7eb;
-      border-radius: 10px; font-family: inherit; font-size: 14px;
+      border-radius: 10px; font-family: inherit; font-size: 16px; /* 16px avoids iOS auto-zoom on focus */
       color: #111827; background: white; resize: none;
     }
-    .field-input:focus { outline: none; border-color: #2563eb; }
+    .field-select {
+      appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px;
+    }
+    .field-input:focus, .field-select:focus { outline: none; border-color: #2563eb; }
+    .field-counter { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 4px; }
 
     /* ── Action buttons ── */
     .btn-primary {
-      width: 100%; padding: 15px; border-radius: 12px;
+      width: 100%; padding: 16px; border-radius: 12px;
       background: linear-gradient(135deg, #000060, #2563eb);
       color: white; border: none; font-family: inherit;
       font-size: 15px; font-weight: 700; cursor: pointer;
-      transition: opacity .15s; margin-top: 4px;
+      transition: opacity .15s, transform .1s; margin-top: 6px;
+      box-shadow: 0 4px 14px rgba(0,0,96,.22);
     }
-    .btn-primary:hover { opacity: .9; }
-    .btn-primary:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
-    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary:hover { opacity: .92; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── Confirmation ── */
-    .confetti { font-size: 48px; margin-bottom: 12px; animation: pop .4s ease; }
-    @keyframes pop { 0%{transform:scale(.5);opacity:0} 80%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
     .confirm-title { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
     .confirm-event { font-size: 15px; font-weight: 700; color: #2563eb; margin-bottom: 12px; }
     .confirm-msg   { font-size: 13px; color: #6b7280; line-height: 1.7; }
 
-    /* ── Error / Inactive ── */
-    .error-icon  { font-size: 48px; margin-bottom: 12px; }
-    .error-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
-    .error-msg   { font-size: 13px; color: #6b7280; line-height: 1.7; }
-
     /* ── Footer ── */
     .footer {
-      text-align: center; padding: 16px 20px;
+      text-align: center; padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
       font-size: 11px; color: #9ca3af; flex-shrink: 0;
     }
 
     @media (max-width: 360px) {
-      .card { padding: 20px 16px; }
-      .star-rating label { font-size: 34px; }
+      .card { padding: 24px 18px; }
+      .star-rating label { font-size: 32px; }
     }
   </style>
 </head>
@@ -138,7 +173,9 @@
   <!-- Loading -->
   <section class="screen active" id="screenLoading" aria-label="Loading">
     <div class="card">
-      <div class="screen-icon" aria-hidden="true">⏳</div>
+      <div class="icon-badge icon-badge--info" aria-hidden="true">
+        <svg class="icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+      </div>
       <div class="screen-title">Loading event…</div>
       <div class="screen-sub">Just a moment</div>
     </div>
@@ -147,16 +184,20 @@
   <!-- Error -->
   <section class="screen" id="screenError" aria-label="Error" aria-live="assertive">
     <div class="card">
-      <div class="error-icon" aria-hidden="true">❌</div>
-      <div class="error-title">Link not valid</div>
-      <div class="error-msg" id="errorMsg">This feedback link is invalid or the event could not be found. Please ask the event organiser for the correct QR code.</div>
+      <div class="icon-badge icon-badge--error" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 10l4 4m0-4l-4 4"/></svg>
+      </div>
+      <div class="screen-title">Link not valid</div>
+      <div class="screen-sub" id="errorMsg">This feedback link is invalid or the event could not be found. Please ask the event organiser for the correct QR code.</div>
     </div>
   </section>
 
   <!-- QR not yet active / closed -->
   <section class="screen" id="screenInactive" aria-label="Feedback not open">
     <div class="card">
-      <div class="screen-icon" aria-hidden="true">🕒</div>
+      <div class="icon-badge icon-badge--warn" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
       <div class="screen-title" id="inactiveTitle">Feedback not open yet</div>
       <div class="screen-sub" id="inactiveMsg">The feedback window is not currently active. Please scan the QR code once the event starts.</div>
     </div>
@@ -165,7 +206,9 @@
   <!-- Already submitted -->
   <section class="screen" id="screenDuplicate" aria-label="Feedback already submitted">
     <div class="card">
-      <div class="screen-icon" aria-hidden="true">✅</div>
+      <div class="icon-badge icon-badge--success" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2l4-4"/></svg>
+      </div>
       <div class="screen-title">Feedback already received!</div>
       <div class="screen-sub">You've already shared your feedback for this event from this device. Thank you!</div>
     </div>
@@ -175,40 +218,48 @@
   <section class="screen" id="screenForm" aria-label="Feedback form">
     <div class="card">
 
-      <div class="step-label">Quick Feedback</div>
-      <div class="step-question">Rate your experience</div>
+      <div class="step-label">Quick feedback</div>
+      <div class="step-question">How was your experience?</div>
 
-      <fieldset class="star-rating" role="radiogroup" aria-required="true" style="border:none;">
-        <legend class="sr-only">Rate this event from 1 to 5 stars</legend>
-        <input type="radio" id="star5" name="rating" value="5"><label for="star5" aria-label="5 stars — Excellent">★</label>
-        <input type="radio" id="star4" name="rating" value="4"><label for="star4" aria-label="4 stars — Good">★</label>
-        <input type="radio" id="star3" name="rating" value="3"><label for="star3" aria-label="3 stars — Okay">★</label>
-        <input type="radio" id="star2" name="rating" value="2"><label for="star2" aria-label="2 stars — Not great">★</label>
-        <input type="radio" id="star1" name="rating" value="1"><label for="star1" aria-label="1 star — Poor">★</label>
-      </fieldset>
-      <div class="rating-caption" id="ratingCaption" aria-live="polite"></div>
+      <div class="rating-panel">
+        <fieldset class="star-rating" role="radiogroup" aria-required="true" style="border:none;">
+          <legend class="sr-only">Rate this event from 1 to 5 stars</legend>
+          <input type="radio" id="star5" name="rating" value="5"><label for="star5" aria-label="5 stars — Excellent">★</label>
+          <input type="radio" id="star4" name="rating" value="4"><label for="star4" aria-label="4 stars — Good">★</label>
+          <input type="radio" id="star3" name="rating" value="3"><label for="star3" aria-label="3 stars — Okay">★</label>
+          <input type="radio" id="star2" name="rating" value="2"><label for="star2" aria-label="2 stars — Not great">★</label>
+          <input type="radio" id="star1" name="rating" value="1"><label for="star1" aria-label="1 star — Poor">★</label>
+        </fieldset>
+        <div class="rating-caption" id="ratingCaption" aria-live="polite"></div>
+      </div>
       <div class="error-inline" id="ratingError" role="alert">Please select a star rating.</div>
+
+      <div class="section-divider"><span class="section-eyebrow">Tell us more</span></div>
 
       <div class="field-group">
         <label class="field-label" for="inpHighlights">What stood out to you? <span class="field-hint">(optional)</span></label>
-        <textarea class="field-input" id="inpHighlights" rows="2" maxlength="200" placeholder="e.g. the speaker, the food, the vibe…"></textarea>
+        <textarea class="field-input" id="inpHighlights" rows="2" maxlength="200" placeholder="e.g. the speaker, the food, the vibe…" oninput="updateCharCounter('inpHighlights','highlightsCounter')"></textarea>
+        <div class="field-counter" id="highlightsCounter">0 / 200</div>
       </div>
 
       <div class="field-group">
         <label class="field-label" for="inpImprovements">What could be better? <span class="field-hint">(optional)</span></label>
-        <textarea class="field-input" id="inpImprovements" rows="2" maxlength="200" placeholder="Any suggestions for next time…"></textarea>
+        <textarea class="field-input" id="inpImprovements" rows="2" maxlength="200" placeholder="Any suggestions for next time…" oninput="updateCharCounter('inpImprovements','improvementsCounter')"></textarea>
+        <div class="field-counter" id="improvementsCounter">0 / 200</div>
       </div>
 
       <div id="customFieldsContainer"></div>
 
-      <button class="btn-primary" onclick="submitFeedback()" id="btnSubmitFeedback">Send Feedback</button>
+      <button class="btn-primary" onclick="submitFeedback()" id="btnSubmitFeedback">Send feedback</button>
     </div>
   </section>
 
   <!-- Confirmation -->
   <section class="screen" id="screenDone" aria-label="Feedback submitted" aria-live="polite">
     <div class="card">
-      <div class="confetti" aria-hidden="true">🙏</div>
+      <div class="icon-badge icon-badge--success icon-pop" aria-hidden="true" style="width:72px;height:72px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:34px;height:34px;"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2l4-4"/></svg>
+      </div>
       <div class="confirm-title">Thanks for your feedback!</div>
       <div class="confirm-event" id="confirmEventName"></div>
       <div class="confirm-msg">Your response helps us plan even better events. We appreciate you taking the time!</div>
@@ -251,7 +302,9 @@ function escHtml(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"
 function renderCustomQuestions(){
   const el = document.getElementById("customFieldsContainer");
   if(!el) return;
-  el.innerHTML = customQuestions.map((q, idx) => {
+  if(!customQuestions.length){ el.innerHTML = ""; return; }
+
+  const fields = customQuestions.map((q, idx) => {
     const reqMark = q.required ? ` <span style="color:#dc2626;">*</span>` : ` <span class="field-hint">(optional)</span>`;
     const desc = q.question_description
       ? `<div style="font-size:11px;color:#6b7280;margin-bottom:6px;">${escHtml(q.question_description)}</div>` : "";
@@ -271,7 +324,17 @@ function renderCustomQuestions(){
       ${control}
     </div>`;
   }).join("");
+
+  el.innerHTML = `<div class="section-divider"><span class="section-eyebrow">From the organiser</span></div>${fields}`;
 }
+
+function updateCharCounter(fieldId, counterId){
+  const field = document.getElementById(fieldId);
+  const counter = document.getElementById(counterId);
+  if(!field || !counter) return;
+  counter.textContent = `${field.value.length} / ${field.maxLength}`;
+}
+
 
 function safeLocalGet(key){
   try { return localStorage.getItem(key); } catch(e){ return null; }
