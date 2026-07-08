@@ -4289,6 +4289,14 @@ async function resolveProposalMessageRecipients(p){
   return recipients;
 }
 
+// Sender-type label for notification titles — "Club Replied" was hardcoded
+// and showing on department/individual messages too. Matches the labels
+// already used elsewhere (signup, proposal form).
+const SENDER_TYPE_LABELS = { club: "Club", department: "Department", individual: "Student" };
+function senderTypeLabel(){
+  return SENDER_TYPE_LABELS[currentClub?.account_type] || "Club";
+}
+
 async function sendCardReply(proposalId){
   const textarea = document.getElementById(`thread-reply-${proposalId}`);
   const text = textarea?.value.trim();
@@ -4310,7 +4318,7 @@ async function sendCardReply(proposalId){
       await sb.from("notifications").insert(recipients.map(email => ({
         recipient:   email,
         type:        "proposal_message",
-        title:       "💬 Club Replied on Proposal",
+        title:       `💬 ${senderTypeLabel()} Replied on Proposal`,
         message:     `Re: "${p.event_name}" from ${currentClub.name} — ${text.substring(0,100)}${text.length>100?"…":""}`,
         proposal_id: proposalId,
         is_read:     false,
@@ -4446,7 +4454,7 @@ async function sendHubReply(proposalId){
     if(recipients.length){
       await sb.from("notifications").insert(recipients.map(email => ({
         recipient: email, type: "proposal_message",
-        title: "💬 Club Replied on Proposal",
+        title: `💬 ${senderTypeLabel()} Replied on Proposal`,
         message: `Re: "${p.event_name}" from ${currentClub.name} — ${text.substring(0,100)}${text.length>100?"…":""}`,
         proposal_id: proposalId, is_read: false,
       })));
