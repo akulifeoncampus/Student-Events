@@ -778,8 +778,10 @@ async function submitCheckin(){
   };
 
   // Department events with custom questions: hold the core payload and
-  // route to the additional-questions screen instead of submitting yet.
-  if(customQuestions.length > 0){
+  // route to the additional-questions screen — Students only. Faculty,
+  // Staff, and External Guest keep the original instant single-tap
+  // check-in regardless of whether custom questions exist.
+  if(attendeeType === "student" && customQuestions.length > 0){
     corePayloadPending = payload;
     showCustomQuestionsStep();
     return;
