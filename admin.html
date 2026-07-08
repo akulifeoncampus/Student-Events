@@ -6306,7 +6306,7 @@ function showAdminPanel(){
 
   // Start notifications and realtime
   loadAdminNotifications();
-  requestPushPermission();
+  subscribeStaffPush();
   if(adminNotifInterval) clearInterval(adminNotifInterval);
   adminNotifInterval = setInterval(pollNotifications, 30000);
   startRealtimeSubscriptions();
@@ -15267,10 +15267,51 @@ document.addEventListener("keydown", function(e){
 });
 
 /* ── Browser Push Notifications ── */
+// Same VAPID key pair already used by index.html's event-reminder push —
+// the private key lives only in bright-processor's env, this public key
+// is safe to ship client-side.
+const STAFF_VAPID_PUBLIC_KEY = "BBtB5ea361OUjuTYK_bROCPl9tzf-WNbHM_nmKZngM9iEdy5qCJoJ-lJqfYLSRUDB6QTbFR15Rblc-JE09MNLQ4";
+
+function urlBase64ToUint8Array(b64){
+  const pad = "=".repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g,"+").replace(/_/g,"/"));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
 async function requestPushPermission(){
   if(!("Notification" in window)) return;
   if(Notification.permission === "default"){
     await Notification.requestPermission();
+  }
+}
+
+// Registers this device for real OS-level push (works even when this tab
+// isn't open/focused) — separate table from the anonymous event-interest
+// subscriptions on the public site, keyed to this admin's identity instead.
+async function subscribeStaffPush(){
+  if(!("serviceWorker" in navigator && "PushManager" in window)) return null;
+  await requestPushPermission();
+  if(Notification.permission !== "granted") return null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(STAFF_VAPID_PUBLIC_KEY),
+      });
+    }
+    const j = sub.toJSON();
+    await sb.from("staff_push_subscriptions").upsert({
+      recipient: currentUser.email,
+      endpoint:  j.endpoint,
+      p256dh:    j.keys.p256dh,
+      auth:      j.keys.auth,
+    }, { onConflict: "endpoint" });
+    return sub;
+  } catch(e){
+    console.warn("[Push] Staff subscribe failed:", e);
+    return null;
   }
 }
 
