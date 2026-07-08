@@ -882,7 +882,7 @@ function renderCustomQuestionsScreen(){
   }
 
   el.innerHTML = `
-    <div class="step-label">Question ${customQuestionIndex + 1} of ${customQuestions.length}</div>
+    <div class="step-label">Step ${7 + customQuestionIndex + 1} of ${7 + customQuestions.length}</div>
     <div class="step-question">${escHtml(q.question_text)}${reqMark}</div>
     ${desc}
     <div class="field-group">${control}</div>
