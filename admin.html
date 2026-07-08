@@ -14398,7 +14398,16 @@ function startRealtimeSubscriptions(){
     .on("postgres_changes", {
       event:"INSERT", schema:"public", table:"notifications",
       filter: `recipient=eq.${currentUser.email}`
-    }, () => loadAdminNotifications())
+    }, payload => {
+      // Toast + sound for instant in-page feedback. Deliberately NOT calling
+      // sendBrowserPush() here — real Web Push (service worker) already
+      // handles the OS-level popup for the unfocused/closed-tab case, and
+      // sw.js's own focused-client check already skips it when this tab is
+      // focused. Firing a local Notification() here too would double-pop.
+      loadAdminNotifications();
+      playMessageSound();
+      if(payload.new) showToast(payload.new.title || "🔔 New notification", "success");
+    })
     .subscribe();
 
   _akuAdminChannels = [proposalsChannel, messagesChannel, notifsChannel];
