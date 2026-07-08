@@ -4782,13 +4782,16 @@ async function markAllRead(){
 
 /* ── Notif panel toggle ── */
 /* ── Password Reset ── */
-function showSetPasswordScreen(){
+function showSetPasswordScreen(email, clubName){
   // Show a simple set-new-password screen for clubs arriving via reset link
   document.getElementById("loginScreen").style.display = "flex";
+  const whoLine = email
+    ? `Setting a new password for <strong>${esc(clubName || email)}</strong>${clubName ? ` (${esc(email)})` : ""}.`
+    : "Enter your new password below.";
   document.querySelector("#loginScreen .login-card").innerHTML = `
     <div class="login-icon" style="background:linear-gradient(135deg,#2563eb,#3b82f6);">🔑</div>
     <div class="login-title">Set New Password</div>
-    <div class="login-sub" style="margin-bottom:20px;">Enter your new password below.</div>
+    <div class="login-sub" style="margin-bottom:20px;">${whoLine}</div>
     <div style="margin-bottom:12px;">
       <label class="login-label">New Password</label>
       <input class="login-input" id="hubNewPw" type="password" placeholder="Min. 8 characters" />
@@ -4797,14 +4800,14 @@ function showSetPasswordScreen(){
       <label class="login-label">Confirm New Password</label>
       <input class="login-input" id="hubConfirmPw" type="password" placeholder="Repeat password" />
     </div>
-    <div id="hubPwError" style="font-size:12px;color:#dc2626;min-height:16px;margin-bottom:8px;"></div>
+    <div id="hubSetPwError" style="font-size:12px;color:#dc2626;min-height:16px;margin-bottom:8px;"></div>
     <button class="login-btn" id="hubSetPwBtn" onclick="submitHubNewPassword()">Set Password</button>`;
 }
 
 async function submitHubNewPassword(){
   const pw    = document.getElementById("hubNewPw").value;
   const conf  = document.getElementById("hubConfirmPw").value;
-  const errEl = document.getElementById("hubPwError");
+  const errEl = document.getElementById("hubSetPwError");
   const btn   = document.getElementById("hubSetPwBtn");
   errEl.textContent = "";
   if(!pw || pw.length < 8){ errEl.textContent = "Password must be at least 8 characters."; return; }
@@ -4988,7 +4991,7 @@ async function init(){
       await sb.auth.setSession({ access_token: at, refresh_token: rt || "" });
     }
     const { data: { session: s2 } } = await sb.auth.getSession();
-    if(s2){ showSetPasswordScreen(); return; }
+    if(s2){ showSetPasswordScreen(s2.user.email); return; }
   }
 
   const { data: { session } } = await sb.auth.getSession();
@@ -4999,7 +5002,7 @@ async function init(){
     if(clubRow && clubRow.authorized && clubRow.must_change_password){
       // Super admin issued a manual password reset — force a new password
       // before letting this account into the portal.
-      showSetPasswordScreen();
+      showSetPasswordScreen(clubRow.email, clubRow.club_name);
       return;
     }
 
