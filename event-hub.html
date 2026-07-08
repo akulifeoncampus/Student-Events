@@ -2289,6 +2289,9 @@ function showOTPMsg(msg, type){
 async function signOut(){
   await sb.auth.signOut();
   if(chatChannel){ sb.removeChannel(chatChannel); chatChannel = null; }
+  _akuHubChannels.forEach(ch => { try { sb.removeChannel(ch); } catch(e){} });
+  _akuHubChannels = [];
+  if(hubNotifPollInterval){ clearInterval(hubNotifPollInterval); hubNotifPollInterval = null; }
   stopChatPolling();
   stopHubGroupPolling();
   stopAttendancePolling();
@@ -2326,6 +2329,10 @@ function showPortal(){
   loadChatMessages();
   initChatRealtime();
   initFabScroll();
+  subscribeToProposalUpdates();
+  requestPushPermission();
+  if(hubNotifPollInterval) clearInterval(hubNotifPollInterval);
+  hubNotifPollInterval = setInterval(pollHubNotifications, 30000);
 }
 
 /* ── LIVE CHAT ───────────────────────────────────────────────────── */
@@ -2550,6 +2557,45 @@ document.addEventListener("click", function _akuUnlockAudio(){
   if(ctx && ctx.state === "suspended") ctx.resume();
   document.removeEventListener("click", _akuUnlockAudio);
 }, { once: true });
+
+/* ── Browser popup notifications (in-tab, requires tab open) ── */
+async function requestPushPermission(){
+  if(!("Notification" in window)) return;
+  if(Notification.permission === "default"){
+    await Notification.requestPermission();
+  }
+}
+
+function sendBrowserPush(title, body){
+  if("Notification" in window && Notification.permission === "granted"){
+    new Notification(title, {
+      body,
+      icon: "https://studentexperience.github.io/Student-Events/favicon.ico",
+      badge: "https://studentexperience.github.io/Student-Events/favicon.ico",
+      tag: "aku-campus-life",
+    });
+  }
+}
+
+// Poll fallback every 30s — catches anything the realtime channel missed
+// (dropped connection, background tab throttling, etc.)
+let hubNotifPollInterval = null;
+let lastHubNotifCheck = new Date().toISOString();
+async function pollHubNotifications(){
+  if(!currentClub?.email) return;
+  const { data } = await sb.from("notifications")
+    .select("*")
+    .eq("recipient", currentClub.email)
+    .eq("is_read", false)
+    .gt("created_at", lastHubNotifCheck)
+    .order("created_at", { ascending: false });
+
+  if(data && data.length > 0){
+    data.forEach(n => sendBrowserPush(n.title, n.message));
+    loadNotifications();
+  }
+  lastHubNotifCheck = new Date().toISOString();
+}
 
 function initChatRealtime(){
   if(chatChannel) sb.removeChannel(chatChannel);
@@ -2832,7 +2878,6 @@ async function loadProposals(){
   if(error){ showToast("Failed to load proposals", "error"); return; }
   allProposals = data || [];
   renderProposals();
-  subscribeToProposalUpdates();
   loadAllCardBadges();
   updateStats();
 }
@@ -4272,9 +4317,10 @@ function subscribeToProposalUpdates(){
     .on("postgres_changes", {
       event: "INSERT", schema: "public", table: "notifications",
       filter: `recipient=eq.${currentClub.email}`
-    }, () => {
+    }, payload => {
       loadNotifications();
       showToast("🔔 You have a new notification!", "success");
+      if(payload.new) sendBrowserPush(payload.new.title || "Campus Life", payload.new.message || "You have a new notification.");
     }).subscribe();
 
   _akuHubChannels = [proposalsChannel, messagesChannel, notifsChannel];
