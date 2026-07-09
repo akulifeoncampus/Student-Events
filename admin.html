@@ -4211,10 +4211,10 @@
           </div>
         </div>
 
-        <!-- ── PROGRAMS (Super Admin only) — campus-scoped ── -->
+        <!-- ── PROGRAMS (Super Admin only) — campus-scoped, grouped by Entity → Level ── -->
         <div id="programsPanel" style="margin-top:20px;background:#eefdf3;border:1px solid #bbf7d0;border-radius:14px;padding:18px 20px;display:none;">
           <div style="font-size:13px;font-weight:700;margin-bottom:2px;color:var(--aku-navy);">🎓 Programs</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Shown as the "Your Program" dropdown for independent event submitters, scoped to their campus.</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Single source of truth for programs across the platform — feeds the "Your Program" dropdown in Event Hub and the Entity → Level → Programme steps on the attendance QR form. Edits here appear in both places immediately, no redeploy needed.</div>
           <div style="margin-bottom:12px;">
             <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:8px;">Campus</label>
             <select id="programsCampus" onchange="loadPrograms()"
@@ -4225,10 +4225,16 @@
               <option>Dar es Salaam</option>
             </select>
           </div>
-          <div id="programsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-          <div style="display:flex;gap:8px;">
-            <input id="newProgramName" type="text" placeholder="New program name…"
-              style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
+          <div id="programsList" style="display:flex;flex-direction:column;gap:14px;margin-bottom:14px;"></div>
+          <datalist id="programEntityOptions"></datalist>
+          <datalist id="programLevelOptions"></datalist>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:white;border:1px dashed var(--border);border-radius:10px;padding:10px;">
+            <input id="newProgramEntity" list="programEntityOptions" type="text" placeholder="Entity (e.g. Medical College)…"
+              style="flex:1.4;min-width:160px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
+            <input id="newProgramLevel" list="programLevelOptions" type="text" placeholder="Level (e.g. Undergraduate)…"
+              style="flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
+            <input id="newProgramName" type="text" placeholder="Program name…"
+              style="flex:1.6;min-width:180px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;" />
             <button class="btn btn-secondary btn-sm" onclick="addProgram()">+ Add</button>
           </div>
         </div>
@@ -10492,16 +10498,22 @@ async function deleteDepartment(id, name){
   loadDepartments();
 }
 
-/* ── Programs — managed list for the "Your Program" dropdown, per campus ──
-   Independent submitters only see programs for their own account's campus,
-   matching how the campus lock already works elsewhere on the proposal form. */
+/* ── Programs — single managed list, per campus, grouped by Entity → Level ──
+   This is the source of truth for:
+     1. The "Your Program" dropdown for independent Event Hub submitters
+        (flat, campus-scoped — see populateProgramDropdown() in event-hub.html)
+     2. The Entity → Level → Programme cascading steps on the attend.html
+        QR check-in form (see loadProgramData()/populateEntities() there)
+   Both pages read this same "programs" table live, so any add/rename/
+   deactivate/delete here reflects everywhere immediately with no redeploy. */
 let allPrograms = [];
 
 async function loadPrograms(){
   if(currentRole !== "super_admin") return;
   document.getElementById("programsPanel").style.display = "block";
   const campus = document.getElementById("programsCampus").value;
-  const { data, error } = await sb.from("programs").select("*").eq("campus", campus).order("name");
+  const { data, error } = await sb.from("programs").select("*").eq("campus", campus)
+    .order("entity", { nullsFirst: false }).order("level", { nullsFirst: false }).order("name");
   if(error){ showToast("Failed to load programs: " + error.message, "error"); return; }
   allPrograms = data || [];
   renderPrograms();
@@ -10511,50 +10523,97 @@ function renderPrograms(){
   const el = document.getElementById("programsList");
   if(!allPrograms.length){
     el.innerHTML = `<div style="font-size:12px;color:var(--muted);">No programs yet for this campus — add one below.</div>`;
+    populateProgramDatalists();
     return;
   }
-  el.innerHTML = allPrograms.map(p => `
-    <div style="display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
-      <input type="text" value="${esc(p.name)}" id="prog-name-${p.id}"
-        style="flex:1;border:none;font-family:'Poppins',sans-serif;font-size:13px;background:transparent;outline:none;"
-        onchange="renameProgram('${p.id}', this.value)" />
-      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;">
-        <input type="checkbox" ${p.active ? "checked" : ""} onchange="toggleProgramActive('${p.id}', this.checked)" /> Active
-      </label>
-      <button class="btn btn-danger btn-sm" onclick="deleteProgram('${p.id}','${safeStr(p.name)}')">🗑️</button>
+
+  // Group rows by Entity → Level for readability. Grouping is purely visual —
+  // each row's own entity/level fields remain the source of truth, so editing
+  // a row's entity or level text simply moves it into a different group on
+  // the next render.
+  const groups = [];
+  const groupIndex = new Map();
+  allPrograms.forEach(p => {
+    const entityKey = (p.entity || "").trim();
+    const levelKey  = (p.level  || "").trim();
+    const key = entityKey + "|||" + levelKey;
+    if(!groupIndex.has(key)){
+      const group = { entity: entityKey || "— No entity set —", level: levelKey || "— No level set —", items: [] };
+      groupIndex.set(key, group);
+      groups.push(group);
+    }
+    groupIndex.get(key).items.push(p);
+  });
+
+  el.innerHTML = groups.map(g => `
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--aku-navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">
+        ${esc(g.entity)} <span style="color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;">— ${esc(g.level)}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${g.items.map(p => `
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
+            <input type="text" value="${esc(p.name)}" placeholder="Program name"
+              style="flex:2;min-width:180px;border:none;font-family:'Poppins',sans-serif;font-size:13px;background:transparent;outline:none;"
+              onchange="updateProgramField('${p.id}', 'name', this.value)" />
+            <input type="text" value="${esc(p.entity || "")}" placeholder="Entity" list="programEntityOptions"
+              style="flex:1;min-width:140px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Poppins',sans-serif;font-size:12px;"
+              onchange="updateProgramField('${p.id}', 'entity', this.value)" />
+            <input type="text" value="${esc(p.level || "")}" placeholder="Level" list="programLevelOptions"
+              style="flex:0.8;min-width:110px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Poppins',sans-serif;font-size:12px;"
+              onchange="updateProgramField('${p.id}', 'level', this.value)" />
+            <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;">
+              <input type="checkbox" ${p.active ? "checked" : ""} onchange="toggleProgramActive('${p.id}', this.checked)" /> Active
+            </label>
+            <button class="btn btn-danger btn-sm" onclick="deleteProgram('${p.id}','${safeStr(p.name)}')">🗑️</button>
+          </div>`).join("")}
+      </div>
     </div>`).join("");
+
+  populateProgramDatalists();
+}
+
+function populateProgramDatalists(){
+  const entities = [...new Set(allPrograms.map(p => (p.entity || "").trim()).filter(Boolean))].sort();
+  const levels   = [...new Set(allPrograms.map(p => (p.level  || "").trim()).filter(Boolean))].sort();
+  document.getElementById("programEntityOptions").innerHTML = entities.map(e => `<option value="${esc(e)}">`).join("");
+  document.getElementById("programLevelOptions").innerHTML  = levels.map(l => `<option value="${esc(l)}">`).join("");
 }
 
 async function addProgram(){
-  const input  = document.getElementById("newProgramName");
+  const nameInput   = document.getElementById("newProgramName");
+  const entityInput = document.getElementById("newProgramEntity");
+  const levelInput  = document.getElementById("newProgramLevel");
   const campus = document.getElementById("programsCampus").value;
-  const name = input.value.trim();
-  if(!name){ showToast("Enter a program name.", "error"); return; }
-  const { error } = await sb.from("programs").insert({ name, campus });
+  const name   = nameInput.value.trim();
+  const entity = entityInput.value.trim();
+  const level  = levelInput.value.trim();
+  if(!entity || !level || !name){ showToast("Enter entity, level, and program name.", "error"); return; }
+  const { error } = await sb.from("programs").insert({ name, campus, entity, level });
   if(error){ showToast("Failed to add: " + error.message, "error"); return; }
-  input.value = "";
+  nameInput.value = ""; entityInput.value = ""; levelInput.value = "";
   showToast("Program added.");
   loadPrograms();
 }
 
-async function renameProgram(id, newName){
-  const name = newName.trim();
-  if(!name){ showToast("Name cannot be empty.", "error"); loadPrograms(); return; }
-  const { error } = await sb.from("programs").update({ name, updated_at: new Date().toISOString() }).eq("id", id);
-  if(error){ showToast("Failed to rename: " + error.message, "error"); return; }
-  showToast("Program renamed.");
+async function updateProgramField(id, field, value){
+  const val = value.trim();
+  if(!val){ showToast(`${field.charAt(0).toUpperCase()+field.slice(1)} cannot be empty.`, "error"); loadPrograms(); return; }
+  const { error } = await sb.from("programs").update({ [field]: val, updated_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Failed to update: " + error.message, "error"); return; }
+  showToast("Program updated.");
   loadPrograms();
 }
 
 async function toggleProgramActive(id, active){
   const { error } = await sb.from("programs").update({ active, updated_at: new Date().toISOString() }).eq("id", id);
   if(error){ showToast("Failed to update: " + error.message, "error"); return; }
-  showToast(active ? "Program activated." : "Program deactivated — hidden from new proposals.");
+  showToast(active ? "Program activated." : "Program deactivated — hidden from new proposals and the attendance form.");
   loadPrograms();
 }
 
 async function deleteProgram(id, name){
-  if(!confirm(`Delete "${name}"? Existing proposals keep their stored value — this only removes it from the dropdown.`)) return;
+  if(!confirm(`Delete "${name}"? Existing proposals and attendance records keep their stored value — this only removes it from the dropdowns.`)) return;
   const { error } = await sb.from("programs").delete().eq("id", id);
   if(error){ showToast("Failed to delete: " + error.message, "error"); return; }
   showToast("Program removed.");
