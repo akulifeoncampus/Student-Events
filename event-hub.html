@@ -4711,7 +4711,11 @@ async function populateProgramDropdown(selected = ""){
     sel.innerHTML = `<option value="">No programs listed for your campus yet</option>`;
     return;
   }
-  sel.innerHTML = `<option value="">Select…</option>` + data.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("");
+  // The same program name can now appear under multiple entities (e.g. a
+  // PhD offered by several faculties) since Programs supports Entity/Level
+  // grouping — dedupe here since this dropdown only needs a flat name list.
+  const names = [...new Set(data.map(p => p.name))].sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = `<option value="">Select…</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   if(selected) sel.value = selected;
 }
 
