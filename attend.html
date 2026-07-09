@@ -344,100 +344,28 @@ const WINDOW_BEFORE_HRS = 0.5;
 const WINDOW_AFTER_HRS  = 5;
 
 /* ══════════════════════════════════════════════════════════════
-   PROGRAMME DATA  (expand as needed)
+   PROGRAMME DATA
+   Loaded live from the "programs" table (managed on the Super Admin
+   Programs panel) instead of being hardcoded here — so any change made
+   there shows up on this check-in form immediately, no redeploy needed.
+   Structure of PROGRAM_DATA once loaded: [{ entity, level, name }, ...]
+   scoped to the current event's campus, active programs only.
 ══════════════════════════════════════════════════════════════ */
-const CAMPUS_DATA = {
-  "Karachi": {
-    entities: [
-      "Medical College",
-      "School of Nursing and Midwifery",
-      "Faculty of Arts and Sciences",
-      "Institute of Educational Development",
-      "Other / Not Listed"
-    ],
-    programs: {
-      "Medical College": {
-        "Undergraduate":  ["Associate of Science in Dental Hygiene (ASDH)","Bachelor of Medicine, Bachelor of Surgery (MBBS)"],
-        "Graduate":       ["Master of Philosophy in Biological and Biomedical Sciences (MPhil-BBS)","Master of Health Policy and Management (MHPM)","Master of Science in Epidemiology and Biostatistics (MSc – Epi&Bio)","Master of Sciences in Public Health (MSPH)","Master of Health Professions Education (MHPE)","Master of Bioethics (MBE)","Master of Science in Health Care Management (MSHM)","Master of Early Child Development (MECD)","Master of Science in Health Data Science (MSHDS)"],
-        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
-      },
-      "School of Nursing and Midwifery": {
-        "Undergraduate":  ["Bachelor of Science in Nursing (BScN)","Post-RN Bachelor of Science in Nursing (Post-RN BScN)"],
-        "Graduate":       ["Master of Science in Nursing (MScN)"],
-        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
-      },
-      "Faculty of Arts and Sciences": {
-        "Undergraduate":  ["Bachelor of Studies in Arts & Sciences (BS)"],
-        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
-      },
-      "Institute of Educational Development": {
-        "Undergraduate":  ["Bachelor of Education (B.Ed.)"],
-        "Graduate":       ["Master of Philosophy in Education (MPhil – Edu)"],
-        "Post Graduate":  ["Doctor of Philosophy (PhD)"]
-      },
-      "Other / Not Listed": {
-        "Undergraduate":  ["Other"],
-        "Graduate":       ["Other"],
-        "Post Graduate":  ["Other"]
-      }
-    }
-  },
-  "Nairobi": {
-    entities: [
-      "AKU Graduate School of Media and Communications (GSMC)",
-      "AKU Institute for Human Development (IHD)",
-      "AKU Hospital Nairobi Programmes",
-      "Other / Not Listed"
-    ],
-    programs: {
-      "AKU Graduate School of Media and Communications (GSMC)": {
-        "Graduate": ["MA Communication","MA Journalism","MA Development Communication"]
-      },
-      "AKU Institute for Human Development (IHD)": {
-        "Graduate": ["MEd","MA Early Childhood Development"]
-      },
-      "AKU Hospital Nairobi Programmes": {
-        "Graduate": ["Clinical Training","Residency","Nursing Programme"]
-      },
-      "Other / Not Listed": {
-        "Undergraduate": ["Other"], "Graduate": ["Other"],
-        "Post-Graduate": ["Other"], "PhD": ["Other"]
-      }
-    }
-  },
-  "Kampala": {
-    entities: [
-      "AKU Uganda",
-      "Other / Not Listed"
-    ],
-    programs: {
-      "AKU Uganda": {
-        "Undergraduate": ["Nursing"],
-        "Graduate":      ["Clinical Training","Other"]
-      },
-      "Other / Not Listed": {
-        "Undergraduate": ["Other"], "Graduate": ["Other"],
-        "Post-Graduate": ["Other"]
-      }
-    }
-  },
-  "Dar es Salaam": {
-    entities: [
-      "AKU Tanzania",
-      "Other / Not Listed"
-    ],
-    programs: {
-      "AKU Tanzania": {
-        "Undergraduate": ["Nursing"],
-        "Graduate":      ["Clinical Training","Other"]
-      },
-      "Other / Not Listed": {
-        "Undergraduate": ["Other"], "Graduate": ["Other"],
-        "Post-Graduate": ["Other"]
-      }
-    }
+let PROGRAM_DATA = [];
+const OTHER_ENTITY = "Other / Not Listed";
+const OTHER_LEVELS = ["Undergraduate", "Graduate", "Post Graduate", "Other"];
+
+async function loadProgramData(campus){
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/programs?campus=eq.${encodeURIComponent(campus)}&active=eq.true&select=entity,level,name&order=entity.asc,level.asc,name.asc`,
+      { headers: { "apikey": SUPABASE_KEY, "Accept": "application/json" } }
+    );
+    PROGRAM_DATA = res.ok ? await res.json() : [];
+  } catch(e){
+    PROGRAM_DATA = [];
   }
-};
+}
 
 /* ══════════════════════════════════════════════════════════════
    STATE
@@ -568,7 +496,10 @@ function setCookie(name, value, days){
     // flag is still the primary guard against duplicate check-ins.
   }
 
-  // 9. Populate entity dropdown for this campus
+  // 9. Load this campus's Entity/Level/Programme data, then populate the
+  //    entity dropdown. Loaded fresh on every visit — never cached — so a
+  //    change made in the Super Admin Programs panel is reflected right away.
+  await loadProgramData(event.campus);
   populateEntities(event.campus);
 
   // 9b. Load department custom questions for this event, if any
@@ -697,23 +628,28 @@ function selectType(type){
    PROGRAMME DATA HELPERS
 ══════════════════════════════════════════════════════════════ */
 function populateEntities(campus){
-  const sel    = document.getElementById("selEntity");
-  const campus_data = CAMPUS_DATA[campus] || CAMPUS_DATA["Karachi"];
-  const entities = campus_data.entities;
+  const sel = document.getElementById("selEntity");
   sel.innerHTML = `<option value="">— Select your entity —</option>`;
+  const entities = [...new Set(PROGRAM_DATA.map(p => p.entity).filter(Boolean))];
   entities.forEach(e => {
     const opt = document.createElement("option");
     opt.value = opt.textContent = e;
     sel.appendChild(opt);
   });
+  // Always offer a catch-all so students whose program isn't listed yet
+  // can still check in.
+  const otherOpt = document.createElement("option");
+  otherOpt.value = otherOpt.textContent = OTHER_ENTITY;
+  sel.appendChild(otherOpt);
 }
 
 function populateLevels(campus, entity){
   const sel = document.getElementById("selLevel");
   sel.innerHTML = `<option value="">— Select your level —</option>`;
 
-  const campus_data = CAMPUS_DATA[campus] || CAMPUS_DATA["Karachi"];
-  const levels = Object.keys(campus_data.programs?.[entity] || {});
+  const levels = entity === OTHER_ENTITY
+    ? OTHER_LEVELS
+    : [...new Set(PROGRAM_DATA.filter(p => p.entity === entity).map(p => p.level).filter(Boolean))];
 
   levels.forEach(l => {
     const opt = document.createElement("option");
@@ -726,10 +662,11 @@ function populatePrograms(campus, entity, level){
   const sel = document.getElementById("selProgram");
   sel.innerHTML = `<option value="">— Select your programme —</option>`;
 
-  const campus_data = CAMPUS_DATA[campus] || CAMPUS_DATA["Karachi"];
-  const programs = campus_data.programs?.[entity]?.[level] || ["Other / Not Listed"];
+  const programs = entity === OTHER_ENTITY
+    ? ["Other"]
+    : PROGRAM_DATA.filter(p => p.entity === entity && p.level === level).map(p => p.name);
 
-  programs.forEach(p => {
+  (programs.length ? programs : ["Other / Not Listed"]).forEach(p => {
     const opt = document.createElement("option");
     opt.value = opt.textContent = p;
     sel.appendChild(opt);
