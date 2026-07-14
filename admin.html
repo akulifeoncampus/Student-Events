@@ -3244,20 +3244,23 @@
           <span class="nav-label">Event Lead Portal</span>
           <span class="nav-badge" id="myEventsBadge" style="display:none;"></span>
         </button>
+        <button class="nav-item" onclick="showSection('notice-periods', this)" id="noticePeriodsNavBtnCampus" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3" /> <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>
+          <span class="nav-label">Event Notice Periods</span>
+        </button>
 
       </div><!-- /sidebar-nav-area -->
 
       <!-- GROUP 4: Administration + utility (pinned to bottom) -->
       <div class="sidebar-util-section">
-        <div class="sidebar-label" id="noticePeriodsNavLabel" style="padding-top:0;display:none;">Settings</div>
-        <button class="nav-item" id="noticePeriodsNavBtn" onclick="showSection('notice-periods', this)" style="display:none;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3" /> <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>
-          <span class="nav-label">Event Notice Periods</span>
-        </button>
         <div class="sidebar-label" id="settingsNavLabel" style="padding-top:0;">Administration</div>
         <button class="nav-item" id="adminsNavBtn" onclick="showSection('admins', this)">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /> <path d="M11 11a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M12 12l0 2.5" /></svg>
           <span class="nav-label">Admins</span>
+        </button>
+        <button class="nav-item" onclick="showSection('notice-periods', this)" id="noticePeriodsNavBtnSuper" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3" /> <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>
+          <span class="nav-label">Event Notice Periods</span>
         </button>
         <div class="sidebar-util-divider"></div>
         <button class="sidebar-util-item" onclick="handleLogout()">
@@ -6254,11 +6257,12 @@ function showAdminPanel(){
   document.getElementById("adminsNavBtn").style.display     = isSuper ? "" : "none";
   document.getElementById("settingsNavLabel").style.display = isSuper ? "" : "none";
 
-  // Event Notice Periods — Campus Admins (own campus) + Super Admin (all campuses).
-  // Hidden from Vice Provost, Senior Manager Global, Manager Marketing & Comms, and Event Leads.
-  const canEditNoticePeriods = currentRole === "admin" || currentRole === "super_admin";
-  document.getElementById("noticePeriodsNavBtn").style.display   = canEditNoticePeriods ? "" : "none";
-  document.getElementById("noticePeriodsNavLabel").style.display = canEditNoticePeriods ? "" : "none";
+  // Event Notice Periods — shown in different sidebar groups per role:
+  // Campus Admin sees it under "Event management" (their day-to-day area).
+  // Super Admin sees it under "Administration" (alongside Admins).
+  // Hidden entirely from Vice Provost, Senior Manager Global, Manager Marketing & Comms, Event Leads.
+  document.getElementById("noticePeriodsNavBtnCampus").style.display = (currentRole === "admin") ? "" : "none";
+  document.getElementById("noticePeriodsNavBtnSuper").style.display  = (currentRole === "super_admin") ? "" : "none";
 
   // Awards nav — visible to anyone with a scoring permission at their campus,
   // plus the oversight roles (SMG cross-campus review, VP sign-off) and
