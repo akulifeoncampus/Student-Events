@@ -4565,7 +4565,11 @@ function selectScale(scale){
     el.style.background = s === scale ? "#eff6ff" : "white";
   });
   const scaleLabels = { small: "🟢 Small Event", medium: "🟡 Medium Event", mega: "🔴 Mega Event" };
-  const minDays = currentNoticePeriods[scale];
+  // Notice-period constraint applies to Clubs and Individual accounts only.
+  // Departments get event-hub purely as a listing space — no OSE support,
+  // so no minimum-notice requirement either.
+  const isDepartment = currentClub?.account_type === "department";
+  const minDays = isDepartment ? 0 : currentNoticePeriods[scale];
   const today = new Date(); today.setHours(0,0,0,0);
   const minDate = addWorkingDays(today, minDays);
   const minStr  = minDate.toISOString().split("T")[0];
@@ -4577,9 +4581,11 @@ function selectScale(scale){
   const note = document.getElementById("scaleDateNote");
   if(note){
     note.style.display = "block";
-    note.textContent = minDays > 0
-      ? `${scaleLabels[scale]}: Minimum ${minDays} working day${minDays === 1 ? "" : "s"} (Mon–Fri) from today.`
-      : `${scaleLabels[scale]}: No minimum notice period currently required at this campus.`;
+    note.textContent = isDepartment
+      ? `${scaleLabels[scale]}: No minimum notice period for departmental accounts.`
+      : (minDays > 0
+        ? `${scaleLabels[scale]}: Minimum ${minDays} working day${minDays === 1 ? "" : "s"} (Mon–Fri) from today.`
+        : `${scaleLabels[scale]}: No minimum notice period currently required at this campus.`);
   }
 }
 
