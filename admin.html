@@ -3302,13 +3302,19 @@
             </div>
           </div>
 
-          <!-- Filter strip: date range (event_date) + campus chips -->
+          <!-- Filter strip: date range (event_date) + account scope + campus chips -->
           <div class="filter-strip" role="region" aria-label="Dashboard filters">
             <div class="filter-group">
               <span class="filter-label">Date range</span>
               <input class="filter-date-input" id="execFilterDateFrom" type="date" aria-label="From date" onchange="onExecDateFilterChange()" />
               <span class="filter-date-separator" aria-hidden="true">→</span>
               <input class="filter-date-input" id="execFilterDateTo" type="date" aria-label="To date" onchange="onExecDateFilterChange()" />
+            </div>
+            <div class="filter-group" role="group" aria-label="Account scope filter">
+              <span class="filter-label">Scope</span>
+              <button class="filter-chip"        data-scope="student_led"  onclick="onExecScopeFilterChange('student_led', this)"  aria-pressed="false">Student-Led</button>
+              <button class="filter-chip"        data-scope="departmental" onclick="onExecScopeFilterChange('departmental', this)" aria-pressed="false">Departmental</button>
+              <button class="filter-chip active" data-scope="combined"     onclick="onExecScopeFilterChange('combined', this)"     aria-pressed="true">Combined</button>
             </div>
             <div class="filter-group" role="group" aria-label="Campus filter">
               <span class="filter-label">Campus</span>
@@ -3321,7 +3327,7 @@
             <button class="filter-clear-btn" onclick="clearAllExecFilters()" aria-label="Clear all filters">Clear filters</button>
           </div>
 
-          <div class="filter-summary" id="execFilterSummary" aria-live="polite">Showing data for: All time · All campuses</div>
+          <div class="filter-summary" id="execFilterSummary" aria-live="polite">Showing data for: All time · All campuses · Combined</div>
 
           <!-- ═══════════════════════════════════════════════════════════════
                PHASE 2 — OVERALL CARDS (across all campuses, subject to filters)
@@ -3336,10 +3342,10 @@
                 <span class="stat-card-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /><path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M17 10h2a2 2 0 0 1 2 2v1" /><path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
                 </span>
-                <span class="stat-label">Total Clubs</span>
+                <span class="stat-label" id="execStatClubsLabel">Total Clubs</span>
               </div>
               <div class="stat-value"><span id="execStatClubs" class="exec-skeleton">—</span></div>
-              <div class="stat-sub">Registered societies</div>
+              <div class="stat-sub" id="execStatClubsSub">Registered societies</div>
             </div>
 
             <!-- Onboarded Clubs (no date filter) -->
@@ -3348,10 +3354,10 @@
                 <span class="stat-card-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" /></svg>
                 </span>
-                <span class="stat-label">Onboarded Clubs</span>
+                <span class="stat-label" id="execStatOnboardedLabel">Onboarded Clubs</span>
               </div>
               <div class="stat-value"><span id="execStatOnboarded" class="exec-skeleton">—</span></div>
-              <div class="stat-sub">Approved on Event Hub</div>
+              <div class="stat-sub" id="execStatOnboardedSub">Approved on Event Hub</div>
             </div>
 
             <!-- Total Events (date-filtered) -->
@@ -6433,7 +6439,8 @@ const EXECUTIVE_DASHBOARD_ROLES = ["super_admin","vice_provost","senior_manager_
 window.dashboardFilters = {
   dateFrom: null,   // "YYYY-MM-DD" or null (no lower bound)
   dateTo:   null,   // "YYYY-MM-DD" or null (no upper bound)
-  campus:   "all"   // "all" or one of the 4 campus names
+  campus:   "all",  // "all" or one of the 4 campus names
+  scope:    "combined"   // "combined" | "student_led" | "departmental"
 };
 
 /* Toggle which dashboard view shows based on the current role. */
@@ -6472,9 +6479,12 @@ function onExecDateFilterChange(){
   notifyExecFilterChange();
 }
 
-/* Campus chip clicked — only one can be active at a time. */
+/* Campus chip clicked — only one can be active at a time.
+   NOTE: scoped to [data-campus] chips specifically — do not widen this
+   selector back to plain ".filter-chip", or it will also toggle the
+   Account Scope chips (different filter, same visual class). */
 function onExecCampusFilterChange(campus, btn){
-  document.querySelectorAll("#executiveDashboardView .filter-chip").forEach(c => {
+  document.querySelectorAll("#executiveDashboardView .filter-chip[data-campus]").forEach(c => {
     c.classList.remove("active");
     c.setAttribute("aria-pressed", "false");
   });
@@ -6485,15 +6495,35 @@ function onExecCampusFilterChange(campus, btn){
   notifyExecFilterChange();
 }
 
-/* Reset to defaults (All time, All campuses). */
+/* Account Scope chip clicked (Student-Led / Departmental / Combined).
+   Mirrors onExecCampusFilterChange but scoped to [data-scope] chips only,
+   so it never touches the Campus chip row. */
+function onExecScopeFilterChange(scope, btn){
+  document.querySelectorAll("#executiveDashboardView .filter-chip[data-scope]").forEach(c => {
+    c.classList.remove("active");
+    c.setAttribute("aria-pressed", "false");
+  });
+  btn.classList.add("active");
+  btn.setAttribute("aria-pressed", "true");
+  window.dashboardFilters.scope = scope;
+  updateExecFilterSummary();
+  notifyExecFilterChange();
+}
+
+/* Reset to defaults (All time, All campuses, Combined scope). */
 function clearAllExecFilters(){
   document.getElementById("execFilterDateFrom").value = "";
   document.getElementById("execFilterDateTo").value   = "";
-  window.dashboardFilters = { dateFrom: null, dateTo: null, campus: "all" };
-  document.querySelectorAll("#executiveDashboardView .filter-chip").forEach(c => {
+  window.dashboardFilters = { dateFrom: null, dateTo: null, campus: "all", scope: "combined" };
+  document.querySelectorAll("#executiveDashboardView .filter-chip[data-campus]").forEach(c => {
     const isAll = c.dataset.campus === "all";
     c.classList.toggle("active", isAll);
     c.setAttribute("aria-pressed", isAll ? "true" : "false");
+  });
+  document.querySelectorAll("#executiveDashboardView .filter-chip[data-scope]").forEach(c => {
+    const isCombined = c.dataset.scope === "combined";
+    c.classList.toggle("active", isCombined);
+    c.setAttribute("aria-pressed", isCombined ? "true" : "false");
   });
   updateExecFilterSummary();
   notifyExecFilterChange();
@@ -6509,7 +6539,8 @@ function updateExecFilterSummary(){
                     : (f.dateFrom)               ? `From ${f.dateFrom}`
                     :                              `Up to ${f.dateTo}`;
   const campusLabel = (f.campus === "all") ? "All campuses" : f.campus;
-  el.textContent = `Showing data for: ${dateLabel} · ${campusLabel}`;
+  const scopeLabel  = { combined: "Combined", student_led: "Student-Led", departmental: "Departmental" }[f.scope] || "Combined";
+  el.textContent = `Showing data for: ${dateLabel} · ${campusLabel} · ${scopeLabel}`;
 }
 
 /* In later phases, cards/charts/datasheet will listen for this event. */
@@ -6663,10 +6694,10 @@ async function loadExecutiveDashboard(){
     // ── Wave 1: parallel fetches that don't depend on each other ──
     const [clubsRes, onboardedRes, eventsRes, upcomingRes, proposalsRes] = await Promise.all([
       sb.from("clubs").select("id, name, campus"),
-      sb.from("club_accounts").select("id, campus").eq("status", "approved"),
-      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser"), f.dateFrom, f.dateTo),
+      sb.from("club_accounts").select("id, campus, account_type, club_name").eq("status", "approved"),
+      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
-      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser"), todayStr, f.dateTo),
+      execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), todayStr, f.dateTo),
       sb.from("event_proposals").select("event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
     ]);
 
@@ -6685,7 +6716,7 @@ async function loadExecutiveDashboard(){
       const prior = execPreviousPeriodDates(f.dateFrom, f.dateTo);
       if(prior){
         const priorEventsRes = await execApplyEventDateFilter(
-          sb.from("events").select("id, campus, event_date, category, event_type, organiser"), prior.from, prior.to
+          sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), prior.from, prior.to
         );
         priorEvents = priorEventsRes.data || [];
         priorAttendance = await execFetchAttendance(priorEvents.map(e => e.id));
@@ -6696,11 +6727,30 @@ async function loadExecutiveDashboard(){
     const campus    = f.campus;
     const inCampus  = (item) => campus === "all" || item.campus === campus;
 
-    const fClubs     = allClubs.filter(inCampus);
-    const fOnboarded = allOnboarded.filter(inCampus);
-    const fEvents    = eventsInRange.filter(inCampus);
-    const fUpcoming  = upcomingEvents.filter(inCampus);
-    const fPriorEv   = priorEvents.filter(inCampus);
+    // ── Apply Account Scope filter (client-side, same pattern as campus) ──
+    // events/proposals carry `organiser_type`; club_accounts carries `account_type`.
+    // Both map to the same 3 values (club / department / individual) — execTypeOf()
+    // reads whichever is present. Missing/blank defaults to "club", matching the
+    // fallback already used elsewhere in this app (mergedP.organiser_type || "club").
+    const scope = f.scope || "combined";
+    function execTypeOf(item){ return item.organiser_type || item.account_type || "club"; }
+    const inScope = (item) => {
+      if(scope === "combined") return true;
+      const t = execTypeOf(item);
+      return (scope === "departmental") ? (t === "department") : (t === "club" || t === "individual");
+    };
+
+    // Departmental accounts, shaped for reuse both as a headcount and (mapped) as an
+    // inclusivity roster. There is no standalone "departments directory" table the way
+    // there is a `clubs` directory — approved club_accounts is the only source of truth.
+    const allDeptAccounts = allOnboarded.filter(a => a.account_type === "department");
+    const deptRosterForInclusivity = allDeptAccounts.map(a => ({ name: a.club_name, campus: a.campus }));
+
+    const fClubs     = (scope === "departmental") ? allDeptAccounts.filter(inCampus) : allClubs.filter(inCampus);
+    const fOnboarded = allOnboarded.filter(inCampus).filter(inScope);
+    const fEvents     = eventsInRange.filter(inCampus).filter(inScope);
+    const fUpcoming   = upcomingEvents.filter(inCampus).filter(inScope);
+    const fPriorEv    = priorEvents.filter(inCampus).filter(inScope);
 
     // ── Compute event-type counts ──
     // Prefer the event's own event_type column — this covers manually-added
@@ -6730,10 +6780,11 @@ async function loadExecutiveDashboard(){
 
     // ── Compute prior-period metrics (when range set) ──
     let priorTotalEvents = null, priorUnique = null, priorRepeatRate = null;
+    let fPriorAtt = [];
     if(hasRange){
       priorTotalEvents = fPriorEv.length;
       const priorEventIdSet  = new Set(fPriorEv.map(e => e.id));
-      const fPriorAtt        = priorAttendance.filter(a => priorEventIdSet.has(a.event_id));
+      fPriorAtt               = priorAttendance.filter(a => priorEventIdSet.has(a.event_id));
       const priorStudentCount = {};
       fPriorAtt.forEach(a => {
         if(a.student_id) priorStudentCount[a.student_id] = (priorStudentCount[a.student_id] || 0) + 1;
@@ -6745,6 +6796,14 @@ async function loadExecutiveDashboard(){
 
     // ── Render overall cards ──
     execShowCardsLoading(false);
+    const clubsCardLabel     = (scope === "departmental") ? "Total Departments"     : "Total Clubs";
+    const clubsCardSub       = (scope === "departmental") ? "Registered departments" : "Registered societies";
+    const onboardedCardLabel = (scope === "departmental") ? "Onboarded Departments"
+                              : (scope === "student_led")  ? "Onboarded Clubs"
+                              :                               "Onboarded Accounts";
+    document.getElementById("execStatClubsLabel").textContent     = clubsCardLabel;
+    document.getElementById("execStatClubsSub").textContent       = clubsCardSub;
+    document.getElementById("execStatOnboardedLabel").textContent = onboardedCardLabel;
     document.getElementById("execStatClubs").textContent      = execFormatNumber(fClubs.length);
     document.getElementById("execStatOnboarded").textContent  = execFormatNumber(fOnboarded.length);
     document.getElementById("execStatEvents").textContent     = execFormatNumber(fEvents.length);
@@ -6761,11 +6820,12 @@ async function loadExecutiveDashboard(){
 
     // ── Render by-campus tiles ──
     renderExecByCampusTiles({
-      clubs:    allClubs,
-      onboarded: allOnboarded,
-      events:   eventsInRange,
-      upcoming: upcomingEvents,
-      selectedCampus: campus
+      clubs:    (scope === "departmental") ? allDeptAccounts : allClubs,
+      onboarded: allOnboarded.filter(inScope),
+      events:   eventsInRange.filter(inScope),
+      upcoming: upcomingEvents.filter(inScope),
+      selectedCampus: campus,
+      scope: scope
     });
 
     // ── Render Phase 3 charts ──
@@ -6778,8 +6838,8 @@ async function loadExecutiveDashboard(){
 
     // Comparative charts (only when viewing all campuses)
     if(isAllCampuses){
-      renderEventsByCampusChart(eventsInRange);
-      renderEventsByMonthByCampusCharts(eventsInRange, f.dateFrom, f.dateTo);
+      renderEventsByCampusChart(fEvents);
+      renderEventsByMonthByCampusCharts(fEvents, f.dateFrom, f.dateTo);
     } else {
       // Destroy any lingering instances so they don't hold on to stale data
       destroyExecChart("byCampus");
@@ -6810,9 +6870,11 @@ async function loadExecutiveDashboard(){
     if(catCampusDiv)  catCampusDiv.style.display  = isAllCampuses ? "" : "none";
 
     if(isAllCampuses){
-      // Use unfiltered eventsInRange + attendanceInRange since the whole point is to compare all 4 campuses
-      renderCategoryCampusHeatmap(attendanceInRange, eventsInRange, proposals);
-      renderCategoryCampusClusteredBar(attendanceInRange, eventsInRange, proposals);
+      // Use scope-filtered fEvents/fAttendance (equal to the unfiltered arrays when
+      // scope="combined", which is why this still compares all 4 campuses by default —
+      // but now also respects Student-Led / Departmental when one is selected).
+      renderCategoryCampusHeatmap(fAttendance, fEvents, proposals);
+      renderCategoryCampusClusteredBar(fAttendance, fEvents, proposals);
     } else {
       destroyExecChart("clustered");
     }
@@ -6821,24 +6883,25 @@ async function loadExecutiveDashboard(){
     // Isolated in their own try/catch so any future bug here cannot blank out cards/charts above.
     try {
       renderExecInclusivityPanel({
-        clubs:           allClubs,
-        onboarded:       allOnboarded,
-        events:          eventsInRange,
-        upcomingEvents:  upcomingEvents,
-        attendance:      attendanceInRange,
-        priorEvents:     priorEvents,
-        priorAttendance: priorAttendance,
+        clubs:           (scope === "departmental") ? deptRosterForInclusivity : allClubs,
+        onboarded:       allOnboarded.filter(inScope),
+        events:          fEvents,
+        upcomingEvents:  fUpcoming,
+        attendance:      fAttendance,
+        priorEvents:     fPriorEv,
+        priorAttendance: fPriorAtt,
         hasRange:        hasRange,
         proposals:       proposals,
-        campus:          campus
+        campus:          campus,
+        scope:           scope
       });
     } catch(err){
       console.error("[Executive Dashboard] inclusivity panel render failed:", err);
     }
 
     try {
-      // Datasheet always shows rows for the current campus scope (respects the top campus chip)
-      renderExecDatasheet(fAttendance, fEvents, proposals);
+      // Datasheet always shows rows for the current campus + scope selection
+      renderExecDatasheet(fAttendance, fEvents, proposals, scope);
     } catch(err){
       console.error("[Executive Dashboard] datasheet render failed:", err);
     }
@@ -6861,10 +6924,15 @@ async function loadExecutiveDashboard(){
 /* ── Render the by-campus tiles ──
    When "all" campus selected → render all 4 tiles.
    When a specific campus selected → render only that one tile.            */
-function renderExecByCampusTiles({ clubs, onboarded, events, upcoming, selectedCampus }){
+function renderExecByCampusTiles({ clubs, onboarded, events, upcoming, selectedCampus, scope }){
   const grid    = document.getElementById("execByCampusGrid");
   const divider = document.getElementById("execByCampusDivider");
   if(!grid) return;
+
+  const clubsRowLabel     = (scope === "departmental") ? "Total Departments"     : "Total Clubs";
+  const onboardedRowLabel = (scope === "departmental") ? "Onboarded Departments"
+                           : (scope === "student_led")  ? "Onboarded Clubs"
+                           :                               "Onboarded Accounts";
 
   // Pick which campuses to show
   const campusesToShow = (selectedCampus === "all")
@@ -6895,11 +6963,11 @@ function renderExecByCampusTiles({ clubs, onboarded, events, upcoming, selectedC
           ${execEscapeHtml(campus)}
         </div>
         <div class="exec-campus-row">
-          <span class="exec-campus-row-label">Total Clubs</span>
+          <span class="exec-campus-row-label">${clubsRowLabel}</span>
           <span class="exec-campus-row-value">${execFormatNumber(c)}</span>
         </div>
         <div class="exec-campus-row">
-          <span class="exec-campus-row-label">Onboarded Clubs</span>
+          <span class="exec-campus-row-label">${onboardedRowLabel}</span>
           <span class="exec-campus-row-value">${execFormatNumber(o)}</span>
         </div>
         <div class="exec-campus-row">
@@ -8143,9 +8211,20 @@ function composeExecDsRows(attendance, events, proposals){
   });
 }
 
-/* ── Datasheet render (called from loadExecutiveDashboard) ── */
-function renderExecDatasheet(attendance, events, proposals){
+/* Datasheet render (called from loadExecutiveDashboard). */
+function renderExecDatasheet(attendance, events, proposals, scope){
   ensureExecDsInit();
+
+  // Relabel the organiser-name column to match the active scope. Mutating the
+  // shared EXEC_DS_COLS entry in place is intentional — every downstream reader
+  // (head, filter row, column-visibility popover) reads col.label live, so one
+  // update here keeps all three in sync.
+  const clubNameCol = EXEC_DS_COLS.find(c => c.key === "club_name");
+  if(clubNameCol){
+    clubNameCol.label = (scope === "departmental") ? "Department Name"
+                        : (scope === "student_led") ? "Club Name"
+                        :                              "Organiser";
+  }
 
   window._execDs.allRows = composeExecDsRows(attendance, events, proposals);
 
@@ -8418,9 +8497,19 @@ function renderExecInclusivityPanel(ctx){
   // ctx = {
   //   clubs, onboarded, events, upcomingEvents,
   //   attendance, priorEvents, priorAttendance, hasRange,
-  //   proposals, campus
+  //   proposals, campus, scope
   // }
   const filterClub = (c) => ctx.campus === "all" || c.campus === ctx.campus;
+
+  // Wording only — every count/match below is untouched. "clubs" table's rows
+  // are department accounts when scope=departmental (roster swapped upstream),
+  // so the label needs to say so.
+  const rosterWord   = (ctx.scope === "departmental") ? "Department" : "Club";
+  const rosterWordLc  = rosterWord.toLowerCase();
+  const activeTitleEl  = document.getElementById("execInclActiveTitle");
+  const dormantTitleEl = document.getElementById("execInclDormantTitle");
+  if(activeTitleEl)  activeTitleEl.textContent  = `Active ${rosterWord}s`;
+  if(dormantTitleEl) dormantTitleEl.textContent = `Dormant ${rosterWord}s`;
 
   // ── Card 1: Active Clubs % ──
   const scopedClubs = ctx.clubs.filter(filterClub);
@@ -8458,8 +8547,8 @@ function renderExecInclusivityPanel(ctx){
   }
   if(subEl){
     subEl.textContent = (totalClubs === 0)
-      ? "No clubs registered in this scope."
-      : `${execFormatNumber(activeMatched)} of ${execFormatNumber(totalClubs)} clubs held ≥1 event`;
+      ? `No ${rosterWordLc}s registered in this scope.`
+      : `${execFormatNumber(activeMatched)} of ${execFormatNumber(totalClubs)} ${rosterWordLc}s held ≥1 event`;
   }
 
   // ── Card 2: Dormant Clubs list ──
@@ -8469,10 +8558,10 @@ function renderExecInclusivityPanel(ctx){
   }).map(c => c.name).sort();
   const dormHead = document.getElementById("execInclDormantHead");
   const dormList = document.getElementById("execInclDormantList");
-  if(dormHead) dormHead.textContent = `${execFormatNumber(dormant.length)} club${dormant.length === 1 ? '' : 's'} idle`;
+  if(dormHead) dormHead.textContent = `${execFormatNumber(dormant.length)} ${rosterWordLc}${dormant.length === 1 ? '' : 's'} idle`;
   if(dormList){
     if(dormant.length === 0){
-      dormList.innerHTML = '<li class="exec-incl-empty">Every club held an event in this range 🎉</li>';
+      dormList.innerHTML = `<li class="exec-incl-empty">Every ${rosterWordLc} held an event in this range 🎉</li>`;
     } else {
       dormList.innerHTML = dormant.slice(0, 8).map(n => `<li>${execEscapeHtml(n)}</li>`).join("")
         + (dormant.length > 8 ? `<li class="exec-incl-empty">+${execFormatNumber(dormant.length - 8)} more…</li>` : "");
