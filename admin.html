@@ -3249,6 +3249,11 @@
 
       <!-- GROUP 4: Administration + utility (pinned to bottom) -->
       <div class="sidebar-util-section">
+        <div class="sidebar-label" id="noticePeriodsNavLabel" style="padding-top:0;display:none;">Settings</div>
+        <button class="nav-item" id="noticePeriodsNavBtn" onclick="showSection('notice-periods', this)" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3" /> <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>
+          <span class="nav-label">Event Notice Periods</span>
+        </button>
         <div class="sidebar-label" id="settingsNavLabel" style="padding-top:0;">Administration</div>
         <button class="nav-item" id="adminsNavBtn" onclick="showSection('admins', this)">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" /> <path d="M11 11a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M12 12l0 2.5" /></svg>
@@ -4322,6 +4327,19 @@
             <thead><tr><th>Icon</th><th>Title</th><th>Category</th><th>Campus</th><th>URL</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="resources-list"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;">Loading…</td></tr></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ── EVENT NOTICE PERIODS ── -->
+      <div class="section" id="section-notice-periods">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Event Notice Periods</div>
+            <div class="section-subtitle">Minimum working days' notice required before an event date, per campus and event size. Clubs, departments and individuals submitting a proposal are held to whatever is set here for their campus.</div>
+          </div>
+        </div>
+        <div id="noticePeriodsList" style="max-width:820px;">
+          <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div>
         </div>
       </div>
 
@@ -6236,6 +6254,12 @@ function showAdminPanel(){
   document.getElementById("adminsNavBtn").style.display     = isSuper ? "" : "none";
   document.getElementById("settingsNavLabel").style.display = isSuper ? "" : "none";
 
+  // Event Notice Periods — Campus Admins (own campus) + Super Admin (all campuses).
+  // Hidden from Vice Provost, Senior Manager Global, Manager Marketing & Comms, and Event Leads.
+  const canEditNoticePeriods = currentRole === "admin" || currentRole === "super_admin";
+  document.getElementById("noticePeriodsNavBtn").style.display   = canEditNoticePeriods ? "" : "none";
+  document.getElementById("noticePeriodsNavLabel").style.display = canEditNoticePeriods ? "" : "none";
+
   // Awards nav — visible to anyone with a scoring permission at their campus,
   // plus the oversight roles (SMG cross-campus review, VP sign-off) and
   // Super Admin (troubleshooting access). Uses the same (campus, designation)
@@ -6383,6 +6407,7 @@ function showSection(name, btn){
   if(name === "resources") loadResources();
   if(name === "emergency") loadEmergencyContacts();
   if(name === "awards") loadAwardsSection();
+  if(name === "notice-periods") loadNoticePeriods();
 }
 
 /* ══ TOAST ══ */
@@ -10427,6 +10452,99 @@ async function saveAwardsWindow(campus){
   if(error){ showToast("Failed to save: " + error.message, "error"); return; }
   showToast(`${campus} window saved.`);
   loadAwardsWindows();
+}
+
+/* ── Event Notice Periods — minimum working days before an event, per campus/size ──
+   Reuses the site_settings key/value table (same pattern as awards_window_${campus}
+   and emergency_number). One key per campus: working_days_${campus}, value is a
+   JSON string: { small, medium, mega, setBy, setAt }.
+   Campus Admins may only edit their own campus (enforced here AND by RLS —
+   see working_days_migration.sql). Super Admin edits all four. */
+const NOTICE_CAMPUSES = ["Karachi", "Nairobi", "Kampala", "Dar es Salaam"];
+const NOTICE_DEFAULTS = { small: 7, medium: 14, mega: 30 };
+
+async function loadNoticePeriods(){
+  if(currentRole !== "admin" && currentRole !== "super_admin") return;
+  const campuses = currentRole === "super_admin"
+    ? NOTICE_CAMPUSES
+    : (currentAdminCampus && currentAdminCampus !== "All" ? [currentAdminCampus] : NOTICE_CAMPUSES);
+
+  const keys = campuses.map(c => `working_days_${c}`);
+  const { data, error } = await sb.from("site_settings").select("key,value").in("key", keys);
+  if(error){ showToast("Failed to load notice periods: " + error.message, "error"); return; }
+  const byKey = {};
+  (data || []).forEach(row => { byKey[row.key] = row.value; });
+  renderNoticePeriods(campuses, byKey);
+}
+
+function renderNoticePeriods(campuses, byKey){
+  const el = document.getElementById("noticePeriodsList");
+  if(!el) return;
+  el.innerHTML = campuses.map(campus => {
+    const key = `working_days_${campus}`;
+    let saved = {};
+    try { saved = byKey[key] ? JSON.parse(byKey[key]) : {}; } catch(e){ saved = {}; }
+    const small  = saved.small  ?? NOTICE_DEFAULTS.small;
+    const medium = saved.medium ?? NOTICE_DEFAULTS.medium;
+    const mega   = saved.mega   ?? NOTICE_DEFAULTS.mega;
+    const meta = saved.setBy
+      ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;">Last set by ${esc(saved.setBy)} on ${new Date(saved.setAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>`
+      : `<div style="font-size:11px;color:var(--muted);margin-top:8px;">Using default — not yet customised for this campus</div>`;
+    return `
+      <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:700;margin-bottom:10px;">${esc(campus)}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr) auto;gap:10px;align-items:end;">
+          <div class="field">
+            <label style="font-size:10px;">🟢 Small event</label>
+            <input type="number" min="0" step="1" id="ndSmall_${campus}" value="${small}"
+              style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;width:100%;" />
+          </div>
+          <div class="field">
+            <label style="font-size:10px;">🟡 Medium event</label>
+            <input type="number" min="0" step="1" id="ndMedium_${campus}" value="${medium}"
+              style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;width:100%;" />
+          </div>
+          <div class="field">
+            <label style="font-size:10px;">🔴 Mega event</label>
+            <input type="number" min="0" step="1" id="ndMega_${campus}" value="${mega}"
+              style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;width:100%;" />
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="saveNoticePeriod('${campus}')">💾 Save</button>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;">Working days required (Mon–Fri) between today and the earliest bookable event date.</div>
+        ${meta}
+      </div>`;
+  }).join("");
+}
+
+async function saveNoticePeriod(campus){
+  // Belt-and-suspenders: the database (RLS) also enforces this scoping —
+  // this check just gives an immediate, friendly message instead of a raw error.
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All" && campus !== currentAdminCampus){
+    showToast("You can only edit your own campus.", "error"); return;
+  }
+
+  const key    = `working_days_${campus}`;
+  const small  = parseInt(document.getElementById(`ndSmall_${campus}`).value, 10);
+  const medium = parseInt(document.getElementById(`ndMedium_${campus}`).value, 10);
+  const mega   = parseInt(document.getElementById(`ndMega_${campus}`).value, 10);
+
+  if([small, medium, mega].some(v => isNaN(v) || v < 0)){
+    showToast("All three values must be 0 or a positive whole number.", "error"); return;
+  }
+
+  const value = JSON.stringify({
+    small, medium, mega,
+    setBy: currentUser.email,
+    setAt: new Date().toISOString(),
+  });
+
+  const { error } = await sb.from("site_settings")
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+
+  if(error){ showToast("Failed to save: " + error.message, "error"); return; }
+  showToast(`${campus} notice periods saved.`);
+  loadNoticePeriods();
 }
 
 /* ── Departments — managed list for the signup form's Department account type ──
