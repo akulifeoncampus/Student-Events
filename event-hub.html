@@ -4523,6 +4523,40 @@ function addWorkingDays(startDate, days){
   return d;
 }
 
+/* ── Notice periods (minimum working days), per campus ──
+   Historically these were hardcoded (small=0 TEMP for QR testing, medium=14,
+   mega=30). Now each campus's Admin/Super Admin sets these from admin.html
+   ("Event Notice Periods"), stored in site_settings under working_days_${campus}.
+   Fetched fresh every time the proposal modal opens (or the campus changes),
+   so a campus admin's change takes effect the next time a rep opens the form —
+   no stale caching across the session. Falls back to 7 / 14 / 30 if a campus
+   has no custom setting saved yet. */
+let currentNoticePeriods = { small: 7, medium: 14, mega: 30 };
+
+async function loadNoticePeriodsForCampus(campus){
+  const fallback = { small: 7, medium: 14, mega: 30 };
+  if(!campus){ currentNoticePeriods = fallback; return; }
+  try{
+    const { data, error } = await sb.from("site_settings")
+      .select("value").eq("key", `working_days_${campus}`).maybeSingle();
+    if(error || !data?.value){
+      currentNoticePeriods = fallback;
+    } else {
+      const parsed = JSON.parse(data.value);
+      currentNoticePeriods = {
+        small:  Number.isFinite(parsed.small)  ? parsed.small  : fallback.small,
+        medium: Number.isFinite(parsed.medium) ? parsed.medium : fallback.medium,
+        mega:   Number.isFinite(parsed.mega)   ? parsed.mega   : fallback.mega,
+      };
+    }
+  } catch(e){
+    currentNoticePeriods = fallback;
+  }
+  // If a scale radio is already selected, re-apply it now that limits are current
+  const checkedScale = document.querySelector('input[name="eventScale"]:checked');
+  if(checkedScale) selectScale(checkedScale.value);
+}
+
 function selectScale(scale){
   ["small","medium","mega"].forEach(s => {
     const el = document.getElementById(`scale-${s}`);
@@ -4530,14 +4564,10 @@ function selectScale(scale){
     el.style.border     = s === scale ? "2px solid #2563eb" : "2px solid #e5e7eb";
     el.style.background = s === scale ? "#eff6ff" : "white";
   });
-  const minWorkingDays = { small:0, medium:14, mega:30 }; // TEMP: small=0 for QR testing (restore to 7 after)
-  const labels = {
-    small:  "🟢 Small Event: Minimum 7 working days (Mon–Fri) from today.",
-    medium: "🟡 Medium Event: Minimum 14 working days (Mon–Fri) from today.",
-    mega:   "🔴 Mega Event: Minimum 30 working days (Mon–Fri) from today."
-  };
+  const scaleLabels = { small: "🟢 Small Event", medium: "🟡 Medium Event", mega: "🔴 Mega Event" };
+  const minDays = currentNoticePeriods[scale];
   const today = new Date(); today.setHours(0,0,0,0);
-  const minDate = addWorkingDays(today, minWorkingDays[scale]);
+  const minDate = addWorkingDays(today, minDays);
   const minStr  = minDate.toISOString().split("T")[0];
   const dateInput = document.getElementById("fDate");
   if(dateInput){
@@ -4545,7 +4575,12 @@ function selectScale(scale){
     if(dateInput.value && dateInput.value < minStr) dateInput.value = "";
   }
   const note = document.getElementById("scaleDateNote");
-  if(note){ note.style.display = "block"; note.textContent = labels[scale]; }
+  if(note){
+    note.style.display = "block";
+    note.textContent = minDays > 0
+      ? `${scaleLabels[scale]}: Minimum ${minDays} working day${minDays === 1 ? "" : "s"} (Mon–Fri) from today.`
+      : `${scaleLabels[scale]}: No minimum notice period currently required at this campus.`;
+  }
 }
 
 function showPendingReportWarning(proposal){
@@ -4555,7 +4590,7 @@ function showPendingReportWarning(proposal){
   document.getElementById("pendingReportModal").classList.add("open");
 }
 
-function openProposalModal(id = null){
+async function openProposalModal(id = null){
   // ── Gate: block if club has overdue events without report ──
   if(!id){
     const today = new Date(); today.setHours(0,0,0,0);
@@ -4624,10 +4659,16 @@ function openProposalModal(id = null){
     campusSel.value     = clubCampus;
     campusSel.disabled  = true;
     campusSel.style.cssText = "background:#eff6ff;color:#2563eb;font-weight:600;";
+    campusSel.onchange  = null;
+    await loadNoticePeriodsForCampus(clubCampus);
   } else {
     campusSel.innerHTML = `<option value="">Select…</option><option>Karachi</option><option>Nairobi</option><option>Kampala</option><option>Dar es Salaam</option>`;
     campusSel.disabled  = false;
     campusSel.style.cssText = "";
+    // Rare case: account isn't locked to one campus. Refresh notice periods
+    // whenever the rep picks a different campus, since limits are per-campus.
+    campusSel.onchange  = () => loadNoticePeriodsForCampus(campusSel.value);
+    await loadNoticePeriodsForCampus("");
   }
 
   // Form fields adapt per account type. Club stays exactly as it always was.
