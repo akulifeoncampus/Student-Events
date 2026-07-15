@@ -5116,6 +5116,7 @@
           <input type="text" id="eventImageUrl" placeholder="Or paste image URL" style="margin-top:8px;" />
         </div>
       </div>
+      <div id="eventActivityContainer"></div>
       <div class="form-actions">
         <button class="btn btn-secondary" onclick="closeModal('eventModal')">Cancel</button>
         <button class="btn btn-primary" onclick="saveEvent()">Save Event</button>
@@ -10059,8 +10060,10 @@ async function openEventModal(id = null){
     document.getElementById("eventDescription").value = e.description || "";
     document.getElementById("eventImageUrl").value    = e.cover_image || "";
     if(e.cover_image) document.getElementById("eventImagePreviewWrap").innerHTML = `<img src="${esc(e.cover_image)}" class="upload-preview" />`;
+    document.getElementById("eventActivityContainer").innerHTML = eventActivityBlock(e);
   } else {
     ["eventName","eventDate","eventTime","eventVenue","eventAudience","eventDescription","eventImageUrl","eventType"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("eventActivityContainer").innerHTML = "";
   }
   // Populate lead dropdown
   await populateLeadDropdown("eventAssignLead", id ? (allEvents.find(x=>x.id===id)?.assigned_lead||"") : "");
@@ -10190,8 +10193,14 @@ async function saveEvent(){
 
   let error, insertedId;
   if(id){
+    // Existing event being edited — record who last touched it, leave created_by as-is
+    payload.last_edited_by = currentUser.email;
     ({ error } = await sb.from("events").update(payload).eq("id", id));
   } else {
+    // Brand-new manual event — record who created it (this is the exact gap that
+    // made a manually-added event look anonymous). created_by is set once and never
+    // overwritten on later edits.
+    payload.created_by = currentUser.email;
     const { data, error: insertErr } = await sb.from("events").insert(payload).select("id").single();
     error      = insertErr;
     insertedId = data?.id;
@@ -13157,6 +13166,7 @@ async function openReviewModal(id){
       <div style="grid-column:1/-1;">${detailRow("Support Requested", supportHtml)}</div>
       ${p.description ? `<div style="grid-column:1/-1;">${detailRow("Description", `<div style="line-height:1.7;">${esc(p.description)}</div>`)}</div>` : ""}
       ${p.admin_note  ? `<div style="grid-column:1/-1;background:#fff7ed;border-radius:10px;padding:10px 14px;border:1px solid #fed7aa;"><strong>Previous Note:</strong> ${esc(p.admin_note)}</div>` : ""}
+      ${proposalActivityBlock(p)}
     </div>
     ${p.cover_image ? `<img src="${esc(p.cover_image)}" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-top:6px;" />` : ""}
   `;
@@ -13454,6 +13464,50 @@ function detailRow(label, value){
   return `<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:3px;">${label}</div><div>${value}</div></div>`;
 }
 
+/* Activity trail — renders a small "who did what, when" block. Reads whatever
+   fields exist; anything missing (e.g. older rows created before audit logging)
+   shows an honest "not recorded" rather than a made-up name. Used by both the
+   proposal detail view and the event edit modal. */
+function auditFmtDate(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  if(isNaN(d)) return "";
+  return d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })
+    + " " + d.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" });
+}
+function auditLine(label, who, when){
+  const whoTxt  = who ? esc(who) : '<span style="color:var(--muted);">Not recorded</span>';
+  const whenTxt = when ? ` <span style="color:var(--muted);">· ${esc(auditFmtDate(when))}</span>` : "";
+  return `<div style="display:flex;gap:6px;font-size:12px;line-height:1.8;">
+    <span style="font-weight:700;min-width:96px;color:var(--muted);">${label}</span>
+    <span>${whoTxt}${whenTxt}</span>
+  </div>`;
+}
+/* Build the full activity block for a proposal record. */
+function proposalActivityBlock(p){
+  const rows = [
+    auditLine("Submitted",   p.club_email || p.representative_name, p.submitted_at),
+    auditLine("Approved",    p.reviewed_by,      p.approved_at || p.reviewed_at),
+    auditLine("Last edited", p.last_edited_by,   p.updated_at),
+  ].join("");
+  return `<div style="grid-column:1/-1;margin-top:6px;padding:12px 14px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px;">Activity</div>
+    ${rows}
+  </div>`;
+}
+/* Build the full activity block for an event record (fetched separately). */
+function eventActivityBlock(ev){
+  if(!ev) return "";
+  const rows = [
+    auditLine("Created",     ev.created_by,     ev.created_at),
+    auditLine("Last edited", ev.last_edited_by, ev.updated_at),
+  ].join("");
+  return `<div style="margin-top:14px;padding:12px 14px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px;">Activity</div>
+    ${rows}
+  </div>`;
+}
+
 async function updateProposalStatus(status){
   const id   = document.getElementById("reviewProposalId").value;
   const p    = allAdminProposals.find(x => x.id === id);
@@ -13495,6 +13549,8 @@ async function updateProposalStatus(status){
     proposed_time:  editedTime  || null,
     admin_note:   note || null,
     reviewed_at:  new Date().toISOString(),
+    reviewed_by:  currentUser.email,
+    last_edited_by: currentUser.email,
     updated_at:   new Date().toISOString(),
   };
 
