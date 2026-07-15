@@ -1085,7 +1085,7 @@
 <header class="topbar">
   <a class="nav-back" href="index.html">← <span class="nav-back-text">Life on Campus</span></a>
   <div class="brand">Event Hub</div>
-  <span class="brand-sub">Club Portal</span>
+  <span class="brand-sub" id="brandSubPill">Club Portal</span>
   <div class="topbar-right">
     <div class="topbar-user" id="topbarUser">
       <div class="topbar-avatar" id="topbarAvatar">C</div>
@@ -1179,7 +1179,7 @@
   <div class="chat-panel-header" id="chatPanelHeader">
     <div class="chat-header-avatar" aria-hidden="true">OS</div>
     <div class="chat-header-info">
-      <div class="chat-header-name" id="chatHeaderName">OSEP Support Team</div>
+      <div class="chat-header-name" id="chatHeaderName">Office of Student Experience</div>
       <div class="chat-header-sub"  id="chatHeaderSub">We typically reply within a few hours</div>
     </div>
     <button class="chat-header-close" onclick="toggleChatPanel()" aria-label="Close chat">✕</button>
@@ -1206,13 +1206,13 @@
     <div class="chat-msg-list" id="chatMsgList" aria-live="polite" aria-label="Direct messages">
       <div class="chat-empty">
         <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">💬</div>
-        <div>Send a message to the OSEP team.<br>We're here to help!</div>
+        <div>Send a message to the Office of Student Experience.<br>We're here to help!</div>
       </div>
     </div>
     <div class="chat-input-row">
       <textarea class="chat-textarea" id="chatInput" rows="1"
         placeholder="Type a message…"
-        aria-label="Write a direct message to OSEP"
+        aria-label="Write a direct message to the Office of Student Experience"
         onkeydown="handleChatKey(event)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
       <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send message">➤</button>
@@ -1285,7 +1285,7 @@
   <div class="login-card">
     <div class="login-icon">🎭</div>
     <div class="login-title" id="loginTitle">Welcome to Event Hub</div>
-    <div class="login-sub" id="loginSubTitle">Sign in with your official club email to submit and track event proposals.</div>
+    <div class="login-sub" id="loginSubTitle">Sign in with your official AKU email to submit and track event proposals.</div>
 
     <!-- Signup-only fields -->
     <div id="signupOnlyFields" style="display:none;">
@@ -1328,7 +1328,7 @@
       </div>
     </div>
 
-    <label class="login-label" for="loginEmail" id="loginEmailLabel">Club Email *</label>
+    <label class="login-label" for="loginEmail" id="loginEmailLabel">Email *</label>
     <input class="login-input" id="loginEmail" type="email" placeholder="yourclub@aku.edu" />
     <label class="login-label" for="loginPassword">Password *</label>
     <input class="login-input" id="loginPassword" type="password" placeholder="••••••••" />
@@ -1358,7 +1358,7 @@
     </div>
 
     <div class="login-note" id="loginNote">
-      🔒 Only clubs pre-registered by the OSE team can request access. If your club is not registered, contact the OSE office first.
+      🔒 Only accounts pre-registered by the Office of Student Experience can request access. If your account is not registered, contact the office first.
     </div>
   </div>
   </div>
@@ -1413,7 +1413,7 @@
   <div class="login-brand-panel">
     <div class="login-brand-icon">🔐</div>
     <div class="login-brand-title">Almost there!</div>
-    <div class="login-brand-sub">We've sent a verification code to your club email. Enter it to confirm your identity and submit your access request.</div>
+    <div class="login-brand-sub">We've sent a verification code to your email. Enter it to confirm your identity and submit your access request.</div>
     <div class="login-brand-features" style="margin-top:32px;">
       <div class="login-brand-feature"><div class="login-brand-feature-icon">📧</div><span>Check your inbox (and spam folder)</span></div>
       <div class="login-brand-feature"><div class="login-brand-feature-icon">⏱️</div><span>Code expires in 10 minutes</span></div>
@@ -2323,6 +2323,8 @@ function showPortal(){
   document.getElementById("topbarClubName").textContent = name;
   document.getElementById("heroTitle").textContent = `Welcome back, ${name}! 🎉`;
   document.getElementById("heroSub").textContent = "Ready to plan your next event? Let's go 🚀";
+  const brandPill = document.getElementById("brandSubPill");
+  if(brandPill) brandPill.textContent = `${accountNoun()} Portal`;
 
   loadProposals();
   loadNotifications();
@@ -2400,7 +2402,7 @@ function renderChatMessages(){
   if(!chatMessages.length){
     container.innerHTML = `<div class="chat-empty">
       <div style="font-size:36px;margin-bottom:10px;">💬</div>
-      <div>Send a message to the OSEP team.<br>We're here to help!</div>
+      <div>Send a message to the Office of Student Experience.<br>We're here to help!</div>
     </div>`;
     return;
   }
@@ -2692,14 +2694,14 @@ function switchHubChatView(view){
   // ── Update header content (group-thread header is set by openHubGroupThread) ──
   const avatarEl = document.querySelector("#chatPanelHeader .chat-header-avatar");
   if(view === "direct"){
-    document.getElementById("chatHeaderName").textContent = "OSEP Support Team";
+    document.getElementById("chatHeaderName").textContent = "Office of Student Experience";
     document.getElementById("chatHeaderSub").textContent  = "We typically reply within a few hours";
     document.getElementById("chatHeaderSub").style.cursor = "";
     document.getElementById("chatHeaderSub").onclick      = null;
     if(avatarEl) avatarEl.style.display = "flex";
   } else if(view === "groups"){
     document.getElementById("chatHeaderName").textContent = "Your Groups";
-    document.getElementById("chatHeaderSub").textContent  = "Group conversations with OSEP";
+    document.getElementById("chatHeaderSub").textContent  = "Group conversations with the Office of Student Experience";
     document.getElementById("chatHeaderSub").style.cursor = "";
     document.getElementById("chatHeaderSub").onclick      = null;
     if(avatarEl) avatarEl.style.display = "none";
@@ -3204,7 +3206,7 @@ function proposalCardHTML(p){
           </div>
           <div class="card-thread-reply" style="display:flex;gap:8px;align-items:flex-end;">
             <textarea id="thread-reply-${p.id}" rows="2"
-              placeholder="Reply to OSEP…"
+              placeholder="Reply to the Office of Student Experience…"
               aria-label="Write a reply to the admin team"
               style="flex:1;padding:8px 11px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:'Poppins',sans-serif;font-size:12px;resize:none;outline:none;"
               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
@@ -4297,6 +4299,14 @@ function senderTypeLabel(){
   return SENDER_TYPE_LABELS[currentClub?.account_type] || "Club";
 }
 
+// The noun used to address the current account across the portal — drives the
+// brand pill ("… Portal"), the proposal-card organiser row, etc. Display only;
+// account_type values in the database are unchanged.
+const ACCOUNT_NOUN = { club: "Club", department: "Department", individual: "Independent" };
+function accountNoun(){
+  return ACCOUNT_NOUN[currentClub?.account_type] || "Club";
+}
+
 async function sendCardReply(proposalId){
   const textarea = document.getElementById(`thread-reply-${proposalId}`);
   const text = textarea?.value.trim();
@@ -4473,7 +4483,7 @@ function viewProposal(id){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
       ${p.cover_image ? `<div style="grid-column:1/-1;"><img src="${esc(p.cover_image)}" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;" /></div>` : ""}
       ${row("Status", statusBadge(p.status))}
-      ${row("Club", esc(p.club_name))}
+      ${row(accountNoun(), esc(p.club_name))}
       ${row("Category", esc(p.category || "—"))}
       ${row("Campus", esc(p.campus || "—"))}
       ${row("Date", formatDate(p.proposed_date))}
@@ -5187,7 +5197,7 @@ function showForgotPassword(e){
 
 async function sendPasswordReset(){
   const email = document.getElementById("resetEmail").value.trim();
-  if(!email){ showMsg("Please enter your club email.", "error"); return; }
+  if(!email){ showMsg("Please enter your email.", "error"); return; }
 
   const { data: clubRow } = await sb.from("club_accounts").select("status").eq("email", email).maybeSingle();
   if(!clubRow){ showMsg("❌ This email is not registered in our system.", "error"); return; }
