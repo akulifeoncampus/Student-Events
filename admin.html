@@ -6231,6 +6231,16 @@ function showAdminPanel(){
   badge.style.background  = (badgeColors[currentRole] || badgeColors.admin).bg;
   badge.style.color       = (badgeColors[currentRole] || badgeColors.admin).color;
 
+  // Student Intern override — keyed off designation (not role), so it changes
+  // only the visible badge and touches none of the role-based logic elsewhere.
+  // An intern is an `admin` account underneath (inherits correct campus scoping);
+  // this just makes it visibly distinct from a full admin at a glance.
+  if(currentAdminDesignation === "Student Intern"){
+    badge.textContent      = "STUDENT INTERN";
+    badge.style.background  = "#f0fdfa";
+    badge.style.color       = "#0f766e";
+  }
+
   const isEventLead = currentRole === "event_lead";
 
   // ── Sidebar nav visibility ──
@@ -10409,10 +10419,10 @@ let allAdmins = [];
    a single campus need a designation — global roles (Super Admin, Vice
    Provost, Senior Manager Global, MM&C) do not. */
 const DESIGNATIONS_BY_CAMPUS = {
-  "Karachi":        ["Associate Director", "Manager", "Associate", "Student Life Coordinator"],
-  "Nairobi":        ["Manager", "Specialist"],
-  "Kampala":        ["Manager", "Sports Manager"],
-  "Dar es Salaam":  ["Associate"],
+  "Karachi":        ["Associate Director", "Manager", "Associate", "Student Life Coordinator", "Student Intern"],
+  "Nairobi":        ["Manager", "Specialist", "Student Intern"],
+  "Kampala":        ["Manager", "Sports Manager", "Student Intern"],
+  "Dar es Salaam":  ["Associate", "Student Intern"],
 };
 
 function populateDesignationSelect(selectEl, campus, selected){
