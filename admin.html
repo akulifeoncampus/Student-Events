@@ -11877,6 +11877,21 @@ function confirmDelete(type, id, name){
 async function doDelete(type, id){
   closeConfirm();
 
+  // Permission check before deleting — mirrors the exact same key that
+  // already hides the corresponding Delete/Add buttons in the UI
+  // (manage_clubs, manage_events, manage_news, manage_forms). This closes
+  // the gap where the button was hidden but the underlying function had no
+  // check of its own (e.g. callable directly from the browser console).
+  // Types with no existing permission key (resource, emergency, admin) are
+  // intentionally left unchanged — they had no gate before this, and adding
+  // one now would be a new restriction, not a bypass-fix.
+  const DELETE_PERM_BY_TYPE = { club: "manage_clubs", event: "manage_events", news: "manage_news", form: "manage_forms" };
+  const requiredDeletePerm = DELETE_PERM_BY_TYPE[type];
+  if(requiredDeletePerm && !hasPermission(requiredDeletePerm)){
+    showToast("You don't have permission to delete this.", "error");
+    return;
+  }
+
   // Campus access check before deleting
   if(currentRole !== "super_admin"){
     let item = null;
@@ -13923,6 +13938,12 @@ function importAccCSV(){
 }
 
 function importClubsCSV(){
+  // Mirrors the manage_clubs key that already hides #btn-import-clubs —
+  // closes the console-bypass gap for accounts without club-management rights.
+  if(!hasPermission("manage_clubs")){
+    showToast("You don't have permission to import clubs.", "error");
+    return;
+  }
   csvImportTarget = "clubs";
   document.getElementById("csvModalTitle").textContent = "Import Clubs CSV";
   document.getElementById("csvModalDesc").textContent  = "Upload your clubs-data.csv. Columns: Society Name, Email, Description, Signature Events, Convenor, Co-Convenor, General Secretary, Treasurer, Logo, Campus, Category";
@@ -13933,6 +13954,12 @@ function importClubsCSV(){
 }
 
 function importEventsCSV(){
+  // Mirrors the manage_events key that already hides #btn-import-events —
+  // closes the console-bypass gap for accounts without event-management rights.
+  if(!hasPermission("manage_events")){
+    showToast("You don't have permission to import events.", "error");
+    return;
+  }
   csvImportTarget = "events";
   document.getElementById("csvModalTitle").textContent = "Import Events CSV";
   document.getElementById("csvModalDesc").textContent  = "Upload your website-data.csv. Columns: Event Name, Organiser, Category of the Event, Venue, Start Time, Date of the Event, Audience, Description, Event Lead Email, Scale of Event";
