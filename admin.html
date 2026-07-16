@@ -3248,6 +3248,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3" /> <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></svg>
           <span class="nav-label">Event Notice Periods</span>
         </button>
+        <button class="nav-item" onclick="showSection('announcements', this)" id="announcementsNavBtn" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a3 3 0 0 1 0 6" /><path d="M10 8v11a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-5" /><path d="M12 8h0l4.524 -3.77a0.9 .9 0 0 1 1.476 .692v12.156a0.9 .9 0 0 1 -1.476 .692l-4.524 -3.77h-8a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h8" /></svg>
+          <span class="nav-label">Announcements</span>
+        </button>
 
       </div><!-- /sidebar-nav-area -->
 
@@ -4352,6 +4356,20 @@
         </div>
       </div>
 
+      <!-- ── ANNOUNCEMENTS ── -->
+      <div class="section" id="section-announcements">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Announcements</div>
+            <div class="section-subtitle">Broadcast important notices to clubs, societies and individual accounts. Departments do not receive announcements. Posting sends a notification to the target accounts.</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAnnouncementModal()">+ New Announcement</button>
+        </div>
+        <div id="announcementsList" style="max-width:900px;">
+          <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div>
+        </div>
+      </div>
+
       <!-- ── EMERGENCY CONTACTS ── -->
       <div class="section" id="section-emergency">
         <div class="section-header">
@@ -5362,6 +5380,46 @@
   </div>
 </div>
 
+<!-- ══ ANNOUNCEMENT MODAL ══ -->
+<div class="modal-backdrop" id="announcementModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title" id="announcementModalTitle">New Announcement</div>
+      <button class="modal-close" onclick="closeModal('announcementModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="announcementId" />
+      <div class="form-grid">
+        <div class="field full"><label>Title *</label><input id="annTitle" type="text" placeholder="e.g. Annual Re-Registration is now open" /></div>
+        <div class="field full"><label>Message *</label><textarea id="annBody" rows="5" placeholder="Write the announcement…"></textarea></div>
+        <div class="field"><label>Campus</label>
+          <select id="annCampus">
+            <option value="">All Campuses</option>
+            <option>Karachi</option><option>Nairobi</option><option>Kampala</option><option>Dar es Salaam</option>
+          </select>
+        </div>
+        <div class="field"><label>Pin to top</label>
+          <select id="annPinned">
+            <option value="false">No</option>
+            <option value="true">Yes — pinned</option>
+          </select>
+        </div>
+        <div class="field"><label>Status</label>
+          <select id="annActive">
+            <option value="true">Active (visible)</option>
+            <option value="false">Inactive (hidden)</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;">Posting notifies all clubs, societies and individual accounts in the selected campus scope. Departments are not notified.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('announcementModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAnnouncement()">Post Announcement</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ EMERGENCY CONTACT MODAL ══ -->
 <div class="modal-backdrop" id="emergencyModal">
   <div class="modal" style="max-width:480px;">
@@ -6287,6 +6345,7 @@ function showAdminPanel(){
   // Hidden entirely from Vice Provost, Senior Manager Global, Manager Marketing & Comms, Event Leads.
   document.getElementById("noticePeriodsNavBtnCampus").style.display = (currentRole === "admin") ? "" : "none";
   document.getElementById("noticePeriodsNavBtnSuper").style.display  = (currentRole === "super_admin") ? "" : "none";
+  document.getElementById("announcementsNavBtn").style.display = (currentRole === "admin" || currentRole === "super_admin") ? "" : "none";
 
   // Awards nav — visible to anyone with a scoring permission at their campus,
   // plus the oversight roles (SMG cross-campus review, VP sign-off) and
@@ -6436,6 +6495,7 @@ function showSection(name, btn){
   if(name === "emergency") loadEmergencyContacts();
   if(name === "awards") loadAwardsSection();
   if(name === "notice-periods") loadNoticePeriods();
+  if(name === "announcements") loadAdminAnnouncements();
 }
 
 /* ══ TOAST ══ */
@@ -10581,6 +10641,153 @@ async function saveAwardsWindow(campus){
    see working_days_migration.sql). Super Admin edits all four. */
 const NOTICE_CAMPUSES = ["Karachi", "Nairobi", "Kampala", "Dar es Salaam"];
 const NOTICE_DEFAULTS = { small: 7, medium: 14, mega: 30 };
+
+/* ── Announcements management (Super Admin: all campuses; Campus Admin: own) ── */
+let allAnnouncements = [];
+
+async function loadAdminAnnouncements(){
+  if(currentRole !== "admin" && currentRole !== "super_admin") return;
+  let q = sb.from("announcements").select("*")
+    .order("is_pinned", { ascending:false }).order("created_at", { ascending:false });
+  // Campus admins see their own campus + All-Campus posts
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    q = q.or(`campus.eq.${currentAdminCampus},campus.is.null`);
+  }
+  const { data, error } = await q;
+  if(error){ showToast("Failed to load announcements: " + error.message, "error"); return; }
+  allAnnouncements = data || [];
+  renderAdminAnnouncements();
+}
+
+function renderAdminAnnouncements(){
+  const el = document.getElementById("announcementsList");
+  if(!el) return;
+  if(!allAnnouncements.length){
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📣</div><div class="empty-state-text">No announcements yet. Post the first one.</div></div>`;
+    return;
+  }
+  el.innerHTML = allAnnouncements.map(a => {
+    const date = new Date(a.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+    return `<div style="background:white;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;${a.is_active ? "" : "opacity:.6;"}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div style="min-width:0;">
+          <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;">
+            ${a.is_pinned ? `<span style="font-size:10px;font-weight:700;text-transform:uppercase;color:#2563eb;background:#eff6ff;border-radius:6px;padding:2px 7px;">📌 Pinned</span>` : ""}
+            ${esc(a.title)}
+            ${a.is_active ? "" : `<span style="font-size:10px;color:var(--muted);">(inactive)</span>`}
+          </div>
+          <div style="font-size:12px;color:#374151;margin-top:5px;white-space:pre-wrap;">${esc(a.body)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px;">${date} · ${a.campus ? esc(a.campus) : "All Campuses"} · by ${esc(a.created_by || "—")}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-secondary btn-sm" onclick="openAnnouncementModal('${a.id}')">✏️ Edit</button>
+          <button class="btn btn-secondary btn-sm" style="color:#dc2626;" onclick="deleteAnnouncement('${a.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openAnnouncementModal(id = null){
+  document.getElementById("announcementId").value = id || "";
+  document.getElementById("announcementModalTitle").textContent = id ? "Edit Announcement" : "New Announcement";
+  const campusSel = document.getElementById("annCampus");
+  // Campus admins are locked to their own campus (+ can't post All-Campus)
+  if(currentRole === "admin" && currentAdminCampus && currentAdminCampus !== "All"){
+    campusSel.innerHTML = `<option value="${esc(currentAdminCampus)}">${esc(currentAdminCampus)}</option>`;
+    campusSel.value = currentAdminCampus;
+    campusSel.disabled = true;
+  } else {
+    campusSel.innerHTML = `<option value="">All Campuses</option><option>Karachi</option><option>Nairobi</option><option>Kampala</option><option>Dar es Salaam</option>`;
+    campusSel.disabled = false;
+  }
+  if(id){
+    const a = allAnnouncements.find(x => x.id === id);
+    if(a){
+      document.getElementById("annTitle").value = a.title || "";
+      document.getElementById("annBody").value = a.body || "";
+      if(!campusSel.disabled) campusSel.value = a.campus || "";
+      document.getElementById("annPinned").value = a.is_pinned ? "true" : "false";
+      document.getElementById("annActive").value = a.is_active ? "true" : "false";
+    }
+  } else {
+    document.getElementById("annTitle").value = "";
+    document.getElementById("annBody").value = "";
+    document.getElementById("annPinned").value = "false";
+    document.getElementById("annActive").value = "true";
+  }
+  document.getElementById("announcementModal").classList.add("open");
+}
+
+async function saveAnnouncement(){
+  const id     = document.getElementById("announcementId").value;
+  const title  = document.getElementById("annTitle").value.trim();
+  const body   = document.getElementById("annBody").value.trim();
+  const campus = document.getElementById("annCampus").value || null;
+  const pinned = document.getElementById("annPinned").value === "true";
+  const active = document.getElementById("annActive").value === "true";
+
+  if(!title || !body){ showToast("Title and message are required.", "error"); return; }
+
+  const payload = {
+    title, body, campus, is_pinned: pinned, is_active: active,
+    updated_at: new Date().toISOString(),
+  };
+  let savedId = id;
+  if(id){
+    const { error } = await sb.from("announcements").update(payload).eq("id", id);
+    if(error){ showToast("Failed: " + error.message, "error"); return; }
+  } else {
+    payload.created_by = currentUser.email;
+    const { data, error } = await sb.from("announcements").insert(payload).select("id").single();
+    if(error){ showToast("Failed: " + error.message, "error"); return; }
+    savedId = data?.id;
+  }
+
+  closeModal("announcementModal");
+  showToast(id ? "Announcement updated!" : "Announcement posted!");
+  loadAdminAnnouncements();
+
+  // Notify target accounts on a NEW, active announcement only
+  if(!id && active){
+    notifyAnnouncement(title, campus, savedId);
+  }
+}
+
+/* Broadcast a notification to clubs + individual accounts in the campus scope.
+   Departments are excluded. Reuses the existing notifications pipeline. */
+async function notifyAnnouncement(title, campus, announcementId){
+  try {
+    let q = sb.from("club_accounts").select("email, account_type, campus").eq("status", "approved");
+    const { data: accounts } = await q;
+    const targets = (accounts || []).filter(a =>
+      a.account_type !== "department" &&               // clubs + individuals only
+      (!campus || a.campus === campus)                 // campus scope (null = all)
+    );
+    if(!targets.length) return;
+    await sb.from("notifications").insert(targets.map(a => ({
+      recipient: a.email,
+      type: "announcement",
+      title: "📣 New Announcement",
+      message: title,
+      is_read: false,
+    })));
+    // Fire push via existing edge function (best-effort; ignore failure)
+    fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ action: "notify", recipients: targets.map(t => t.email), title: "📣 New Announcement", message: title }),
+    }).catch(()=>{});
+  } catch(e){ /* non-blocking */ }
+}
+
+async function deleteAnnouncement(id){
+  if(!confirm("Delete this announcement? This cannot be undone.")) return;
+  const { error } = await sb.from("announcements").delete().eq("id", id);
+  if(error){ showToast("Failed: " + error.message, "error"); return; }
+  showToast("Announcement deleted.");
+  loadAdminAnnouncements();
+}
 
 async function loadNoticePeriods(){
   if(currentRole !== "admin" && currentRole !== "super_admin") return;
