@@ -414,6 +414,28 @@
     .portal-section { display: none; }
     .portal-section.active { display: block; }
 
+    /* ── Announcements ── */
+    .ann-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 20px; margin-bottom: 12px; position: relative;
+    }
+    .ann-card.unread { border-left: 3px solid var(--accent); }
+    .ann-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+    .ann-title { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+    .ann-card.unread .ann-title { color: #000060; }
+    .ann-pin-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--accent); background: #eff6ff; border-radius: 6px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; }
+    .ann-body { font-size: 13px; color: #374151; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+    .ann-meta { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
+    .ann-date { font-size: 11px; color: var(--muted); }
+    .ann-read-btn {
+      margin-left: auto; font-family: 'Poppins', sans-serif;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 9px; padding: 8px 16px; transition: opacity .15s;
+    }
+    .ann-read-btn:hover { opacity: .9; }
+    .ann-read-label { margin-left: auto; font-size: 11px; font-weight: 600; color: #16a34a; }
+
     /* ── Resource Hub (table layout) ── */
     .reshub-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
     .reshub-search {
@@ -1817,13 +1839,11 @@
           <div id="messagesSectionMount"></div>
         </section>
 
-        <!-- ═══ ANNOUNCEMENTS (Stage 3 placeholder) ═══ -->
+        <!-- ═══ ANNOUNCEMENTS ═══ -->
         <section class="portal-section" id="section-announcements" data-section="announcements">
           <div class="section-title">Announcements</div>
-          <div class="empty-state">
-            <div class="empty-emoji">📣</div>
-            <div class="empty-title">No announcements yet</div>
-            <div class="empty-sub">Updates and notices from the Office of Student Experience will appear here.</div>
+          <div id="annContainer">
+            <div class="empty-state"><div class="empty-title">Loading…</div></div>
           </div>
         </section>
 
@@ -2640,7 +2660,7 @@ const SECTION_REGISTRY = {
 const SIDEBAR_SECTIONS = {
   club:       ["proposals", "messages", "resources", "announcements", "profile"],
   individual: ["proposals", "messages", "resources", "announcements", "profile"],
-  department: ["proposals", "messages", "resources", "announcements", "profile"],
+  department: ["proposals", "messages", "resources", "profile"],
 };
 
 const SECTION_OVERRIDES = {
@@ -2704,6 +2724,8 @@ function showPortalSection(key){
   if(key === "messages") mountChatIntoSection();
   // Resource Hub: load gated resources on first open
   if(key === "resources") loadResourceHub();
+  // Announcements: load on open
+  if(key === "announcements") loadAnnouncements();
 
   closeSidebar();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2823,6 +2845,85 @@ function fmtResDate(ts){
   return d.toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
 }
 
+/* ── Announcements (clubs + individuals only; departments never call this) ── */
+let annAll = [], annReadIds = new Set();
+
+async function loadAnnouncements(){
+  const container = document.getElementById("annContainer");
+  if(!currentClub) return;
+  // Departments don't receive announcements
+  if(currentClub.account_type === "department"){
+    if(container) container.innerHTML = "";
+    return;
+  }
+  const myCampus = currentClub.campus || null;
+  const [{ data: anns, error }, { data: reads }] = await Promise.all([
+    sb.from("announcements").select("*").eq("is_active", true)
+      .order("is_pinned", { ascending:false }).order("created_at", { ascending:false }),
+    sb.from("announcement_reads").select("announcement_id").eq("user_email", currentClub.email),
+  ]);
+  if(error){
+    if(container) container.innerHTML = `<div class="empty-state"><div class="empty-title">Couldn't load announcements</div></div>`;
+    return;
+  }
+  // Campus scope: own campus + All-Campus (null)
+  annAll = (anns || []).filter(a => !a.campus || a.campus === myCampus);
+  annReadIds = new Set((reads || []).map(r => r.announcement_id));
+  renderAnnouncements();
+  updateAnnBadge();
+}
+
+function renderAnnouncements(){
+  const container = document.getElementById("annContainer");
+  if(!container) return;
+  if(!annAll.length){
+    container.innerHTML = `<div class="empty-state" style="border:1px dashed var(--border);border-radius:14px;">
+      <div class="empty-title">No announcements yet</div>
+      <div class="empty-sub">Updates and notices from the Office of Student Experience will appear here.</div>
+    </div>`;
+    return;
+  }
+  container.innerHTML = annAll.map(a => {
+    const isRead = annReadIds.has(a.id);
+    return `<div class="ann-card ${isRead ? "" : "unread"}">
+      <div class="ann-head">
+        <div class="ann-title">${esc(a.title)}</div>
+        ${a.is_pinned ? `<span class="ann-pin-tag">📌 Pinned</span>` : ""}
+      </div>
+      <div class="ann-body">${esc(a.body)}</div>
+      <div class="ann-meta">
+        <span class="ann-date">${fmtResDate(a.created_at)}${a.campus ? " · " + esc(a.campus) : " · All Campuses"}</span>
+        ${isRead
+          ? `<span class="ann-read-label">✓ Read</span>`
+          : `<button class="ann-read-btn" onclick="markAnnouncementRead('${a.id}')">Aye Captain ⚓</button>`}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function markAnnouncementRead(id){
+  if(!currentClub) return;
+  annReadIds.add(id);           // optimistic
+  renderAnnouncements();
+  updateAnnBadge();
+  const { error } = await sb.from("announcement_reads").upsert({
+    announcement_id: id,
+    user_email: currentClub.email,
+    read_at: new Date().toISOString(),
+  }, { onConflict: "announcement_id,user_email" });
+  if(error){ showToast("Couldn't save — try again", "error"); annReadIds.delete(id); renderAnnouncements(); updateAnnBadge(); }
+}
+
+/* Unread badge on the Announcements nav item */
+function updateAnnBadge(){
+  const unread = annAll.filter(a => !annReadIds.has(a.id)).length;
+  const badge = document.getElementById("sideBadge-announcements");
+  if(badge){
+    if(unread > 0){ badge.textContent = unread > 9 ? "9+" : unread; badge.classList.add("show"); }
+    else { badge.classList.remove("show"); }
+  }
+}
+
 function renderResourceHub(){
   const container = document.getElementById("resHubContainer");
   if(!container) return;
@@ -2887,6 +2988,7 @@ function showPortal(){
   loadProposals();
   loadNotifications();
   loadChatMessages();
+  loadAnnouncements();
   initChatRealtime();
   initFabScroll();
   subscribeToProposalUpdates();
