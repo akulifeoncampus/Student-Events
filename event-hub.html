@@ -107,6 +107,7 @@
       font-size: 17px;
       transition: all .2s ease;
     }
+    .notif-btn svg { width: 19px; height: 19px; color: var(--ink); }
     .notif-btn:hover { border-color: var(--accent); background: #eff6ff; }
     .notif-badge {
       position: absolute;
@@ -988,14 +989,68 @@
       position: static;
       top: auto; right: auto;
       width: 100%;
-      max-width: 640px;
-      height: 60vh;
-      min-height: 420px;
+      max-width: 960px;
+      height: 68vh;
+      min-height: 460px;
       border-radius: 16px;
       box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.06));
       z-index: 1;
     }
     .chat-panel.chat-embedded .chat-header-close { display: none; }
+
+    /* ── Two-pane messaging layout (LinkedIn-style) ── */
+    .chat-embedded .chat-twopane {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+    }
+    .chat-embedded .chat-left {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+      background: #fff;
+    }
+    .chat-embedded .chat-left-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted);
+      padding: 14px 16px 8px;
+    }
+    .conv-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background .12s;
+    }
+    .conv-item:hover { background: #f9fafb; }
+    .conv-item.active { background: #eff6ff; }
+    .conv-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--grad); color: #fff;
+      font-size: 13px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .conv-meta { flex: 1; min-width: 0; }
+    .conv-name { font-size: 13px; font-weight: 700; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-preview { font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-embedded .chat-right {
+      display: flex; flex-direction: column; min-height: 0; height: 100%;
+    }
+    /* Back button (mobile stack) hidden on desktop */
+    .chat-mobile-back { display: none; }
+
+    @media (max-width: 720px) {
+      .chat-embedded .chat-twopane { grid-template-columns: 1fr; }
+      /* Mobile: show list OR thread, not both */
+      .chat-embedded[data-pane="list"]   .chat-left  { display: flex; }
+      .chat-embedded[data-pane="list"]   .chat-right { display: none; }
+      .chat-embedded[data-pane="thread"] .chat-left  { display: none; }
+      .chat-embedded[data-pane="thread"] .chat-right { display: flex; }
+      .chat-embedded .chat-mobile-back { display: inline-flex; }
+    }
     .chat-panel-header {
       display: flex; align-items: center; gap: 10px;
       padding: 13px 16px;
@@ -1295,77 +1350,83 @@
   </button>
 </div>
 
-<!-- ── Chat Panel ── -->
+<!-- ── Chat Panel (two-pane, embedded in Messages section) ── -->
 <div class="chat-panel" id="chatPanel">
+  <div class="chat-twopane" data-pane="list" id="chatTwopane">
 
-  <!-- Dynamic header — changes based on active view -->
-  <div class="chat-panel-header" id="chatPanelHeader">
-    <div class="chat-header-avatar" aria-hidden="true">OS</div>
-    <div class="chat-header-info">
-      <div class="chat-header-name" id="chatHeaderName">Office of Student Experience</div>
-      <div class="chat-header-sub"  id="chatHeaderSub">We typically reply within a few hours</div>
-    </div>
-    <button class="chat-header-close" onclick="toggleChatPanel()" aria-label="Close chat">✕</button>
-  </div>
-
-  <!-- Tab bar: Direct | Groups — pill style matching admin panel -->
-  <div class="hub-chat-tabs" role="tablist" aria-label="Chat sections">
-    <button class="hub-chat-tab active" id="hubTabDirect"
-      role="tab" aria-selected="true"
-      onclick="switchHubChatView('direct')"
-      aria-controls="chatDirectView">
-      💬 Direct
-    </button>
-    <button class="hub-chat-tab" id="hubTabGroups"
-      role="tab" aria-selected="false"
-      onclick="switchHubChatView('groups')"
-      aria-controls="chatGroupsListView">
-      👥 Groups
-    </button>
-  </div>
-
-  <!-- VIEW 1: Direct 1:1 messages -->
-  <div id="chatDirectView" style="display:flex;flex-direction:column;flex:1;min-height:0;">
-    <div class="chat-msg-list" id="chatMsgList" aria-live="polite" aria-label="Direct messages">
-      <div class="chat-empty">
-        <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">💬</div>
-        <div>Send a message to the Office of Student Experience.<br>We're here to help!</div>
+    <!-- LEFT: conversation list -->
+    <div class="chat-left">
+      <div class="chat-left-title">Conversations</div>
+      <div id="convList">
+        <!-- Direct (OSE) conversation — always present -->
+        <div class="conv-item active" id="convOSE" role="button" tabindex="0"
+          onclick="openDirectConversation()"
+          onkeydown="if(event.key==='Enter')openDirectConversation()"
+          aria-label="Open conversation with Office of Student Experience">
+          <div class="conv-avatar" aria-hidden="true">OS</div>
+          <div class="conv-meta">
+            <div class="conv-name">Office of Student Experience</div>
+            <div class="conv-preview">Direct line · replies within hours</div>
+          </div>
+        </div>
+        <!-- Group conversations injected here -->
+        <div id="convGroupList"></div>
       </div>
     </div>
-    <div class="chat-input-row">
-      <textarea class="chat-textarea" id="chatInput" rows="1"
-        placeholder="Type a message…"
-        aria-label="Write a direct message to the Office of Student Experience"
-        onkeydown="handleChatKey(event)"
-        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
-      <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send message">➤</button>
-    </div>
-  </div>
 
-  <!-- VIEW 2: Groups list -->
-  <div id="chatGroupsListView" style="display:none;flex-direction:column;flex:1;overflow-y:auto;" role="list" aria-label="Group conversations">
-    <div id="hubGroupsList">
-      <div class="chat-empty">
-        <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">👥</div>
-        <div>You haven't been added to any groups yet.</div>
+    <!-- RIGHT: active thread -->
+    <div class="chat-right">
+      <!-- Dynamic header -->
+      <div class="chat-panel-header" id="chatPanelHeader">
+        <button class="chat-mobile-back" onclick="chatBackToList()" aria-label="Back to conversations"
+          style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;margin-right:4px;">←</button>
+        <div class="chat-header-avatar" aria-hidden="true">OS</div>
+        <div class="chat-header-info">
+          <div class="chat-header-name" id="chatHeaderName">Office of Student Experience</div>
+          <div class="chat-header-sub"  id="chatHeaderSub">We typically reply within a few hours</div>
+        </div>
+        <button class="chat-header-close" onclick="toggleChatPanel()" aria-label="Close chat">✕</button>
       </div>
-    </div>
-  </div>
 
-  <!-- VIEW 3: Group thread -->
-  <div id="chatGroupThreadView" style="display:none;flex-direction:column;flex:1;min-height:0;">
-    <div class="chat-msg-list" id="chatGroupMsgList" aria-live="polite" aria-label="Group messages"></div>
-    <div class="chat-input-row">
-      <textarea class="chat-textarea" id="chatGroupInput" rows="1"
-        placeholder="Message the group…"
+      <!-- Direct 1:1 messages -->
+      <div id="chatDirectView" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <div class="chat-msg-list" id="chatMsgList" aria-live="polite" aria-label="Direct messages">
+          <div class="chat-empty">
+            <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">💬</div>
+            <div>Send a message to the Office of Student Experience.<br>We're here to help!</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <textarea class="chat-textarea" id="chatInput" rows="1"
+            placeholder="Type a message…"
+            aria-label="Write a direct message to the Office of Student Experience"
+            onkeydown="handleChatKey(event)"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
+          <button class="chat-send-btn" onclick="sendChatMessage()" aria-label="Send message">➤</button>
+        </div>
+      </div>
+
+      <!-- Hidden helper list (kept for loadHubGroups compatibility) -->
+      <div id="chatGroupsListView" style="display:none;">
+        <div id="hubGroupsList"></div>
+      </div>
+
+      <!-- Group thread -->
+      <div id="chatGroupThreadView" style="display:none;flex-direction:column;flex:1;min-height:0;">
+        <div class="chat-msg-list" id="chatGroupMsgList" aria-live="polite" aria-label="Group messages"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-textarea" id="chatGroupInput" rows="1"
+            placeholder="Message the group…"
         aria-label="Write a message to the group"
         onkeydown="handleHubGroupKey(event)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"></textarea>
       <button class="chat-send-btn" onclick="sendHubGroupMessage()" aria-label="Send group message">➤</button>
-    </div>
-  </div>
+        </div>
+      </div>
 
-</div>
+    </div><!-- /chat-right -->
+  </div><!-- /chat-twopane -->
+</div><!-- /chat-panel -->
 
 <div class="notif-panel" id="notifPanel">
   <div class="notif-panel-header">
@@ -2565,11 +2626,16 @@ function mountChatIntoSection(){
   const panel = document.getElementById("chatPanel");
   if(!mount || !panel) return;
   if(!_chatMounted){
-    panel.classList.add("open");            // ensure it's display:flex
-    panel.classList.add("chat-embedded");   // CSS neutralizes fixed positioning
+    panel.classList.add("open");
+    panel.classList.add("chat-embedded");
     mount.appendChild(panel);
     _chatMounted = true;
   }
+  if(typeof loadHubGroups === "function") loadHubGroups();   // populate left list
+  // On desktop show both panes; default the right pane to the OSE direct thread
+  const isMobile = window.matchMedia("(max-width: 720px)").matches;
+  if(isMobile){ setChatPane("list"); }
+  else { openDirectConversation(); }
   if(typeof loadChatMessages === "function") loadChatMessages();
   if(typeof markChatRead === "function") markChatRead();
   setTimeout(() => { if(typeof scrollChatToBottom === "function") scrollChatToBottom(); }, 100);
@@ -2675,15 +2741,10 @@ function stopChatPolling(){
 }
 
 function toggleChatPanel(){
-  const panel  = document.getElementById("chatPanel");
-  const isOpen = panel.classList.toggle("open");
-  if(isOpen){
-    document.getElementById("notifPanel").classList.remove("open");
-    if(hubChatView !== "direct") switchHubChatView("direct");
-    loadChatMessages(); // always reload so history is never empty on open
-    markChatRead();
-    setTimeout(scrollChatToBottom, 150);
-  }
+  // Chat is embedded in the Messages section and always visible there.
+  // This legacy toggle is retained only so old references don't error;
+  // it no longer hides the panel. Refresh the direct thread instead.
+  openDirectConversation();
 }
 
 async function loadChatMessages(){
@@ -2977,41 +3038,45 @@ function initChatRealtime(){
 }
 /* ── HUB GROUP CHAT ─────────────────────────────────────────────── */
 
+/* ── Two-pane conversation handlers ── */
+function setChatPane(mode){ // "list" | "thread"
+  const tp = document.getElementById("chatTwopane");
+  if(tp) tp.setAttribute("data-pane", mode);
+}
+function chatBackToList(){ setChatPane("list"); }
+
+function openDirectConversation(){
+  hubActiveGroupId = null;
+  hubChatView = "direct";
+  document.getElementById("chatDirectView").style.display      = "flex";
+  document.getElementById("chatGroupThreadView").style.display = "none";
+  document.getElementById("chatGroupsListView").style.display  = "none";
+  document.getElementById("chatHeaderName").textContent = "Office of Student Experience";
+  document.getElementById("chatHeaderSub").textContent  = "We typically reply within a few hours";
+  const av = document.querySelector("#chatPanelHeader .chat-header-avatar");
+  if(av){ av.style.display = "flex"; av.textContent = "OS"; }
+  // Active state in list
+  document.querySelectorAll(".conv-item").forEach(c => c.classList.remove("active"));
+  document.getElementById("convOSE")?.classList.add("active");
+  setChatPane("thread");
+  loadChatMessages();
+  markChatRead();
+  setTimeout(scrollChatToBottom, 80);
+}
+
 function switchHubChatView(view){
   hubChatView = view;
-
-  // ── Tab buttons: use CSS classes, not inline styles ──
-  const isGroupTab = view === "groups" || view === "group-thread";
-  const directBtn  = document.getElementById("hubTabDirect");
-  const groupsBtn  = document.getElementById("hubTabGroups");
-  directBtn.classList.toggle("active", !isGroupTab);
-  directBtn.setAttribute("aria-selected", !isGroupTab ? "true" : "false");
-  groupsBtn.classList.toggle("active", isGroupTab);
-  groupsBtn.setAttribute("aria-selected", isGroupTab ? "true" : "false");
-
-  // ── Show correct view panel ──
   document.getElementById("chatDirectView").style.display      = view === "direct"       ? "flex" : "none";
-  document.getElementById("chatGroupsListView").style.display  = view === "groups"       ? "flex" : "none";
+  document.getElementById("chatGroupsListView").style.display  = "none"; // list lives in left pane now
   document.getElementById("chatGroupThreadView").style.display = view === "group-thread" ? "flex" : "none";
-
-  // ── Update header content (group-thread header is set by openHubGroupThread) ──
   const avatarEl = document.querySelector("#chatPanelHeader .chat-header-avatar");
   if(view === "direct"){
     document.getElementById("chatHeaderName").textContent = "Office of Student Experience";
     document.getElementById("chatHeaderSub").textContent  = "We typically reply within a few hours";
     document.getElementById("chatHeaderSub").style.cursor = "";
     document.getElementById("chatHeaderSub").onclick      = null;
-    if(avatarEl) avatarEl.style.display = "flex";
-  } else if(view === "groups"){
-    document.getElementById("chatHeaderName").textContent = "Your Groups";
-    document.getElementById("chatHeaderSub").textContent  = "Group conversations with the Office of Student Experience";
-    document.getElementById("chatHeaderSub").style.cursor = "";
-    document.getElementById("chatHeaderSub").onclick      = null;
-    if(avatarEl) avatarEl.style.display = "none";
-    stopHubGroupPolling();
-    loadHubGroups();
+    if(avatarEl){ avatarEl.style.display = "flex"; avatarEl.textContent = "OS"; }
   } else if(view === "group-thread"){
-    // Header already updated by openHubGroupThread before this is called
     if(avatarEl) avatarEl.style.display = "none";
   }
 }
@@ -3047,30 +3112,23 @@ async function loadHubGroups(){
 }
 
 function renderHubGroupList(){
-  const listEl = document.getElementById("hubGroupsList");
+  const listEl = document.getElementById("convGroupList");
+  if(!listEl) return;
   if(!hubGroupConversations.length){
-    listEl.innerHTML = `<div class="chat-empty" role="status">
-      <div style="font-size:36px;margin-bottom:10px;" aria-hidden="true">👥</div>
-      <div>You haven't been added to any groups yet.</div>
-    </div>`;
+    listEl.innerHTML = "";
     return;
   }
   listEl.innerHTML = hubGroupConversations.map(g => {
     const initials = (g.name||"G").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").substring(0,2).toUpperCase();
     const preview  = g.last_msg ? (g.last_msg.sender_name + ": " + (g.last_msg.message_text||"").substring(0,40)) : "No messages yet";
-    const time     = new Date(g.last_message_at||g.created_at).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
-    return `<div role="button" tabindex="0" aria-label="Open group: ${esc(g.name)}"
+    return `<div class="conv-item" role="button" tabindex="0" data-group="${g.id}"
+      aria-label="Open group: ${esc(g.name)}"
       onclick="openHubGroupThread('${g.id}','${esc(g.name)}')"
-      onkeydown="if(event.key==='Enter') openHubGroupThread('${g.id}','${esc(g.name)}')"
-      style="display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;border-bottom:1px solid #f3f4f6;transition:background .12s;"
-      onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
-      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#000060,#2563eb);color:white;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">${initials}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-          <span style="font-size:13px;font-weight:700;color:#111827;">${esc(g.name)}</span>
-          <span style="font-size:10px;color:#9ca3af;">${time}</span>
-        </div>
-        <div style="font-size:11px;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(preview)}</div>
+      onkeydown="if(event.key==='Enter') openHubGroupThread('${g.id}','${esc(g.name)}')">
+      <div class="conv-avatar" aria-hidden="true">${initials}</div>
+      <div class="conv-meta">
+        <div class="conv-name">${esc(g.name)}</div>
+        <div class="conv-preview">${esc(preview)}</div>
       </div>
     </div>`;
   }).join("");
@@ -3079,11 +3137,15 @@ function renderHubGroupList(){
 async function openHubGroupThread(conversationId, groupName){
   hubActiveGroupId = conversationId;
   document.getElementById("chatHeaderName").textContent = groupName;
-  document.getElementById("chatHeaderSub").textContent  = "← Back to groups";
-  document.getElementById("chatHeaderSub").style.cursor = "pointer";
-  document.getElementById("chatHeaderSub").onclick = () => switchHubChatView("groups");
+  document.getElementById("chatHeaderSub").textContent  = "Group conversation";
+  document.getElementById("chatHeaderSub").style.cursor = "";
+  document.getElementById("chatHeaderSub").onclick = null;
+  // Active state in left list
+  document.querySelectorAll(".conv-item").forEach(c => c.classList.remove("active"));
+  document.querySelector(`.conv-item[data-group="${conversationId}"]`)?.classList.add("active");
 
   switchHubChatView("group-thread");
+  setChatPane("thread");
   await loadHubGroupMessages(conversationId);
   startHubGroupPolling(conversationId);
 }
@@ -5624,7 +5686,6 @@ async function submitHubPasswordChange(){
 
 document.getElementById("notifBtn").addEventListener("click", () => {
   document.getElementById("notifPanel").classList.toggle("open");
-  document.getElementById("chatPanel").classList.remove("open");
 });
 document.addEventListener("click", e => {
   const notifPanel = document.getElementById("notifPanel");
