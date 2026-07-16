@@ -394,10 +394,21 @@
       color: #fff;
       font-size: 10px; font-weight: 700;
       display: none; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity .15s;
+      transition: opacity .15s;
     }
-    .sidebar:hover .side-badge { opacity: 1; }
     .side-badge.show { display: flex; }
+    /* Collapsed sidebar: badge shrinks to a dot pinned near the icon, still visible.
+       On hover (expanded) it grows back to a full count pill on the right. */
+    .sidebar:not(:hover) .side-item { position: relative; }
+    .sidebar:not(:hover) .side-badge.show {
+      position: absolute;
+      top: 6px; left: 30px;
+      margin: 0;
+      min-width: 9px; width: 9px; height: 9px;
+      padding: 0;
+      font-size: 0;         /* hide the number, show as a dot */
+      border: 2px solid #fff;
+    }
 
     .app-content { flex: 1 1 auto; min-width: 0; }
     .portal-section { display: none; }
@@ -436,7 +447,12 @@
       .sidebar:hover { width: 236px; box-shadow: 0 16px 40px rgba(0,0,96,.18); }
       .sidebar.open { transform: translateX(0); }
       .side-label { opacity: 1; pointer-events: auto; }
-      .side-badge { opacity: 1; }
+      /* Mobile drawer is always expanded — show full count pill, never the dot */
+      .sidebar:not(:hover) .side-badge.show {
+        position: static; margin-left: auto;
+        min-width: 18px; width: auto; height: 18px;
+        padding: 0 5px; font-size: 10px; border: none;
+      }
       .app-content { width: 100%; }
     }
 
@@ -1036,6 +1052,20 @@
     .conv-meta { flex: 1; min-width: 0; }
     .conv-name { font-size: 13px; font-weight: 700; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .conv-preview { font-size: 11px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Unread conversation (LinkedIn/Facebook style): name + preview go bold/dark */
+    .conv-item.unread .conv-name { font-weight: 800; color: #000060; }
+    .conv-item.unread .conv-preview { color: #374151; font-weight: 600; }
+    .conv-unread {
+      margin-left: auto;
+      min-width: 20px; height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--accent, #2563eb);
+      color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
     .chat-embedded .chat-right {
       display: flex; flex-direction: column; min-height: 0; height: 100%;
     }
@@ -2545,9 +2575,9 @@ const SECTION_REGISTRY = {
 };
 
 const SIDEBAR_SECTIONS = {
-  club:       ["proposals", "resources", "messages", "announcements", "profile"],
-  individual: ["proposals", "resources", "messages", "announcements", "profile"],
-  department: ["proposals", "resources", "messages", "announcements", "profile"],
+  club:       ["proposals", "messages", "resources", "announcements", "profile"],
+  individual: ["proposals", "messages", "resources", "announcements", "profile"],
+  department: ["proposals", "messages", "resources", "announcements", "profile"],
 };
 
 const SECTION_OVERRIDES = {
@@ -2726,8 +2756,10 @@ function startChatPolling(){
     if(data.length !== realCount){  // !== catches both new messages AND recovery from empty state
       chatMessages = data;
       renderChatMessages();
-      const panel = document.getElementById("chatPanel");
-      if(panel.classList.contains("open")){ scrollChatToBottom(); markChatRead(); }
+      // Chat is embedded and always "open" now — the real question is whether
+      // the user is actually LOOKING at the Messages section right now.
+      const viewingMessages = (currentPortalSection === "messages" && hubChatView === "direct");
+      if(viewingMessages){ scrollChatToBottom(); markChatRead(); }
       else { updateChatBadge(); }
     }
   }, 4000);
@@ -2858,10 +2890,29 @@ async function updateChatBadge(){
     .maybeSingle();
   const lastRead = readRow?.last_read_at || "2000-01-01";
   const unread   = chatMessages.filter(m => m.sender_type === "admin" && m.created_at > lastRead).length;
+
+  // Sidebar nav badge
   const badge    = document.getElementById("sideBadge-messages");
   if(badge){
     if(unread > 0){ badge.textContent = unread > 9 ? "9+" : unread; badge.classList.add("show"); }
     else { badge.classList.remove("show"); }
+  }
+
+  // Bold the OSE conversation row + show its unread count (LinkedIn/Facebook style)
+  const convOSE = document.getElementById("convOSE");
+  if(convOSE){
+    convOSE.classList.toggle("unread", unread > 0);
+    let pill = convOSE.querySelector(".conv-unread");
+    if(unread > 0){
+      if(!pill){
+        pill = document.createElement("span");
+        pill.className = "conv-unread";
+        convOSE.appendChild(pill);
+      }
+      pill.textContent = unread > 9 ? "9+" : unread;
+    } else if(pill){
+      pill.remove();
+    }
   }
 }
 
@@ -2873,6 +2924,11 @@ async function markChatRead(){
     last_read_at: new Date().toISOString(),
   }, { onConflict: "user_email,club_email" });
   document.getElementById("sideBadge-messages")?.classList.remove("show");
+  const convOSE = document.getElementById("convOSE");
+  if(convOSE){
+    convOSE.classList.remove("unread");
+    convOSE.querySelector(".conv-unread")?.remove();
+  }
 }
 
 /* ══ REALTIME SOUND ALERTS (message vs status update — two distinct tones) ══ */
@@ -3020,10 +3076,11 @@ function initChatRealtime(){
 
       chatMessages.push(msg);
       renderChatMessages();
-      scrollChatToBottom();
 
-      const panel = document.getElementById("chatPanel");
-      if(panel.classList.contains("open")){
+      // Only mark read if the user is actually viewing the Messages direct thread.
+      const viewingMessages = (currentPortalSection === "messages" && hubChatView === "direct");
+      if(viewingMessages){
+        scrollChatToBottom();
         markChatRead();
       } else {
         updateChatBadge();
