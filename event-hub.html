@@ -1074,11 +1074,14 @@
 
     @media (max-width: 720px) {
       .chat-embedded .chat-twopane { grid-template-columns: 1fr; }
-      /* Mobile: show list OR thread, not both */
-      .chat-embedded[data-pane="list"]   .chat-left  { display: flex; }
-      .chat-embedded[data-pane="list"]   .chat-right { display: none; }
-      .chat-embedded[data-pane="thread"] .chat-left  { display: none; }
-      .chat-embedded[data-pane="thread"] .chat-right { display: flex; }
+      /* Mobile: show list OR thread, not both.
+         NOTE: data-pane lives on .chat-twopane (child), while .chat-embedded is
+         on the panel — so these must be separate compound selectors on the
+         twopane element, not a single combined attribute selector. */
+      .chat-twopane[data-pane="list"]   .chat-left  { display: flex; }
+      .chat-twopane[data-pane="list"]   .chat-right { display: none; }
+      .chat-twopane[data-pane="thread"] .chat-left  { display: none; }
+      .chat-twopane[data-pane="thread"] .chat-right { display: flex; }
       .chat-embedded .chat-mobile-back { display: inline-flex; }
     }
     .chat-panel-header {
