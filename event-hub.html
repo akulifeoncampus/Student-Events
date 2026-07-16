@@ -1771,7 +1771,7 @@
             </div>
           </div>
 
-          <div class="section-title" id="proposalsSectionTitle" style="margin-top:28px;">📋 Your Proposals</div>
+          <div class="section-title" id="proposalsSectionTitle" style="margin-top:28px;">Your Proposals</div>
           <div class="proposal-filters" id="proposalFilters">
             <button class="filter-tab active" data-filter="all"        data-label="All"        onclick="setFilter('all',this)">All</button>
             <button class="filter-tab"        data-filter="active"     data-label="Active"     onclick="setFilter('active',this)">Active</button>
@@ -1791,20 +1791,17 @@
 
         <!-- ═══ RESOURCE HUB ═══ -->
         <section class="portal-section" id="section-resources" data-section="resources">
-          <div class="section-title">📚 Resource Hub</div>
-          <div style="margin-bottom:18px;max-width:440px;">
-            <input type="text" id="resHubSearch" placeholder="Search resources…"
-              oninput="filterResourceHub(this.value)"
-              style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .15s;"
-              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
-          </div>
+          <div class="section-title">Resource Hub</div>
+          <input type="text" id="resHubSearch" placeholder="Search resources…"
+            oninput="filterResourceHub(this.value)"
+            style="width:100%;max-width:520px;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:20px;display:block;"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
           <div class="reshub-layout">
             <!-- Category filter (column on desktop, chips on mobile) -->
             <aside class="reshub-cats" id="resHubCats" aria-label="Filter by category"></aside>
             <!-- Resource rows -->
             <div class="reshub-list" id="resHubContainer">
               <div class="empty-state">
-                <div class="empty-emoji">📚</div>
                 <div class="empty-title">Loading resources…</div>
               </div>
             </div>
@@ -1813,13 +1810,13 @@
 
         <!-- ═══ MESSAGES (chat renders into this) ═══ -->
         <section class="portal-section" id="section-messages" data-section="messages">
-          <div class="section-title">💬 Messages</div>
+          <div class="section-title">Messages</div>
           <div id="messagesSectionMount"></div>
         </section>
 
         <!-- ═══ ANNOUNCEMENTS (Stage 3 placeholder) ═══ -->
         <section class="portal-section" id="section-announcements" data-section="announcements">
-          <div class="section-title">📣 Announcements</div>
+          <div class="section-title">Announcements</div>
           <div class="empty-state">
             <div class="empty-emoji">📣</div>
             <div class="empty-title">No announcements yet</div>
@@ -1829,7 +1826,7 @@
 
         <!-- ═══ PROFILE ═══ -->
         <section class="portal-section" id="section-profile" data-section="profile">
-          <div class="section-title" id="profileSectionTitle">👤 Profile</div>
+          <div class="section-title" id="profileSectionTitle">Profile</div>
           <div id="profileMount"></div>
         </section>
 
@@ -2645,9 +2642,9 @@ const SIDEBAR_SECTIONS = {
 
 const SECTION_OVERRIDES = {
   proposals: {
-    club:       { label: "My Proposals",  title: "📋 Your Proposals" },
-    individual: { label: "My Proposals",  title: "📋 Your Proposals" },
-    department: { label: "Our Events",    title: "📋 Your Events" },
+    club:       { label: "My Proposals",  title: "Your Proposals" },
+    individual: { label: "My Proposals",  title: "Your Proposals" },
+    department: { label: "Our Events",    title: "Your Events" },
   },
   profile: {
     club:       { label: "Club Profile" },
@@ -2685,7 +2682,7 @@ function buildSidebarNav(){
   const propTitleEl = document.getElementById("proposalsSectionTitle");
   if(propTitleEl && propTitle) propTitleEl.textContent = propTitle;
   const profTitleEl = document.getElementById("profileSectionTitle");
-  if(profTitleEl) profTitleEl.textContent = "👤 " + sectionMeta("profile", acctType).label;
+  if(profTitleEl) profTitleEl.textContent = sectionMeta("profile", acctType).label;
 
   renderProfileSection();
   showPortalSection(currentPortalSection);
