@@ -1657,8 +1657,8 @@
     <div class="app-content">
       <div class="portal-shell">
 
-        <!-- ═══ HOME ═══ -->
-        <section class="portal-section active" id="section-home" data-section="home">
+        <!-- ═══ MY PROPOSALS (merged: hero + stats + list) ═══ -->
+        <section class="portal-section active" id="section-proposals" data-section="proposals">
           <!-- Hero -->
           <div class="portal-hero">
             <div>
@@ -1689,11 +1689,8 @@
               <div class="stat-label">Declined</div>
             </div>
           </div>
-        </section>
 
-        <!-- ═══ PROPOSALS ═══ -->
-        <section class="portal-section" id="section-proposals" data-section="proposals">
-          <div class="section-title" id="proposalsSectionTitle">📋 Your Proposals</div>
+          <div class="section-title" id="proposalsSectionTitle" style="margin-top:28px;">📋 Your Proposals</div>
           <div class="proposal-filters" id="proposalFilters">
             <button class="filter-tab active" data-filter="all"        data-label="All"        onclick="setFilter('all',this)">All</button>
             <button class="filter-tab"        data-filter="active"     data-label="Active"     onclick="setFilter('active',this)">Active</button>
@@ -2540,7 +2537,6 @@ async function signOut(){
    Adding a future section = add to SECTION_REGISTRY + list it here.
    ══════════════════════════════════════════════════════════════ */
 const SECTION_REGISTRY = {
-  home:          { label: "Home",          icon: '<path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>' },
   proposals:     { label: "My Proposals",  icon: '<path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"/><path d="M9 12l2 2l4 -4"/>' },
   resources:     { label: "Resource Hub",  icon: '<path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/>' },
   messages:      { label: "Messages",      icon: '<path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10"/><path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2"/>' },
@@ -2549,9 +2545,9 @@ const SECTION_REGISTRY = {
 };
 
 const SIDEBAR_SECTIONS = {
-  club:       ["home", "proposals", "resources", "messages", "announcements", "profile"],
-  individual: ["home", "proposals", "resources", "messages", "announcements", "profile"],
-  department: ["home", "proposals", "resources", "messages", "announcements", "profile"],
+  club:       ["proposals", "resources", "messages", "announcements", "profile"],
+  individual: ["proposals", "resources", "messages", "announcements", "profile"],
+  department: ["proposals", "resources", "messages", "announcements", "profile"],
 };
 
 const SECTION_OVERRIDES = {
@@ -2573,7 +2569,7 @@ function sectionMeta(key, acctType){
   return { ...base, ...ov };
 }
 
-let currentPortalSection = "home";
+let currentPortalSection = "proposals";
 
 function buildSidebarNav(){
   const acctType = currentClub?.account_type || "club";
@@ -2607,9 +2603,9 @@ function showPortalSection(key){
   document.querySelectorAll(".portal-section").forEach(s => s.classList.toggle("active", s.dataset.section === key));
   document.querySelectorAll(".side-item").forEach(b => b.classList.toggle("active", b.dataset.nav === key));
 
-  // FAB (New Proposal) only makes sense on Home/Proposals
+  // FAB (New Proposal) only makes sense on the Proposals section
   const fab = document.getElementById("fabProposal");
-  if(fab) fab.style.display = (key === "home" || key === "proposals") ? "" : "none";
+  if(fab) fab.style.display = (key === "proposals") ? "" : "none";
 
   // Messages: mount the existing chat into the section on first open
   if(key === "messages") mountChatIntoSection();
