@@ -459,7 +459,10 @@ let allResources=[], activeCampus="", activeSearch="";
 
 async function loadResources(){
   const { data } = await sb.from("resources").select("*").eq("is_active",true).order("display_order").order("title");
-  allResources = data || [];
+  // Only show resources meant for the public site. Event-Hub-only resources
+  // (visibility='event_hub') must never appear here. Rows created before the
+  // visibility column existed have no value → treated as public (unchanged).
+  allResources = (data || []).filter(r => !r.visibility || r.visibility === "public" || r.visibility === "both");
   render(allResources);
 }
 
