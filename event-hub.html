@@ -1741,13 +1741,20 @@
           </div>
         </section>
 
-        <!-- ═══ RESOURCE HUB (Stage 2 fills this) ═══ -->
+        <!-- ═══ RESOURCE HUB ═══ -->
         <section class="portal-section" id="section-resources" data-section="resources">
           <div class="section-title">📚 Resource Hub</div>
-          <div class="empty-state">
-            <div class="empty-emoji">📚</div>
-            <div class="empty-title">Resource Hub is coming soon</div>
-            <div class="empty-sub">Important forms, guides, and files curated by the Office of Student Experience will appear here.</div>
+          <div style="margin-bottom:16px;max-width:420px;">
+            <input type="text" id="resHubSearch" placeholder="Search resources…"
+              oninput="filterResourceHub(this.value)"
+              style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .15s;"
+              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+          </div>
+          <div id="resHubContainer">
+            <div class="empty-state">
+              <div class="empty-emoji">📚</div>
+              <div class="empty-title">Loading resources…</div>
+            </div>
           </div>
         </section>
 
@@ -2642,6 +2649,8 @@ function showPortalSection(key){
 
   // Messages: mount the existing chat into the section on first open
   if(key === "messages") mountChatIntoSection();
+  // Resource Hub: load gated resources on first open
+  if(key === "resources") loadResourceHub();
 
   closeSidebar();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2703,6 +2712,96 @@ function profileRow(label, value){
     <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);">${label}</span>
     <span style="font-size:14px;color:var(--ink);font-weight:600;">${value}</span>
   </div>`;
+}
+
+/* ── Resource Hub (gated resources inside Event Hub) ──
+   Shows resources where visibility is 'event_hub' or 'both', scoped to the
+   account's campus (plus All-Campus resources), grouped by category with search.
+   Mirrors the public resources.html card style for consistency. */
+const RESHUB_CATEGORY_STYLES = {
+  "Forms":{bg:"#eff6ff",icon:"📋"},"Portals":{bg:"#f5f3ff",icon:"🌐"},
+  "Health & Wellness":{bg:"#f0fdf4",icon:"💚"},"Academic":{bg:"#fef9c3",icon:"📚"},
+  "Student Affairs":{bg:"#fdf4ff",icon:"🎓"},"Finance":{bg:"#fff7ed",icon:"💰"},
+  "IT & Technology":{bg:"#f0fdfa",icon:"💻"},"Policies":{bg:"#fef2f2",icon:"📜"}
+};
+let resHubAll = [], resHubSearch = "";
+
+async function loadResourceHub(){
+  const container = document.getElementById("resHubContainer");
+  if(!container) return;
+  const { data, error } = await sb.from("resources")
+    .select("*").eq("is_active", true)
+    .order("display_order").order("title");
+  if(error){
+    container.innerHTML = `<div class="empty-state"><div class="empty-emoji">⚠️</div><div class="empty-title">Couldn't load resources</div><div class="empty-sub">Please try again shortly.</div></div>`;
+    return;
+  }
+  const myCampus = currentClub?.campus || null;
+  resHubAll = (data || []).filter(r => {
+    // Visibility: only event_hub or both belong in the gated hub
+    const vis = r.visibility || "public";
+    if(vis !== "event_hub" && vis !== "both") return false;
+    // Campus scope: show All-Campus (null) + own campus
+    if(r.campus && myCampus && r.campus !== myCampus) return false;
+    return true;
+  });
+  renderResourceHub();
+}
+
+function filterResourceHub(q){
+  resHubSearch = (q || "").toLowerCase();
+  renderResourceHub();
+}
+
+function renderResourceHub(){
+  const container = document.getElementById("resHubContainer");
+  if(!container) return;
+  let list = resHubAll;
+  if(resHubSearch){
+    list = list.filter(r =>
+      (r.title||"").toLowerCase().includes(resHubSearch) ||
+      (r.description||"").toLowerCase().includes(resHubSearch) ||
+      (r.category||"").toLowerCase().includes(resHubSearch));
+  }
+  if(!list.length){
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-emoji">${resHubSearch ? "🔍" : "📚"}</div>
+      <div class="empty-title">${resHubSearch ? "No resources found" : "No resources yet"}</div>
+      <div class="empty-sub">${resHubSearch ? "Try a different search." : "Resources shared by the Office of Student Experience will appear here."}</div>
+    </div>`;
+    return;
+  }
+  // Group by category
+  const groups = {};
+  list.forEach(r => { const c = r.category || "General"; (groups[c] = groups[c] || []).push(r); });
+  container.innerHTML = Object.entries(groups).map(([cat, items]) => {
+    const style = RESHUB_CATEGORY_STYLES[cat] || { bg:"#f3f4f6", icon:"🔗" };
+    return `<div style="margin-bottom:26px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:${style.bg};display:flex;align-items:center;justify-content:center;font-size:17px;">${style.icon}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--ink);">${esc(cat)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+        ${items.map(r => {
+          const icon = r.icon || style.icon;
+          const isLink = !!r.url;
+          const tag = isLink ? "a" : "div";
+          const attrs = isLink ? `href="${esc(r.url)}" target="_blank" rel="noopener"` : "";
+          return `<${tag} ${attrs} style="display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s;"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 4px 14px rgba(0,0,96,.08)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+            <div style="width:38px;height:38px;border-radius:10px;background:${style.bg};display:flex;align-items:center;justify-content:center;font-size:18px;">${icon}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.3;">${esc(r.title)}</div>
+            ${r.description ? `<div style="font-size:11px;color:var(--muted);line-height:1.5;">${esc(r.description)}</div>` : ""}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px;">
+              <span style="font-size:10px;color:var(--muted);">${r.campus ? "📍 " + esc(r.campus) : "🌐 All Campuses"}</span>
+              ${isLink ? `<span style="font-size:14px;color:var(--accent);">→</span>` : ""}
+            </div>
+          </${tag}>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
 }
 
 function showPortal(){
