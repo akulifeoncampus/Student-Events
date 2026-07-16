@@ -417,6 +417,7 @@
     /* ── Resource Hub layout ── */
     .reshub-layout { display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: start; }
     .reshub-cats { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 76px; }
+    .reshub-content { min-width: 0; }
     .reshub-cat {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       padding: 9px 12px; border-radius: 10px; cursor: pointer;
@@ -1792,17 +1793,19 @@
         <!-- ═══ RESOURCE HUB ═══ -->
         <section class="portal-section" id="section-resources" data-section="resources">
           <div class="section-title">Resource Hub</div>
-          <input type="text" id="resHubSearch" placeholder="Search resources…"
-            oninput="filterResourceHub(this.value)"
-            style="width:100%;max-width:520px;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:20px;display:block;"
-            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
           <div class="reshub-layout">
             <!-- Category filter (column on desktop, chips on mobile) -->
             <aside class="reshub-cats" id="resHubCats" aria-label="Filter by category"></aside>
-            <!-- Resource rows -->
-            <div class="reshub-list" id="resHubContainer">
-              <div class="empty-state">
-                <div class="empty-title">Loading resources…</div>
+            <!-- Content column: search on the same top line as the categories, then rows -->
+            <div class="reshub-content">
+              <input type="text" id="resHubSearch" placeholder="Search resources…"
+                oninput="filterResourceHub(this.value)"
+                style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Poppins',sans-serif;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:16px;display:block;"
+                onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+              <div class="reshub-list" id="resHubContainer">
+                <div class="empty-state">
+                  <div class="empty-title">Loading resources…</div>
+                </div>
               </div>
             </div>
           </div>
