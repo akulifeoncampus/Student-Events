@@ -5338,6 +5338,13 @@
             <option>Karachi</option><option>Nairobi</option><option>Kampala</option><option>Dar es Salaam</option>
           </select>
         </div>
+        <div class="field"><label>Visibility</label>
+          <select id="resVisibility">
+            <option value="public">Public site only</option>
+            <option value="event_hub">Event Hub only</option>
+            <option value="both">Both (public + Event Hub)</option>
+          </select>
+        </div>
         <div class="field"><label>Icon (emoji)</label><input id="resIcon" type="text" placeholder="e.g. 📋" /></div>
         <div class="field"><label>Display Order</label><input id="resOrder" type="number" value="0" min="0" /></div>
         <div class="field"><label>Status</label>
@@ -12134,6 +12141,7 @@ function openResourceModal(id = null){
   ["resTitle","resDescription","resUrl","resIcon"].forEach(i => document.getElementById(i).value = "");
   document.getElementById("resCategory").value = "";
   document.getElementById("resCampus").value = "";
+  document.getElementById("resVisibility").value = "public";
   document.getElementById("resOrder").value = "0";
   document.getElementById("resActive").value = "true";
   document.getElementById("resourceModalTitle").textContent = id ? "Edit Resource" : "Add Resource";
@@ -12148,6 +12156,7 @@ function openResourceModal(id = null){
       document.getElementById("resUrl").value          = r.url         || "";
       document.getElementById("resCategory").value     = r.category    || "";
       document.getElementById("resCampus").value       = r.campus      || "";
+      document.getElementById("resVisibility").value    = r.visibility  || "public";
       document.getElementById("resIcon").value         = r.icon        || "";
       document.getElementById("resOrder").value        = r.display_order || 0;
       document.getElementById("resActive").value       = String(r.is_active !== false);
@@ -12192,6 +12201,7 @@ async function saveResource(){
     url,
     category: document.getElementById("resCategory").value||null,
     campus: document.getElementById("resCampus").value||null,
+    visibility: document.getElementById("resVisibility").value||"public",
     icon: document.getElementById("resIcon").value.trim()||null,
     display_order: parseInt(document.getElementById("resOrder").value)||0,
     is_active: document.getElementById("resActive").value === "true",
