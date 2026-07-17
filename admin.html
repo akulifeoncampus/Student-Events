@@ -2915,6 +2915,24 @@
       font-size:var(--text-sm); font-weight:600; font-family:'Poppins',sans-serif; padding:4px 8px;
     }
     .rb-remove-btn:hover { text-decoration:underline; }
+    #rbManageBtn.rb-open { background:var(--aku-navy); color:#fff; border-color:var(--aku-navy); }
+    /* Resources Booking — workspace (Step 3) */
+    .rb-ws-card { border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface); padding:18px; margin-bottom:16px; }
+    .rb-ws-title { font-weight:700; color:var(--color-ink); font-size:var(--text-base); margin-bottom:14px; }
+    .rb-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .rb-field { display:flex; flex-direction:column; gap:5px; }
+    .rb-field label { font-size:var(--text-sm); font-weight:600; color:var(--color-muted); }
+    .rb-field .select, .rb-field .rb-input { width:100%; }
+    .rb-form-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+    .rb-avail-msg { margin-top:10px; font-size:var(--text-sm); font-weight:600; }
+    .rb-avail-free { color:var(--color-success); }
+    .rb-avail-busy { color:var(--color-danger); }
+    .rb-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; }
+    .rb-badge-active { background:var(--color-success-bg); color:var(--color-success); }
+    .rb-badge-cancelled { background:var(--color-danger-bg); color:var(--color-danger); }
+    .rb-cancel-btn { background:none; border:none; cursor:pointer; color:var(--color-danger); font-weight:600; font-family:'Poppins',sans-serif; font-size:var(--text-sm); padding:0; }
+    .rb-cancel-btn:hover { text-decoration:underline; }
+    @media (max-width:640px){ .rb-form-grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -6643,9 +6661,20 @@ async function rbLoadResources(){
 
   if(error){ showToast("Failed to load resources: " + error.message, "error"); return; }
   rbResources = data || [];
+  await rbLoadAccounts();
   rbRenderChips();
   rbRenderManageList();
   rbRenderSelection();
+}
+
+/* Approved event-hub accounts on the active campus → the "For whom" list. */
+async function rbLoadAccounts(){
+  const { data, error } = await sb.from("club_accounts")
+    .select("id, email, club_name, account_type, campus, status")
+    .eq("campus", rbSelectedCampus)
+    .eq("status", "approved")
+    .order("club_name", { ascending: true });
+  rbAccounts = (error ? [] : (data || []));
 }
 
 function rbRenderChips(){
@@ -6660,34 +6689,311 @@ function rbRenderChips(){
   `).join("");
 }
 
+/* Selecting a resource = booking mode. Always closes the manage panel first
+   so the two views are never on screen together. */
 function rbSelectResource(id){
+  if(rbManageOpen) rbCloseManage();
   rbSelectedResourceId = id;
   rbRenderChips();
   rbRenderSelection();
 }
 
-/* Step 2 placeholder — Step 3 replaces this with the booking form + diary. */
+/* ── Manage resources (add / soft-remove) ── */
+/* Manage mode is mutually exclusive with a selected resource. Button label
+   stays "Manage resources" always; open state is shown by highlight, and the
+   panel closes itself (toggle) or when a resource chip is clicked. */
+function rbCloseManage(){
+  rbManageOpen = false;
+  document.getElementById("rbManagePanel").style.display = "none";
+  document.getElementById("rbManageBtn").classList.remove("rb-open");
+}
+function rbToggleManage(){
+  if(rbManageOpen){ rbCloseManage(); rbRenderSelection(); return; }
+  // Opening manage → clear any selected resource so the diary is hidden.
+  rbManageOpen = true;
+  rbSelectedResourceId = null;
+  rbRenderChips();
+  rbRenderSelection();
+  document.getElementById("rbManagePanel").style.display = "";
+  document.getElementById("rbManageBtn").classList.add("rb-open");
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ RESOURCES BOOKING — Step 3: booking form + availability + diary ══
+   ════════════════════════════════════════════════════════════════════════ */
+let rbAccounts = [];   // approved club_accounts for the active campus
+let rbBookings = [];   // bookings for the selected resource (active + cancelled)
+
+/* Router: manage open → hint hidden by panel; resource selected → workspace;
+   nothing selected → the empty hint. */
 function rbRenderSelection(){
   const hint = document.getElementById("rbHint");
   const ws   = document.getElementById("rbWorkspace");
   const res  = rbResources.find(r => r.id === rbSelectedResourceId);
-  ws.style.display = "none";
+
+  if(rbManageOpen){ hint.style.display = "none"; ws.style.display = "none"; return; }
+
   if(!res){
+    ws.style.display = "none";
     hint.style.display = "";
     hint.innerHTML = `<div class="empty-state-icon">📅</div>
       <div class="empty-state-text">Select a resource above to view its booking diary.</div>`;
     return;
   }
-  hint.style.display = "";
-  hint.innerHTML = `<div class="empty-state-icon">📅</div>
-    <div class="empty-state-text"><strong>${rbEsc(res.name)}</strong> selected — booking form &amp; diary appear here in the next update.</div>`;
+  hint.style.display = "none";
+  ws.style.display = "";
+  rbRenderWorkspace(res);
 }
 
-/* ── Manage resources (add / soft-remove) ── */
-function rbToggleManage(){
-  rbManageOpen = !rbManageOpen;
-  document.getElementById("rbManagePanel").style.display = rbManageOpen ? "" : "none";
-  document.getElementById("rbManageBtn").textContent = rbManageOpen ? "Done" : "Manage resources";
+function rbRenderWorkspace(res){
+  const ws = document.getElementById("rbWorkspace");
+  const accOptions = rbAccounts.length
+    ? rbAccounts.map(a => `<option value="${rbEsc(a.email)}">${rbEsc(a.club_name || a.email)} (${rbEsc(rbTypeLabel(a.account_type))})</option>`).join("")
+    : `<option value="">No approved event-hub accounts for this campus</option>`;
+
+  ws.innerHTML = `
+    <div class="rb-ws-card">
+      <div class="rb-ws-title">Book “${rbEsc(res.name)}”</div>
+      <div class="rb-form-grid">
+        <div class="rb-field">
+          <label for="rbForWhom">For whom</label>
+          <select id="rbForWhom" class="select" onchange="rbOnAccountChange()" ${rbAccounts.length ? "" : "disabled"}>${accOptions}</select>
+        </div>
+        <div class="rb-field">
+          <label for="rbForEvent">Link to event (optional)</label>
+          <select id="rbForEvent" class="select"><option value="">General booking (no specific event)</option></select>
+        </div>
+        <div class="rb-field"><label for="rbStartDate">Start date</label><input type="date" id="rbStartDate" class="rb-input"></div>
+        <div class="rb-field"><label for="rbStartTime">Start time</label><input type="time" id="rbStartTime" class="rb-input"></div>
+        <div class="rb-field"><label for="rbEndDate">End date</label><input type="date" id="rbEndDate" class="rb-input"></div>
+        <div class="rb-field"><label for="rbEndTime">End time</label><input type="time" id="rbEndTime" class="rb-input"></div>
+      </div>
+      <div class="rb-form-actions">
+        <button class="btn btn-secondary" onclick="rbCheckAvailability()">Check availability</button>
+        <button class="btn btn-primary" onclick="rbBookResource()" ${rbAccounts.length ? "" : "disabled"}>Book resource</button>
+      </div>
+      <div id="rbAvailMsg" class="rb-avail-msg"></div>
+    </div>
+
+    <div class="rb-ws-card">
+      <div class="rb-ws-title">Booking diary</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>For whom</th><th>Event</th><th>Start</th><th>End</th><th>Booked by</th><th>Status</th><th></th></tr></thead>
+          <tbody id="rbBookingsBody"><tr><td colspan="7" style="text-align:center;color:var(--color-muted);padding:16px;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Default start/end dates to today for convenience.
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("rbStartDate").value = today;
+  document.getElementById("rbEndDate").value   = today;
+
+  rbOnAccountChange();
+  rbLoadBookings();
+}
+
+function rbTypeLabel(t){ return ({ club:"Club", department:"Department", individual:"Independent" }[t]) || "Club"; }
+
+/* When the account changes, refill the optional event dropdown with that
+   account's non-rejected proposals (newest first). */
+async function rbOnAccountChange(){
+  const email  = document.getElementById("rbForWhom")?.value;
+  const evtSel = document.getElementById("rbForEvent");
+  if(!evtSel) return;
+  evtSel.innerHTML = `<option value="">General booking (no specific event)</option>`;
+  if(!email) return;
+
+  const { data, error } = await sb.from("event_proposals")
+    .select("id, event_name, proposed_date, status")
+    .eq("club_email", email)
+    .neq("status", "rejected")
+    .order("proposed_date", { ascending: false });
+
+  if(error || !data || !data.length) return;
+  evtSel.innerHTML += data.map(p => {
+    const d = p.proposed_date ? ` — ${rbEsc(p.proposed_date)}` : "";
+    return `<option value="${rbEsc(p.id)}">${rbEsc(p.event_name || "Untitled event")}${d}</option>`;
+  }).join("");
+}
+
+/* Build an ISO timestamp from a date input + time input (local → UTC). */
+function rbBuildISO(dateVal, timeVal){
+  if(!dateVal || !timeVal) return null;
+  const d = new Date(`${dateVal}T${timeVal}:00`);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+function rbFmt(iso){
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+}
+
+/* Read the 4 datetime inputs → {startISO, endISO} or an error string. */
+function rbReadWindow(){
+  const sd = document.getElementById("rbStartDate").value;
+  const st = document.getElementById("rbStartTime").value;
+  const ed = document.getElementById("rbEndDate").value;
+  const et = document.getElementById("rbEndTime").value;
+  const startISO = rbBuildISO(sd, st);
+  const endISO   = rbBuildISO(ed, et);
+  if(!startISO || !endISO) return { error: "Fill in start and end date + time." };
+  if(new Date(endISO) <= new Date(startISO)) return { error: "End must be after start." };
+  return { startISO, endISO };
+}
+
+/* Overlap test against currently-loaded ACTIVE bookings ([start,end)). */
+function rbFindConflict(startISO, endISO, ignoreId){
+  const s = new Date(startISO), e = new Date(endISO);
+  return rbBookings.find(b =>
+    b.status === "active" && b.id !== ignoreId &&
+    s < new Date(b.end_at) && e > new Date(b.start_at)
+  );
+}
+
+function rbCheckAvailability(){
+  const msg = document.getElementById("rbAvailMsg");
+  const w = rbReadWindow();
+  if(w.error){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = w.error; return; }
+  const clash = rbFindConflict(w.startISO, w.endISO, null);
+  if(clash){
+    msg.className = "rb-avail-msg rb-avail-busy";
+    msg.textContent = `Not available — already booked for ${clash.booked_for_name} (${rbFmt(clash.start_at)} → ${rbFmt(clash.end_at)}).`;
+  } else {
+    msg.className = "rb-avail-msg rb-avail-free";
+    msg.textContent = "Available for this window.";
+  }
+}
+
+async function rbBookResource(){
+  const res = rbResources.find(r => r.id === rbSelectedResourceId);
+  if(!res) return;
+  const email = document.getElementById("rbForWhom").value;
+  if(!email){ showToast("Choose who this is booked for.", "error"); return; }
+  const acct  = rbAccounts.find(a => a.email === email);
+  const evtSel = document.getElementById("rbForEvent");
+  const proposalId = evtSel.value || null;
+  const eventName  = proposalId ? evtSel.options[evtSel.selectedIndex].text.split(" — ")[0] : null;
+
+  const w = rbReadWindow();
+  if(w.error){ showToast(w.error, "error"); return; }
+
+  // Client-side pre-check for a friendly message; DB constraint is the real guard.
+  const clash = rbFindConflict(w.startISO, w.endISO, null);
+  if(clash){ showToast(`Clash with ${clash.booked_for_name}'s booking. Pick another time.`, "error"); return; }
+
+  const { data, error } = await sb.from("resource_bookings").insert({
+    resource_id:      res.id,
+    campus:           rbSelectedCampus,
+    booked_for_email: email,
+    booked_for_name:  acct?.club_name || email,
+    proposal_id:      proposalId,
+    start_at:         w.startISO,
+    end_at:           w.endISO,
+    booked_by:        currentUser?.email || null,
+  }).select().single();
+
+  if(error){
+    // 23P01 = exclusion_violation (overlap caught at DB level, e.g. race condition)
+    const msg = /23P01|overlap|exclusion/i.test(error.message)
+      ? "That time was just taken. Refreshing the diary."
+      : "Failed to book: " + error.message;
+    showToast(msg, "error");
+    rbLoadBookings();
+    return;
+  }
+
+  await rbNotifyBooking(data, res.name, eventName, proposalId, "booked");
+  showToast("Resource booked.");
+  document.getElementById("rbAvailMsg").textContent = "";
+  rbLoadBookings();
+}
+
+async function rbLoadBookings(){
+  if(!rbSelectedResourceId) return;
+  const { data, error } = await sb.from("resource_bookings")
+    .select("*")
+    .eq("resource_id", rbSelectedResourceId)
+    .order("start_at", { ascending: true });
+
+  const body = document.getElementById("rbBookingsBody");
+  if(!body) return;
+  if(error){ body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--color-danger);padding:16px;">Failed to load bookings.</td></tr>`; return; }
+  rbBookings = data || [];
+  rbRenderBookings();
+}
+
+function rbRenderBookings(){
+  const body = document.getElementById("rbBookingsBody");
+  if(!body) return;
+  if(!rbBookings.length){
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--color-muted);padding:16px;">No bookings yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rbBookings.map(b => {
+    const cancelled = b.status === "cancelled";
+    const badge = cancelled
+      ? `<span class="rb-badge rb-badge-cancelled">Cancelled</span>`
+      : `<span class="rb-badge rb-badge-active">Active</span>`;
+    const action = cancelled ? "" :
+      `<button class="rb-cancel-btn" onclick="rbCancelBooking('${rbEsc(b.id)}')">Cancel</button>`;
+    return `<tr${cancelled ? ' style="opacity:.6;"' : ''}>
+      <td>${rbEsc(b.booked_for_name)}</td>
+      <td>${b.proposal_id ? "🔗 Linked" : "—"}</td>
+      <td>${rbEsc(rbFmt(b.start_at))}</td>
+      <td>${rbEsc(rbFmt(b.end_at))}</td>
+      <td>${rbEsc(b.booked_by || "—")}</td>
+      <td>${badge}</td>
+      <td style="text-align:right;">${action}</td>
+    </tr>`;
+  }).join("");
+}
+
+async function rbCancelBooking(id){
+  const b = rbBookings.find(x => x.id === id);
+  if(!b) return;
+  if(!confirm(`Cancel this booking for ${b.booked_for_name}? The slot frees up and the account is notified.`)) return;
+
+  const { error } = await sb.from("resource_bookings")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: currentUser?.email || null })
+    .eq("id", id);
+  if(error){ showToast("Failed to cancel: " + error.message, "error"); return; }
+
+  const res = rbResources.find(r => r.id === rbSelectedResourceId);
+  await rbNotifyBooking(b, res?.name || "Resource", null, b.proposal_id, "cancelled");
+  showToast("Booking cancelled.");
+  rbLoadBookings();
+}
+
+/* Notify the event-hub account. If linked to an event → post into that event's
+   inline card thread (proposal_messages) AND fire a notification carrying the
+   proposal_id (event-hub auto-scrolls to the card + opens the thread). If not
+   linked → a plain notification only. */
+async function rbNotifyBooking(booking, resourceName, eventName, proposalId, kind){
+  const startTxt = rbFmt(booking.start_at);
+  const endTxt   = rbFmt(booking.end_at);
+  const verb = kind === "booked" ? "booked" : "cancelled";
+  const icon = kind === "booked" ? "📅" : "🚫";
+  const forEvt = eventName ? ` for "${eventName}"` : "";
+  const bodyText = `${icon} Resource ${verb}: "${resourceName}"${forEvt} — ${startTxt} to ${endTxt}.`;
+  const title = kind === "booked" ? "📅 Resource Booked" : "🚫 Resource Booking Cancelled";
+
+  if(proposalId){
+    await sb.from("proposal_messages").insert({
+      proposal_id:  proposalId,
+      sender_email: currentUser?.email || null,
+      sender_type:  "admin",
+      message:      bodyText,
+    });
+  }
+  await sb.from("notifications").insert({
+    recipient:   booking.booked_for_email,
+    type:        "resource_booking",
+    title,
+    message:     bodyText,
+    proposal_id: proposalId,
+    is_read:     false,
+  });
 }
 
 function rbRenderManageList(){
