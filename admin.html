@@ -2935,6 +2935,7 @@
     }
     .rb-select:focus { border-color:var(--aku-navy); box-shadow:0 0 0 3px var(--aku-navy-light); }
     .rb-check { border-top:1px solid var(--color-border); margin-top:16px; padding-top:14px; }
+    .rb-field-full { grid-column:1 / -1; }
     .rb-form-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
     .rb-avail-msg { margin-top:10px; font-size:var(--text-sm); font-weight:600; }
     .rb-avail-free { color:var(--color-success); }
@@ -2945,6 +2946,22 @@
     .rb-cancel-btn { background:none; border:none; cursor:pointer; color:var(--color-danger); font-weight:600; font-family:'Poppins',sans-serif; font-size:var(--text-sm); padding:0; }
     .rb-cancel-btn:hover { text-decoration:underline; }
     @media (max-width:640px){ .rb-form-grid { grid-template-columns:1fr; } }
+    /* ── ATTENDANCE ── */
+    .att-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)) auto; gap:12px; align-items:end; margin-bottom:16px; }
+    .att-filter-actions { display:flex; gap:8px; }
+    .att-cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+    .att-card { border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface); padding:16px; }
+    .att-card-label { font-size:var(--text-sm); color:var(--color-muted); font-weight:600; margin-bottom:6px; }
+    .att-card-value { font-size:26px; font-weight:700; color:var(--aku-navy); font-family:'Poppins',sans-serif; }
+    .att-card-sub { font-size:12px; color:var(--color-muted); margin-top:2px; }
+    .att-link { background:none; border:none; color:var(--aku-navy); font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; font-size:var(--text-sm); padding:0; }
+    .att-link:hover { text-decoration:underline; }
+    .att-src-badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:11px; font-weight:600; }
+    .att-src-qr  { background:var(--color-surface-2); color:var(--color-muted); }
+    .att-src-csv { background:var(--color-success-bg); color:var(--color-success); }
+    .att-upload-box { border:1px dashed var(--color-border); border-radius:var(--radius-md); background:var(--color-surface-2); padding:16px; margin-bottom:16px; }
+    .att-err-row { color:var(--color-danger); font-size:var(--text-sm); }
+    @media (max-width:900px){ .att-filters { grid-template-columns:1fr 1fr; } .att-cards { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
 <body>
@@ -3323,6 +3340,10 @@
         <button class="nav-item" onclick="showSection('resource-booking', this)" id="resourceBookingNavBtn" style="display:none;">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M8 15h2v2h-2z" /></svg>
           <span class="nav-label">Resources Booking</span>
+        </button>
+        <button class="nav-item" onclick="showSection('attendance', this)" id="attendanceNavBtn" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /><path d="M9 14l2 2l4 -4" /></svg>
+          <span class="nav-label">Attendance</span>
         </button>
 
       </div><!-- /sidebar-nav-area -->
@@ -4472,7 +4493,7 @@
             <div class="rb-ws-title">Check availability</div>
             <div style="font-size:var(--text-sm);color:var(--color-muted);margin:-8px 0 12px;">All fields optional — blank dates default to today, blank times to the whole day.</div>
             <div class="rb-form-grid">
-              <div class="rb-field"><label for="rbChkResource">Resource</label><select id="rbChkResource" class="rb-select"></select></div>
+              <div class="rb-field rb-field-full"><label for="rbChkResource">Resource</label><select id="rbChkResource" class="rb-select"></select></div>
               <div class="rb-field"><label for="rbChkStartDate">Start date</label><input type="date" id="rbChkStartDate" class="rb-input"></div>
               <div class="rb-field"><label for="rbChkStart">Start time</label><input type="time" id="rbChkStart" class="rb-input"></div>
               <div class="rb-field"><label for="rbChkEndDate">End date</label><input type="date" id="rbChkEndDate" class="rb-input"></div>
@@ -4492,6 +4513,53 @@
           <div class="empty-state-icon">📅</div>
           <div class="empty-state-text">Select a resource above to view its booking diary.</div>
         </div>
+      </div>
+
+      <!-- ── ATTENDANCE ── -->
+      <div class="section" id="section-attendance">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Attendance</div>
+            <div class="section-subtitle" id="attSubtitle">Compiled event attendance for your campus. Filter, drill into an event, or upload attendance manually.</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="att-filters">
+          <div class="rb-field"><label for="attFrom">From date</label><input type="date" id="attFrom" class="rb-input"></div>
+          <div class="rb-field"><label for="attTo">To date</label><input type="date" id="attTo" class="rb-input"></div>
+          <div class="rb-field"><label for="attCategory">Category</label><select id="attCategory" class="rb-select"><option value="">All categories</option></select></div>
+          <div class="rb-field"><label for="attScope">Attendee type</label><select id="attScope" class="rb-select">
+            <option value="">All types</option>
+            <option value="student">Students</option>
+            <option value="faculty">Faculty</option>
+            <option value="staff">Staff</option>
+            <option value="external_guest">External guests</option>
+          </select></div>
+          <div class="att-filter-actions">
+            <button class="btn btn-primary" onclick="attApplyAndRender()">Apply</button>
+            <button class="btn btn-secondary" onclick="attResetFilters()">Reset</button>
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="att-cards" id="attCards"></div>
+
+        <!-- Events table / drill-in -->
+        <div id="attListView">
+          <div class="rb-ws-card">
+            <div class="rb-ws-title">Events</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Event</th><th>Date</th><th>Category</th><th style="text-align:right;">Check-ins</th><th style="text-align:right;">Students</th><th></th></tr></thead>
+                <tbody id="attEventsBody"><tr><td colspan="6" style="text-align:center;color:var(--color-muted);padding:16px;">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drill-in panel (hidden until an event is opened) -->
+        <div id="attEventView" style="display:none;"></div>
       </div>
 
       <!-- ── EMERGENCY CONTACTS ── -->
@@ -6475,6 +6543,10 @@ function showAdminPanel(){
   document.getElementById("resourceBookingNavBtn").style.display =
     ["super_admin","admin","event_lead"].includes(currentRole) ? "" : "none";
 
+  // Attendance — campus admins and event leads only (super admin uses the executive dashboard)
+  document.getElementById("attendanceNavBtn").style.display =
+    ["admin","event_lead"].includes(currentRole) ? "" : "none";
+
   // Awards nav — visible to anyone with a scoring permission at their campus,
   // plus the oversight roles (SMG cross-campus review, VP sign-off) and
   // Super Admin (troubleshooting access). Uses the same (campus, designation)
@@ -6625,6 +6697,7 @@ function showSection(name, btn){
   if(name === "notice-periods") loadNoticePeriods();
   if(name === "announcements") loadAdminAnnouncements();
   if(name === "resource-booking") loadResourceBooking();
+  if(name === "attendance") loadAttendance();
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -7103,6 +7176,351 @@ async function rbRemoveResource(id, name){
   if(rbSelectedResourceId === id) rbSelectedResourceId = null;
   showToast("Resource removed.");
   rbLoadResources();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ ATTENDANCE — campus-scoped compilation + manual CSV/XLSX upload ══
+   Counting mirrors the executive dashboard so campus sums reconcile:
+   unique students = distinct student_id; repeat = students with >1 attendance.
+   ════════════════════════════════════════════════════════════════════════ */
+const ATT_TYPES   = ["student","faculty","staff","external_guest"];
+const ATT_GENDERS = ["Male","Female"];
+let attCampus          = "";
+let attProposals       = [];   // published proposals for the campus
+let attById            = {};   // proposal id -> proposal
+let attAttendance      = [];   // attendance rows for those events
+let attPrograms        = { entity:new Set(), level:new Set(), program:new Set() };
+let attSelectedEventId = null;
+let attParsed          = null; // { rows, errors, skippedDupes }
+
+function attEsc(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function attEventDate(p){ return p?.new_date || p?.proposed_date || null; }
+function attFmtDate(d){ return d ? new Date(d + "T00:00:00").toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"}) : "—"; }
+
+async function loadAttendance(){
+  attCampus = currentAdminCampus;
+  attSelectedEventId = null;
+  document.getElementById("attEventView").style.display = "none";
+  document.getElementById("attListView").style.display = "";
+  document.getElementById("attSubtitle").textContent =
+    `Compiled event attendance for ${attCampus}. Filter, drill into an event, or upload attendance manually.`;
+  await attLoadPrograms();
+  await attLoadData();
+}
+
+async function attLoadPrograms(){
+  attPrograms = { entity:new Set(), level:new Set(), program:new Set() };
+  const { data } = await sb.from("programs")
+    .select("name, entity, level, campus, active")
+    .eq("campus", attCampus).eq("active", true);
+  (data || []).forEach(p => {
+    if(p.entity) attPrograms.entity.add(p.entity);
+    if(p.level)  attPrograms.level.add(p.level);
+    if(p.name)   attPrograms.program.add(p.name);
+  });
+}
+
+async function attLoadData(){
+  // Published events for this campus (attendance keys off event_proposals.id).
+  const { data: props, error: pErr } = await sb.from("event_proposals")
+    .select("id, event_name, category, proposed_date, new_date, published_event_id")
+    .eq("campus", attCampus)
+    .not("published_event_id", "is", null);
+  if(pErr){ showToast("Failed to load events: " + pErr.message, "error"); return; }
+  attProposals = props || [];
+  attById = {};
+  attProposals.forEach(p => attById[p.id] = p);
+
+  const cats = [...new Set(attProposals.map(p => p.category).filter(Boolean))].sort();
+  const catSel = document.getElementById("attCategory");
+  const prev = catSel.value;
+  catSel.innerHTML = `<option value="">All categories</option>` + cats.map(c => `<option value="${attEsc(c)}">${attEsc(c)}</option>`).join("");
+  catSel.value = prev;
+
+  attAttendance = [];
+  const ids = attProposals.map(p => p.id);
+  const CHUNK = 200;
+  for(let i=0;i<ids.length;i+=CHUNK){
+    const slice = ids.slice(i,i+CHUNK);
+    const { data, error } = await sb.from("event_attendance")
+      .select("id, event_id, student_id, student_name, attendee_type, entity, education_level, program, gender, source, upload_batch, uploaded_by, scanned_at")
+      .in("event_id", slice);
+    if(!error && data) attAttendance.push(...data);
+  }
+  attApplyAndRender();
+}
+
+function attFilteredSet(){
+  const from = document.getElementById("attFrom").value;
+  const to   = document.getElementById("attTo").value;
+  const cat  = document.getElementById("attCategory").value;
+  const scope= document.getElementById("attScope").value;
+
+  const okEventIds = new Set();
+  attProposals.forEach(p => {
+    const d = attEventDate(p);
+    if(from && (!d || d < from)) return;
+    if(to   && (!d || d > to)) return;
+    if(cat  && p.category !== cat) return;
+    okEventIds.add(p.id);
+  });
+  const rows = attAttendance.filter(a => okEventIds.has(a.event_id) && (!scope || a.attendee_type === scope));
+  return { okEventIds, rows };
+}
+
+function attApplyAndRender(){
+  const { okEventIds, rows } = attFilteredSet();
+  attRenderCards(rows, okEventIds);
+  attRenderEventsTable(okEventIds);
+}
+
+function attResetFilters(){
+  ["attFrom","attTo","attCategory","attScope"].forEach(id => { document.getElementById(id).value = ""; });
+  attApplyAndRender();
+}
+
+function attRenderCards(rows, okEventIds){
+  const totalCheckins = rows.length;
+  const studentCount = {};
+  rows.forEach(a => { if(a.student_id) studentCount[a.student_id] = (studentCount[a.student_id]||0)+1; });
+  const unique = Object.keys(studentCount).length;
+  const repeat = Object.values(studentCount).filter(c => c>1).length;
+  const repeatRate = unique>0 ? Math.round((repeat/unique)*100) : 0;
+  const eventsWithAtt = new Set(rows.map(a => a.event_id)).size;
+
+  const card = (label,val,sub)=>`<div class="att-card"><div class="att-card-label">${label}</div><div class="att-card-value">${val}</div><div class="att-card-sub">${sub}</div></div>`;
+  document.getElementById("attCards").innerHTML =
+    card("Total check-ins", totalCheckins, "All attendee types") +
+    card("Unique students", unique, "Distinct student IDs") +
+    card("Repeat rate", repeatRate + "%", repeat + " students >1 event") +
+    card("Events with attendance", eventsWithAtt, "of " + okEventIds.size + " events");
+}
+
+function attRenderEventsTable(okEventIds){
+  const body = document.getElementById("attEventsBody");
+  const scope = document.getElementById("attScope").value;
+  const byEvent = {};
+  attAttendance.forEach(a => {
+    if(!okEventIds.has(a.event_id)) return;
+    if(scope && a.attendee_type !== scope) return;
+    const e = byEvent[a.event_id] || (byEvent[a.event_id] = { total:0, students:new Set() });
+    e.total++; if(a.student_id) e.students.add(a.student_id);
+  });
+  const list = [...okEventIds].map(id => attById[id]).filter(Boolean)
+    .sort((a,b) => (attEventDate(b)||"").localeCompare(attEventDate(a)||""));
+  if(!list.length){ body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--color-muted);padding:16px;">No events match.</td></tr>`; return; }
+  body.innerHTML = list.map(p => {
+    const c = byEvent[p.id] || { total:0, students:new Set() };
+    return `<tr>
+      <td>${attEsc(p.event_name || "Untitled")}</td>
+      <td>${attFmtDate(attEventDate(p))}</td>
+      <td>${attEsc(p.category || "—")}</td>
+      <td style="text-align:right;">${c.total}</td>
+      <td style="text-align:right;">${c.students.size}</td>
+      <td style="text-align:right;"><button class="att-link" onclick="attOpenEvent('${attEsc(p.id)}')">View / Upload</button></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ── Drill-in: one event ── */
+function attEventRows(){ return attAttendance.filter(a => a.event_id === attSelectedEventId); }
+
+function attOpenEvent(eventId){
+  attSelectedEventId = eventId;
+  attParsed = null;
+  document.getElementById("attListView").style.display = "none";
+  const view = document.getElementById("attEventView");
+  view.style.display = "";
+  const p = attById[eventId];
+  view.innerHTML = `
+    <button class="att-link" onclick="attBackToList()">&larr; Back to all events</button>
+    <div class="rb-ws-card" style="margin-top:10px;">
+      <div class="rb-ws-title">${attEsc(p?.event_name || "Event")} · ${attFmtDate(attEventDate(p))}</div>
+      <div class="att-upload-box">
+        <div style="font-weight:600;margin-bottom:8px;">Upload attendance (.xlsx / .csv)</div>
+        <input type="file" id="attFile" accept=".xlsx,.csv" onchange="attParseFile(event)">
+        <div id="attUploadResult" style="margin-top:10px;"></div>
+      </div>
+      <div id="attBatches"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Student ID</th><th>Type</th><th>Programme</th><th>Source</th></tr></thead>
+          <tbody id="attAttendeesBody"></tbody>
+        </table>
+      </div>
+    </div>`;
+  attRenderAttendees();
+  attRenderBatches();
+}
+
+function attBackToList(){
+  attSelectedEventId = null;
+  document.getElementById("attEventView").style.display = "none";
+  document.getElementById("attListView").style.display = "";
+}
+
+function attRenderAttendees(){
+  const body = document.getElementById("attAttendeesBody");
+  if(!body) return;
+  const rows = attEventRows();
+  if(!rows.length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--color-muted);padding:16px;">No attendance yet.</td></tr>`; return; }
+  body.innerHTML = rows.map(a => `<tr>
+    <td>${attEsc(a.student_name || "—")}</td>
+    <td>${attEsc(a.student_id || "—")}</td>
+    <td>${attEsc(a.attendee_type || "—")}</td>
+    <td>${attEsc(a.program || "—")}</td>
+    <td><span class="att-src-badge att-src-${a.source==='csv'?'csv':'qr'}">${a.source==='csv'?'CSV':'QR'}</span></td>
+  </tr>`).join("");
+}
+
+function attRenderBatches(){
+  const box = document.getElementById("attBatches");
+  if(!box) return;
+  const batches = {};
+  attEventRows().forEach(a => {
+    if(a.source==='csv' && a.upload_batch){
+      const b = batches[a.upload_batch] || (batches[a.upload_batch] = { count:0, by:a.uploaded_by });
+      b.count++;
+    }
+  });
+  const ids = Object.keys(batches);
+  if(!ids.length){ box.innerHTML = ""; return; }
+  box.innerHTML = `<div style="margin-bottom:12px;">
+    <div style="font-weight:600;margin-bottom:6px;">Uploaded batches</div>
+    ${ids.map(id => `<div class="rb-manage-row">
+      <span>${batches[id].count} rows · ${attEsc(batches[id].by || "—")}</span>
+      <button class="rb-remove-btn" onclick="attUndoBatch('${attEsc(id)}')">Undo batch</button>
+    </div>`).join("")}
+  </div>`;
+}
+
+async function attUndoBatch(batchId){
+  const n = attEventRows().filter(a => a.upload_batch === batchId).length;
+  if(!confirm(`Remove all ${n} rows from this upload? This cannot be undone.`)) return;
+  const { error } = await sb.from("event_attendance").delete().eq("upload_batch", batchId);
+  if(error){ showToast("Undo failed: " + error.message, "error"); return; }
+  showToast("Batch removed.");
+  await attLoadData();
+  attOpenEvent(attSelectedEventId);
+}
+
+/* ── Parse + validate the uploaded file ── */
+function attParseFile(ev){
+  const file = ev.target.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type:"array" });
+      const sheetName = wb.SheetNames.includes("Attendance") ? "Attendance" : wb.SheetNames[0];
+      const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval:"" });
+      attValidateRows(raw);
+    } catch(err){
+      document.getElementById("attUploadResult").innerHTML = `<div class="att-err-row">Could not read file: ${attEsc(err.message)}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function attNorm(s){ return String(s ?? "").trim(); }
+
+function attValidateRows(raw){
+  const valid = [], errors = [];
+  const existingIds = new Set(attEventRows().filter(a => a.student_id).map(a => String(a.student_id)));
+  const seenInFile = new Set();
+  let skippedDupes = 0;
+
+  raw.forEach((r, idx) => {
+    const line = idx + 2; // header = row 1
+    const g = k => {
+      const key = Object.keys(r).find(x => x.toLowerCase().trim() === k);
+      return attNorm(key ? r[key] : "");
+    };
+    const any = g("attendee_type") || g("student_name") || g("student_id") || g("entity") || g("education_level") || g("program") || g("gender");
+    if(!any) return; // blank line
+
+    let type = g("attendee_type").toLowerCase() || "student";
+    if(!ATT_TYPES.includes(type)){ errors.push(`Row ${line}: invalid attendee_type "${g("attendee_type")}"`); return; }
+
+    const name = g("student_name"), sid = g("student_id");
+    const entity = g("entity"), level = g("education_level"), program = g("program");
+    let gender = g("gender");
+    if(gender){ gender = gender.charAt(0).toUpperCase()+gender.slice(1).toLowerCase(); }
+
+    if(type === "student"){
+      if(!name){ errors.push(`Row ${line}: student_name required`); return; }
+      if(!sid){ errors.push(`Row ${line}: student_id required`); return; }
+      if(entity  && !attPrograms.entity.has(entity))   { errors.push(`Row ${line}: entity "${entity}" not valid for ${attCampus}`); return; }
+      if(level   && !attPrograms.level.has(level))     { errors.push(`Row ${line}: education_level "${level}" not valid for ${attCampus}`); return; }
+      if(program && !attPrograms.program.has(program)) { errors.push(`Row ${line}: program "${program}" not valid for ${attCampus}`); return; }
+      if(gender  && !ATT_GENDERS.includes(gender))     { errors.push(`Row ${line}: gender must be Male or Female`); return; }
+      if(existingIds.has(sid) || seenInFile.has(sid)){ skippedDupes++; return; }
+      seenInFile.add(sid);
+    }
+
+    valid.push({
+      attendee_type: type,
+      student_name:  name || null,
+      student_id:    sid || null,
+      entity:        entity || null,
+      education_level: level || null,
+      program:       program || null,
+      gender:        gender || null,
+    });
+  });
+
+  attParsed = { rows: valid, errors, skippedDupes };
+  attRenderUploadPreview();
+}
+
+function attRenderUploadPreview(){
+  const box = document.getElementById("attUploadResult");
+  const { rows, errors, skippedDupes } = attParsed;
+  let html = "";
+  if(errors.length){
+    html += `<div class="att-err-row" style="margin-bottom:8px;"><strong>${errors.length} error(s) — fix and re-upload:</strong><br>${errors.slice(0,15).map(attEsc).join("<br>")}${errors.length>15?`<br>…and ${errors.length-15} more`:""}</div>`;
+  }
+  html += `<div style="margin-bottom:8px;">${rows.length} row(s) ready to add${skippedDupes?`, ${skippedDupes} duplicate(s) will be skipped`:""}.</div>`;
+  if(rows.length && !errors.length){
+    html += `<button class="btn btn-primary" onclick="attConfirmUpload()">Add ${rows.length} attendee(s)</button>`;
+  } else if(errors.length){
+    html += `<div style="color:var(--color-muted);font-size:var(--text-sm);">Upload blocked until errors are fixed.</div>`;
+  }
+  box.innerHTML = html;
+}
+
+async function attConfirmUpload(){
+  if(!attParsed || !attParsed.rows.length) return;
+  const p = attById[attSelectedEventId];
+  const batch = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  const now = new Date().toISOString();
+  const payload = attParsed.rows.map(r => ({
+    event_id: attSelectedEventId,
+    event_name: p?.event_name || "",
+    campus: attCampus,
+    attendee_type: r.attendee_type,
+    student_name: r.student_name,
+    student_id: r.student_id,
+    entity: r.entity,
+    education_level: r.education_level,
+    program: r.program,
+    gender: r.gender,
+    source: "csv",
+    upload_batch: batch,
+    uploaded_by: currentUser?.email || null,
+    uploaded_at: now,
+    scanned_at: now,
+  }));
+
+  const CHUNK = 200; let inserted = 0;
+  for(let i=0;i<payload.length;i+=CHUNK){
+    const { error } = await sb.from("event_attendance").insert(payload.slice(i,i+CHUNK));
+    if(error){ showToast("Upload failed: " + error.message, "error"); return; }
+    inserted += Math.min(CHUNK, payload.length - i);
+  }
+  showToast(`Added ${inserted} attendee(s).`);
+  await attLoadData();
+  attOpenEvent(attSelectedEventId);
 }
 
 /* ══ TOAST ══ */
