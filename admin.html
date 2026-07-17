@@ -10733,15 +10733,13 @@ async function saveAnnouncement(){
     title, body, campus, is_pinned: pinned, is_active: active,
     updated_at: new Date().toISOString(),
   };
-  let savedId = id;
   if(id){
     const { error } = await sb.from("announcements").update(payload).eq("id", id);
     if(error){ showToast("Failed: " + error.message, "error"); return; }
   } else {
     payload.created_by = currentUser.email;
-    const { data, error } = await sb.from("announcements").insert(payload).select("id").single();
+    const { error } = await sb.from("announcements").insert(payload);
     if(error){ showToast("Failed: " + error.message, "error"); return; }
-    savedId = data?.id;
   }
 
   closeModal("announcementModal");
@@ -10750,21 +10748,30 @@ async function saveAnnouncement(){
 
   // Notify target accounts on a NEW, active announcement only
   if(!id && active){
-    notifyAnnouncement(title, campus, savedId);
+    notifyAnnouncement(title, campus);
   }
 }
 
 /* Broadcast a notification to clubs + individual accounts in the campus scope.
-   Departments are excluded. Reuses the existing notifications pipeline. */
-async function notifyAnnouncement(title, campus, announcementId){
+   Departments are excluded.
+
+   NOTE ON PUSH: inserting into `notifications` is all that's needed. A Supabase
+   Database Webhook on `notifications` INSERT triggers bright-processor, which
+   looks up staff_push_subscriptions by recipient and sends the web-push
+   automatically (routing the click to event-hub.html). We do NOT call the edge
+   function directly here — the table insert is the trigger. This reuses the
+   exact same proven pipeline every other in-app notification already uses. */
+async function notifyAnnouncement(title, campus){
   try {
-    let q = sb.from("club_accounts").select("email, account_type, campus").eq("status", "approved");
-    const { data: accounts } = await q;
+    const { data: accounts } = await sb.from("club_accounts")
+      .select("email, account_type, campus").eq("status", "approved");
     const targets = (accounts || []).filter(a =>
       a.account_type !== "department" &&               // clubs + individuals only
       (!campus || a.campus === campus)                 // campus scope (null = all)
     );
     if(!targets.length) return;
+    // Insert one notification per recipient. The notifications-INSERT webhook
+    // turns each of these into a push automatically — no direct edge call.
     await sb.from("notifications").insert(targets.map(a => ({
       recipient: a.email,
       type: "announcement",
@@ -10772,13 +10779,7 @@ async function notifyAnnouncement(title, campus, announcementId){
       message: title,
       is_read: false,
     })));
-    // Fire push via existing edge function (best-effort; ignore failure)
-    fetch("https://dgzuqvffnbfybngoadse.supabase.co/functions/v1/bright-processor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
-      body: JSON.stringify({ action: "notify", recipients: targets.map(t => t.email), title: "📣 New Announcement", message: title }),
-    }).catch(()=>{});
-  } catch(e){ /* non-blocking */ }
+  } catch(e){ /* non-blocking — in-app notification failure must not block posting */ }
 }
 
 async function deleteAnnouncement(id){
