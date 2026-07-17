@@ -2878,8 +2878,8 @@
       .filter-clear-btn { margin-left: 0; }
     }
     /* ── RESOURCES BOOKING ── */
-    .rb-toolbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
-    .rb-chips { display:flex; flex-wrap:wrap; gap:8px; flex:1; min-width:200px; }
+    .rb-toolbar { display:flex; align-items:center; justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .rb-chips { display:flex; flex-wrap:wrap; gap:8px; }
     .rb-chip {
       display:inline-flex; align-items:center; gap:6px;
       padding:8px 14px; border-radius:4px;
@@ -4425,10 +4425,10 @@
         </div>
 
         <div class="rb-toolbar">
+          <button class="btn btn-secondary" id="rbManageBtn" onclick="rbToggleManage()">Manage resources</button>
           <div class="rb-chips" id="rbResourceChips">
             <span class="rb-chip-empty">Loading…</span>
           </div>
-          <button class="btn btn-secondary" id="rbManageBtn" onclick="rbToggleManage()">Manage resources</button>
         </div>
 
         <div id="rbManagePanel" class="rb-manage-panel" style="display:none;">
