@@ -2877,6 +2877,44 @@
       .filter-strip { padding: 14px; gap: 14px; }
       .filter-clear-btn { margin-left: 0; }
     }
+    /* ── RESOURCES BOOKING ── */
+    .rb-toolbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+    .rb-chips { display:flex; flex-wrap:wrap; gap:8px; flex:1; min-width:200px; }
+    .rb-chip {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 14px; border-radius:4px;
+      border:1px solid var(--color-border); background:var(--color-surface);
+      color:var(--color-ink); font-size:var(--text-sm); font-weight:600;
+      font-family:'Poppins',sans-serif; cursor:pointer;
+      transition:border-color .15s, background .15s, color .15s;
+    }
+    .rb-chip:hover { border-color:var(--aku-navy); }
+    .rb-chip.active { background:var(--aku-navy); border-color:var(--aku-navy); color:#fff; }
+    .rb-chip-empty { color:var(--color-muted); font-size:var(--text-sm); padding:8px 0; }
+    .rb-manage-panel {
+      border:1px solid var(--color-border); border-radius:var(--radius-md);
+      background:var(--color-surface-2); padding:16px; margin-bottom:16px;
+    }
+    .rb-manage-add { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .rb-input {
+      flex:1; min-width:200px; padding:9px 12px;
+      border:1px solid var(--color-border); border-radius:var(--radius-md);
+      font-family:'Poppins',sans-serif; font-size:var(--text-base); color:var(--color-ink);
+      background:var(--color-surface);
+    }
+    .rb-input:focus { outline:none; border-color:var(--aku-navy); }
+    .rb-manage-list { display:flex; flex-direction:column; gap:6px; }
+    .rb-manage-row {
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:8px 12px; background:var(--color-surface);
+      border:1px solid var(--color-border); border-radius:6px;
+      font-size:var(--text-sm); color:var(--color-ink);
+    }
+    .rb-remove-btn {
+      background:none; border:none; cursor:pointer; color:var(--color-danger);
+      font-size:var(--text-sm); font-weight:600; font-family:'Poppins',sans-serif; padding:4px 8px;
+    }
+    .rb-remove-btn:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -3251,6 +3289,10 @@
         <button class="nav-item" onclick="showSection('announcements', this)" id="announcementsNavBtn" style="display:none;">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a3 3 0 0 1 0 6" /><path d="M10 8v11a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-5" /><path d="M12 8h0l4.524 -3.77a0.9 .9 0 0 1 1.476 .692v12.156a0.9 .9 0 0 1 -1.476 .692l-4.524 -3.77h-8a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h8" /></svg>
           <span class="nav-label">Announcements</span>
+        </button>
+        <button class="nav-item" onclick="showSection('resource-booking', this)" id="resourceBookingNavBtn" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M8 15h2v2h-2z" /></svg>
+          <span class="nav-label">Resources Booking</span>
         </button>
 
       </div><!-- /sidebar-nav-area -->
@@ -4367,6 +4409,42 @@
         </div>
         <div id="announcementsList">
           <div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- ── RESOURCES BOOKING ── -->
+      <div class="section" id="section-resource-booking">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Resources Booking</div>
+            <div class="section-subtitle">Book campus resources and keep an availability diary. Overlapping bookings on the same resource are blocked automatically.</div>
+          </div>
+          <div id="rbCampusPickerWrap" style="display:none;">
+            <select class="select" id="rbCampusPicker" onchange="rbOnCampusChange()" aria-label="Select campus"></select>
+          </div>
+        </div>
+
+        <div class="rb-toolbar">
+          <div class="rb-chips" id="rbResourceChips">
+            <span class="rb-chip-empty">Loading…</span>
+          </div>
+          <button class="btn btn-secondary" id="rbManageBtn" onclick="rbToggleManage()">Manage resources</button>
+        </div>
+
+        <div id="rbManagePanel" class="rb-manage-panel" style="display:none;">
+          <div class="rb-manage-add">
+            <input class="rb-input" id="rbNewResourceName" placeholder="New resource name (e.g. Auditorium, Room 1)" maxlength="80" onkeydown="if(event.key==='Enter')rbAddResource()" />
+            <button class="btn btn-primary" onclick="rbAddResource()">+ Add</button>
+          </div>
+          <div id="rbManageList" class="rb-manage-list"></div>
+        </div>
+
+        <!-- Selected-resource workspace (booking form + diary) — built in Step 3 -->
+        <div id="rbWorkspace" class="rb-workspace" style="display:none;"></div>
+
+        <div id="rbHint" class="empty-state">
+          <div class="empty-state-icon">📅</div>
+          <div class="empty-state-text">Select a resource above to view its booking diary.</div>
         </div>
       </div>
 
@@ -6347,6 +6425,10 @@ function showAdminPanel(){
   document.getElementById("noticePeriodsNavBtnSuper").style.display  = (currentRole === "super_admin") ? "" : "none";
   document.getElementById("announcementsNavBtn").style.display = (currentRole === "admin" || currentRole === "super_admin") ? "" : "none";
 
+  // Resources Booking — super_admin, campus admins and event leads only
+  document.getElementById("resourceBookingNavBtn").style.display =
+    ["super_admin","admin","event_lead"].includes(currentRole) ? "" : "none";
+
   // Awards nav — visible to anyone with a scoring permission at their campus,
   // plus the oversight roles (SMG cross-campus review, VP sign-off) and
   // Super Admin (troubleshooting access). Uses the same (campus, designation)
@@ -6496,6 +6578,164 @@ function showSection(name, btn){
   if(name === "awards") loadAwardsSection();
   if(name === "notice-periods") loadNoticePeriods();
   if(name === "announcements") loadAdminAnnouncements();
+  if(name === "resource-booking") loadResourceBooking();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ══ RESOURCES BOOKING — Step 2: resources list + campus picker ══
+   super_admin picks a campus; admin/event_lead are locked to their own.
+   Booking form + diary are added in Step 3.
+   ════════════════════════════════════════════════════════════════════════ */
+const RB_CAMPUSES = ["Karachi","Nairobi","Kampala","Dar es Salaam"];
+let rbSelectedCampus     = null;   // resolved campus we're acting on
+let rbResources          = [];     // active campus_resources rows
+let rbSelectedResourceId = null;
+let rbManageOpen         = false;
+
+function rbEsc(s){
+  return String(s ?? "").replace(/[&<>"']/g, m =>
+    ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+}
+
+/* Which campus is this user acting on right now. */
+function rbActiveCampus(){
+  if(currentRole === "super_admin"){
+    return document.getElementById("rbCampusPicker").value || RB_CAMPUSES[0];
+  }
+  return currentAdminCampus;
+}
+
+/* Entry point — called by showSection('resource-booking'). */
+function loadResourceBooking(){
+  rbSetupCampusPicker();
+  rbSelectedCampus = rbActiveCampus();
+  rbLoadResources();
+}
+
+/* Super admin gets a campus dropdown; scoped roles get it hidden. */
+function rbSetupCampusPicker(){
+  const wrap = document.getElementById("rbCampusPickerWrap");
+  const sel  = document.getElementById("rbCampusPicker");
+  if(currentRole === "super_admin"){
+    if(!sel.options.length){
+      sel.innerHTML = RB_CAMPUSES.map(c => `<option value="${rbEsc(c)}">${rbEsc(c)}</option>`).join("");
+    }
+    wrap.style.display = "";
+  } else {
+    wrap.style.display = "none";
+  }
+}
+
+function rbOnCampusChange(){
+  rbSelectedResourceId = null;
+  rbSelectedCampus = rbActiveCampus();
+  rbLoadResources();
+}
+
+/* Load active resources for the current campus. */
+async function rbLoadResources(){
+  const campus = rbSelectedCampus;
+  const { data, error } = await sb.from("campus_resources")
+    .select("*")
+    .eq("campus", campus)
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  if(error){ showToast("Failed to load resources: " + error.message, "error"); return; }
+  rbResources = data || [];
+  rbRenderChips();
+  rbRenderManageList();
+  rbRenderSelection();
+}
+
+function rbRenderChips(){
+  const box = document.getElementById("rbResourceChips");
+  if(!rbResources.length){
+    box.innerHTML = `<span class="rb-chip-empty">No resources yet — use “Manage resources” to add one.</span>`;
+    return;
+  }
+  box.innerHTML = rbResources.map(r => `
+    <button class="rb-chip ${r.id === rbSelectedResourceId ? "active" : ""}"
+      onclick="rbSelectResource('${rbEsc(r.id)}')">${rbEsc(r.name)}</button>
+  `).join("");
+}
+
+function rbSelectResource(id){
+  rbSelectedResourceId = id;
+  rbRenderChips();
+  rbRenderSelection();
+}
+
+/* Step 2 placeholder — Step 3 replaces this with the booking form + diary. */
+function rbRenderSelection(){
+  const hint = document.getElementById("rbHint");
+  const ws   = document.getElementById("rbWorkspace");
+  const res  = rbResources.find(r => r.id === rbSelectedResourceId);
+  ws.style.display = "none";
+  if(!res){
+    hint.style.display = "";
+    hint.innerHTML = `<div class="empty-state-icon">📅</div>
+      <div class="empty-state-text">Select a resource above to view its booking diary.</div>`;
+    return;
+  }
+  hint.style.display = "";
+  hint.innerHTML = `<div class="empty-state-icon">📅</div>
+    <div class="empty-state-text"><strong>${rbEsc(res.name)}</strong> selected — booking form &amp; diary appear here in the next update.</div>`;
+}
+
+/* ── Manage resources (add / soft-remove) ── */
+function rbToggleManage(){
+  rbManageOpen = !rbManageOpen;
+  document.getElementById("rbManagePanel").style.display = rbManageOpen ? "" : "none";
+  document.getElementById("rbManageBtn").textContent = rbManageOpen ? "Done" : "Manage resources";
+}
+
+function rbRenderManageList(){
+  const box = document.getElementById("rbManageList");
+  if(!rbResources.length){
+    box.innerHTML = `<div class="rb-chip-empty">No resources for ${rbEsc(rbSelectedCampus)} yet.</div>`;
+    return;
+  }
+  box.innerHTML = rbResources.map(r => `
+    <div class="rb-manage-row">
+      <span>${rbEsc(r.name)}</span>
+      <button class="rb-remove-btn" onclick="rbRemoveResource('${rbEsc(r.id)}','${rbEsc(r.name)}')">Remove</button>
+    </div>
+  `).join("");
+}
+
+async function rbAddResource(){
+  const input = document.getElementById("rbNewResourceName");
+  const name  = input.value.trim();
+  if(!name){ showToast("Enter a resource name.", "error"); return; }
+
+  const dupe = rbResources.some(r => r.name.toLowerCase() === name.toLowerCase());
+  if(dupe){ showToast("That resource already exists.", "error"); return; }
+
+  const { error } = await sb.from("campus_resources").insert({
+    campus:     rbSelectedCampus,
+    name,
+    created_by: currentUser?.email || null,
+  });
+  if(error){ showToast("Failed to add: " + error.message, "error"); return; }
+
+  input.value = "";
+  showToast("Resource added.");
+  rbLoadResources();
+}
+
+/* Soft-delete: is_active=false keeps existing bookings/history intact. */
+async function rbRemoveResource(id, name){
+  if(!confirm(`Remove “${name}”? Existing bookings stay on record, but it can no longer be booked.`)) return;
+
+  const { error } = await sb.from("campus_resources")
+    .update({ is_active: false })
+    .eq("id", id);
+  if(error){ showToast("Failed to remove: " + error.message, "error"); return; }
+
+  if(rbSelectedResourceId === id) rbSelectedResourceId = null;
+  showToast("Resource removed.");
+  rbLoadResources();
 }
 
 /* ══ TOAST ══ */
