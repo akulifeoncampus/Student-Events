@@ -2922,7 +2922,19 @@
     .rb-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
     .rb-field { display:flex; flex-direction:column; gap:5px; }
     .rb-field label { font-size:var(--text-sm); font-weight:600; color:var(--color-muted); }
-    .rb-field .select, .rb-field .rb-input { width:100%; }
+    .rb-field .select, .rb-field .rb-input, .rb-field .rb-select { width:100%; }
+    .rb-select {
+      padding:9px 12px; padding-right:34px;
+      border:1px solid var(--color-border); border-radius:var(--radius-md);
+      font-family:'Poppins',sans-serif; font-size:var(--text-base);
+      color:var(--color-ink); background:var(--color-surface);
+      outline:none; cursor:pointer; transition:border-color .15s, box-shadow .15s;
+      appearance:none; -webkit-appearance:none; -moz-appearance:none;
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+      background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+    }
+    .rb-select:focus { border-color:var(--aku-navy); box-shadow:0 0 0 3px var(--aku-navy-light); }
+    .rb-check { border-top:1px solid var(--color-border); margin-top:16px; padding-top:14px; }
     .rb-form-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
     .rb-avail-msg { margin-top:10px; font-size:var(--text-sm); font-weight:600; }
     .rb-avail-free { color:var(--color-success); }
@@ -4438,7 +4450,7 @@
             <div class="section-subtitle">Book campus resources and keep an availability diary. Overlapping bookings on the same resource are blocked automatically.</div>
           </div>
           <div id="rbCampusPickerWrap" style="display:none;">
-            <select class="select" id="rbCampusPicker" onchange="rbOnCampusChange()" aria-label="Select campus"></select>
+            <select class="rb-select" id="rbCampusPicker" onchange="rbOnCampusChange()" aria-label="Select campus"></select>
           </div>
         </div>
 
@@ -4455,6 +4467,20 @@
             <button class="btn btn-primary" onclick="rbAddResource()">+ Add</button>
           </div>
           <div id="rbManageList" class="rb-manage-list"></div>
+
+          <div class="rb-check">
+            <div class="rb-ws-title">Check availability</div>
+            <div class="rb-form-grid">
+              <div class="rb-field"><label for="rbChkResource">Resource</label><select id="rbChkResource" class="rb-select"></select></div>
+              <div class="rb-field"><label for="rbChkDate">Date</label><input type="date" id="rbChkDate" class="rb-input"></div>
+              <div class="rb-field"><label for="rbChkStart">Start time</label><input type="time" id="rbChkStart" class="rb-input"></div>
+              <div class="rb-field"><label for="rbChkEnd">End time</label><input type="time" id="rbChkEnd" class="rb-input"></div>
+            </div>
+            <div class="rb-form-actions">
+              <button class="btn btn-secondary" onclick="rbManageCheck()">Check</button>
+            </div>
+            <div id="rbChkMsg" class="rb-avail-msg"></div>
+          </div>
         </div>
 
         <!-- Selected-resource workspace (booking form + diary) — built in Step 3 -->
@@ -6757,11 +6783,11 @@ function rbRenderWorkspace(res){
       <div class="rb-form-grid">
         <div class="rb-field">
           <label for="rbForWhom">For whom</label>
-          <select id="rbForWhom" class="select" onchange="rbOnAccountChange()" ${rbAccounts.length ? "" : "disabled"}>${accOptions}</select>
+          <select id="rbForWhom" class="rb-select" onchange="rbOnAccountChange()" ${rbAccounts.length ? "" : "disabled"}>${accOptions}</select>
         </div>
         <div class="rb-field">
           <label for="rbForEvent">Link to event (optional)</label>
-          <select id="rbForEvent" class="select"><option value="">General booking (no specific event)</option></select>
+          <select id="rbForEvent" class="rb-select"><option value="">General booking (no specific event)</option></select>
         </div>
         <div class="rb-field"><label for="rbStartDate">Start date</label><input type="date" id="rbStartDate" class="rb-input"></div>
         <div class="rb-field"><label for="rbStartTime">Start time</label><input type="time" id="rbStartTime" class="rb-input"></div>
@@ -6769,10 +6795,8 @@ function rbRenderWorkspace(res){
         <div class="rb-field"><label for="rbEndTime">End time</label><input type="time" id="rbEndTime" class="rb-input"></div>
       </div>
       <div class="rb-form-actions">
-        <button class="btn btn-secondary" onclick="rbCheckAvailability()">Check availability</button>
         <button class="btn btn-primary" onclick="rbBookResource()" ${rbAccounts.length ? "" : "disabled"}>Book resource</button>
       </div>
-      <div id="rbAvailMsg" class="rb-avail-msg"></div>
     </div>
 
     <div class="rb-ws-card">
@@ -6851,17 +6875,36 @@ function rbFindConflict(startISO, endISO, ignoreId){
   );
 }
 
-function rbCheckAvailability(){
-  const msg = document.getElementById("rbAvailMsg");
-  const w = rbReadWindow();
-  if(w.error){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = w.error; return; }
-  const clash = rbFindConflict(w.startISO, w.endISO, null);
+/* Standalone availability checker inside the Manage panel. Checks by resource +
+   date + time only (not by club/event). Queries active bookings on demand. */
+async function rbManageCheck(){
+  const msg   = document.getElementById("rbChkMsg");
+  const resId = document.getElementById("rbChkResource").value;
+  const date  = document.getElementById("rbChkDate").value;
+  const st    = document.getElementById("rbChkStart").value;
+  const et    = document.getElementById("rbChkEnd").value;
+
+  if(!resId){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "Add a resource first."; return; }
+  const startISO = rbBuildISO(date, st);
+  const endISO   = rbBuildISO(date, et);
+  if(!startISO || !endISO){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "Fill in date, start and end time."; return; }
+  if(new Date(endISO) <= new Date(startISO)){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "End time must be after start time."; return; }
+
+  const { data, error } = await sb.from("resource_bookings")
+    .select("booked_for_name, start_at, end_at")
+    .eq("resource_id", resId)
+    .eq("status", "active");
+  if(error){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "Check failed: " + error.message; return; }
+
+  const s = new Date(startISO), e = new Date(endISO);
+  const clash = (data || []).find(b => s < new Date(b.end_at) && e > new Date(b.start_at));
+  const resName = rbResources.find(r => r.id === resId)?.name || "Resource";
   if(clash){
     msg.className = "rb-avail-msg rb-avail-busy";
-    msg.textContent = `Not available — already booked for ${clash.booked_for_name} (${rbFmt(clash.start_at)} → ${rbFmt(clash.end_at)}).`;
+    msg.textContent = `${resName} is booked — ${clash.booked_for_name} (${rbFmt(clash.start_at)} → ${rbFmt(clash.end_at)}).`;
   } else {
     msg.className = "rb-avail-msg rb-avail-free";
-    msg.textContent = "Available for this window.";
+    msg.textContent = `${resName} is free for this window.`;
   }
 }
 
@@ -6905,7 +6948,6 @@ async function rbBookResource(){
 
   await rbNotifyBooking(data, res.name, eventName, proposalId, "booked");
   showToast("Resource booked.");
-  document.getElementById("rbAvailMsg").textContent = "";
   rbLoadBookings();
 }
 
@@ -7000,14 +7042,23 @@ function rbRenderManageList(){
   const box = document.getElementById("rbManageList");
   if(!rbResources.length){
     box.innerHTML = `<div class="rb-chip-empty">No resources for ${rbEsc(rbSelectedCampus)} yet.</div>`;
-    return;
+  } else {
+    box.innerHTML = rbResources.map(r => `
+      <div class="rb-manage-row">
+        <span>${rbEsc(r.name)}</span>
+        <button class="rb-remove-btn" onclick="rbRemoveResource('${rbEsc(r.id)}','${rbEsc(r.name)}')">Remove</button>
+      </div>
+    `).join("");
   }
-  box.innerHTML = rbResources.map(r => `
-    <div class="rb-manage-row">
-      <span>${rbEsc(r.name)}</span>
-      <button class="rb-remove-btn" onclick="rbRemoveResource('${rbEsc(r.id)}','${rbEsc(r.name)}')">Remove</button>
-    </div>
-  `).join("");
+  // Keep the availability checker's resource dropdown in sync.
+  const chk = document.getElementById("rbChkResource");
+  if(chk){
+    chk.innerHTML = rbResources.length
+      ? rbResources.map(r => `<option value="${rbEsc(r.id)}">${rbEsc(r.name)}</option>`).join("")
+      : `<option value="">No resources</option>`;
+    const dateEl = document.getElementById("rbChkDate");
+    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+  }
 }
 
 async function rbAddResource(){
