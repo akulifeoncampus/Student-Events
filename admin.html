@@ -4470,10 +4470,12 @@
 
           <div class="rb-check">
             <div class="rb-ws-title">Check availability</div>
+            <div style="font-size:var(--text-sm);color:var(--color-muted);margin:-8px 0 12px;">All fields optional — blank dates default to today, blank times to the whole day.</div>
             <div class="rb-form-grid">
               <div class="rb-field"><label for="rbChkResource">Resource</label><select id="rbChkResource" class="rb-select"></select></div>
-              <div class="rb-field"><label for="rbChkDate">Date</label><input type="date" id="rbChkDate" class="rb-input"></div>
+              <div class="rb-field"><label for="rbChkStartDate">Start date</label><input type="date" id="rbChkStartDate" class="rb-input"></div>
               <div class="rb-field"><label for="rbChkStart">Start time</label><input type="time" id="rbChkStart" class="rb-input"></div>
+              <div class="rb-field"><label for="rbChkEndDate">End date</label><input type="date" id="rbChkEndDate" class="rb-input"></div>
               <div class="rb-field"><label for="rbChkEnd">End time</label><input type="time" id="rbChkEnd" class="rb-input"></div>
             </div>
             <div class="rb-form-actions">
@@ -6880,15 +6882,23 @@ function rbFindConflict(startISO, endISO, ignoreId){
 async function rbManageCheck(){
   const msg   = document.getElementById("rbChkMsg");
   const resId = document.getElementById("rbChkResource").value;
-  const date  = document.getElementById("rbChkDate").value;
-  const st    = document.getElementById("rbChkStart").value;
-  const et    = document.getElementById("rbChkEnd").value;
-
   if(!resId){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "Add a resource first."; return; }
-  const startISO = rbBuildISO(date, st);
-  const endISO   = rbBuildISO(date, et);
-  if(!startISO || !endISO){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "Fill in date, start and end time."; return; }
-  if(new Date(endISO) <= new Date(startISO)){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "End time must be after start time."; return; }
+
+  // Everything optional → fill sensible day defaults.
+  const today     = new Date().toISOString().slice(0,10);
+  const sd        = document.getElementById("rbChkStartDate").value;
+  const ed        = document.getElementById("rbChkEndDate").value;
+  const st        = document.getElementById("rbChkStart").value;
+  const et        = document.getElementById("rbChkEnd").value;
+  const startDate = sd || today;
+  const endDate   = ed || sd || today;
+  const startTime = st || "00:00";
+  const endTime   = et || "23:59";
+
+  const startISO = rbBuildISO(startDate, startTime);
+  const endISO   = rbBuildISO(endDate, endTime);
+  if(!startISO || !endISO){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "Couldn't read that window."; return; }
+  if(new Date(endISO) <= new Date(startISO)){ msg.className = "rb-avail-msg rb-avail-busy"; msg.textContent = "End must be after start."; return; }
 
   const { data, error } = await sb.from("resource_bookings")
     .select("booked_for_name, start_at, end_at")
@@ -6904,7 +6914,7 @@ async function rbManageCheck(){
     msg.textContent = `${resName} is booked — ${clash.booked_for_name} (${rbFmt(clash.start_at)} → ${rbFmt(clash.end_at)}).`;
   } else {
     msg.className = "rb-avail-msg rb-avail-free";
-    msg.textContent = `${resName} is free for this window.`;
+    msg.textContent = `${resName} is free from ${rbFmt(startISO)} to ${rbFmt(endISO)}.`;
   }
 }
 
@@ -7056,7 +7066,7 @@ function rbRenderManageList(){
     chk.innerHTML = rbResources.length
       ? rbResources.map(r => `<option value="${rbEsc(r.id)}">${rbEsc(r.name)}</option>`).join("")
       : `<option value="">No resources</option>`;
-    const dateEl = document.getElementById("rbChkDate");
+    const dateEl = document.getElementById("rbChkStartDate");
     if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
   }
 }
