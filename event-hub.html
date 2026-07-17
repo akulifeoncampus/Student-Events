@@ -1383,6 +1383,10 @@
       <div class="topbar-avatar" id="topbarAvatar">C</div>
       <span id="topbarClubName" style="font-size:13px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
     </div>
+    <button class="notif-btn" id="msgBtn" style="display:none;" onclick="showPortalSection('messages')" aria-label="Messages">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10"/><path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2"/></svg>
+      <span class="notif-badge" id="msgTopBadge"></span>
+    </button>
     <button class="notif-btn" id="notifBtn" style="display:none;">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
       <span class="notif-badge" id="notifBadge"></span>
@@ -2639,6 +2643,7 @@ async function signOut(){
   document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("topbarUser").classList.remove("visible");
   document.getElementById("notifBtn").style.display = "none";
+  document.getElementById("msgBtn").style.display = "none";
   document.getElementById("sideToggle").style.display = "none";
   document.getElementById("signOutBtn").style.display = "none";
   document.getElementById("chatPanel")?.classList.remove("open");
@@ -2973,6 +2978,7 @@ function showPortal(){
   document.getElementById("portal").classList.add("visible");
   document.getElementById("topbarUser").classList.add("visible");
   document.getElementById("notifBtn").style.display = "flex";
+  document.getElementById("msgBtn").style.display = "flex";
   document.getElementById("sideToggle").style.display = "";
   document.getElementById("signOutBtn").style.display = "block";
   buildSidebarNav();
@@ -3165,6 +3171,13 @@ async function updateChatBadge(){
     else { badge.classList.remove("show"); }
   }
 
+  // Topbar messages badge
+  const topBadge = document.getElementById("msgTopBadge");
+  if(topBadge){
+    if(unread > 0){ topBadge.textContent = unread > 9 ? "9+" : unread; topBadge.classList.add("visible"); }
+    else { topBadge.classList.remove("visible"); }
+  }
+
   // Bold the OSE conversation row + show its unread count (LinkedIn/Facebook style)
   const convOSE = document.getElementById("convOSE");
   if(convOSE){
@@ -3191,6 +3204,7 @@ async function markChatRead(){
     last_read_at: new Date().toISOString(),
   }, { onConflict: "user_email,club_email" });
   document.getElementById("sideBadge-messages")?.classList.remove("show");
+  document.getElementById("msgTopBadge")?.classList.remove("visible");
   const convOSE = document.getElementById("convOSE");
   if(convOSE){
     convOSE.classList.remove("unread");
