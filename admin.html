@@ -14881,8 +14881,11 @@ async function _updateProposalStatusImpl(status){
       // fails silently, every later approve looks like a first approve and
       // publishes ANOTHER duplicate event. So we check the error AND verify
       // the value actually persisted.
+      // Link the proposal to its published event. NOTE: we deliberately do NOT
+      // write finalName back to the proposal — the student's original title
+      // stays intact. Only the published events row carries the versioned name.
       const { error: linkErr } = await sb.from("event_proposals")
-        .update({ published_event_id: newEvent.id, event_name: finalName })
+        .update({ published_event_id: newEvent.id })
         .eq("id", id);
 
       if(linkErr){
