@@ -14752,7 +14752,25 @@ function eventActivityBlock(ev){
   </div>`;
 }
 
+let _proposalStatusBusy = false;   // blocks double-clicks before any await runs
+
+/* Thin wrapper: holds a synchronous lock for the whole async operation, and
+   disables the status buttons so the UI reflects it. The real work is in
+   _updateProposalStatusImpl below. */
 async function updateProposalStatus(status){
+  if(_proposalStatusBusy) return;              // second click while first is running → ignore
+  _proposalStatusBusy = true;
+  const btns = document.querySelectorAll(".status-action-btn");
+  btns.forEach(b => { b.disabled = true; b.style.opacity = "0.5"; b.style.pointerEvents = "none"; });
+  try {
+    await _updateProposalStatusImpl(status);
+  } finally {
+    _proposalStatusBusy = false;
+    btns.forEach(b => { b.disabled = false; b.style.opacity = ""; b.style.pointerEvents = ""; });
+  }
+}
+
+async function _updateProposalStatusImpl(status){
   const id   = document.getElementById("reviewProposalId").value;
   const p    = allAdminProposals.find(x => x.id === id);
   const note = document.getElementById("reviewNote").value.trim();
@@ -14808,6 +14826,27 @@ async function updateProposalStatus(status){
 
   // Auto-publish to events table when approved
   if(status === "approved" && mergedP){
+    // ── Idempotency guard ──
+    // Re-read the proposal straight from the DB (not the cached list) to see if
+    // it was already published. Without this, approving a second time inserts a
+    // SECOND events row — and getUniqueEventName() renames it ("2.0") so it
+    // doesn't even collide, producing duplicate cards on the public site.
+    const { data: fresh } = await sb.from("event_proposals")
+      .select("published_event_id").eq("id", id).maybeSingle();
+
+    if(fresh?.published_event_id){
+      // Confirm the published event actually still exists before skipping.
+      const { data: liveEvent } = await sb.from("events")
+        .select("id").eq("id", fresh.published_event_id).maybeSingle();
+      if(liveEvent){
+        showToast("Already approved — this event is already published. No duplicate created.");
+        closeModal("reviewProposalModal");
+        loadProposals();
+        return;
+      }
+      // Stale link (event was deleted) → fall through and re-publish.
+    }
+
     // Guard against duplicate event names within the same campus — students
     // routinely reuse names, so auto-append a version suffix (e.g. "2.0")
     // instead of relying on them to disambiguate manually.
