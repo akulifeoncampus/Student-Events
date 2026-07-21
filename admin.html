@@ -14877,7 +14877,28 @@ async function _updateProposalStatusImpl(status){
     }
 
     if(newEvent){
-      await sb.from("event_proposals").update({ published_event_id: newEvent.id, event_name: finalName }).eq("id", id);
+      // CRITICAL: this write is what marks the proposal as published. If it
+      // fails silently, every later approve looks like a first approve and
+      // publishes ANOTHER duplicate event. So we check the error AND verify
+      // the value actually persisted.
+      const { error: linkErr } = await sb.from("event_proposals")
+        .update({ published_event_id: newEvent.id, event_name: finalName })
+        .eq("id", id);
+
+      if(linkErr){
+        showToast("⚠️ Event published but could not be linked to the proposal: "
+          + linkErr.message + " — approving again would create a duplicate. Fix this before retrying.", "error");
+        console.error("[publish] failed to set published_event_id:", linkErr);
+        return;
+      }
+
+      const { data: verify } = await sb.from("event_proposals")
+        .select("published_event_id").eq("id", id).maybeSingle();
+      if(verify?.published_event_id !== newEvent.id){
+        showToast("⚠️ Event published but the proposal link did not save. Approving again would create a duplicate — contact support before retrying.", "error");
+        console.error("[publish] published_event_id verification failed. expected:", newEvent.id, "got:", verify?.published_event_id);
+        return;
+      }
 
       if(finalName !== mergedP.event_name){
         showToast(`ℹ️ "${mergedP.event_name}" was already in use at ${mergedP.campus} — published as "${finalName}".`);
