@@ -1939,7 +1939,9 @@
       <div class="form-grid">
         <div class="field full">
           <label>Event Name *</label>
-          <input id="fEventName" type="text" placeholder="e.g. AKU Sports Gala 2026" />
+          <input id="fEventName" type="text" placeholder="e.g. AKU Sports Gala 2026"
+            oninput="clearTimeout(window._nameChkTimer); window._nameChkTimer = setTimeout(checkEventNameAvailability, 450);" />
+          <div id="fEventNameMsg" style="display:none;margin-top:6px;font-size:12px;font-weight:600;line-height:1.5;"></div>
         </div>
         <div class="field full">
           <label>Scale of Event *</label>
@@ -2259,6 +2261,67 @@ let authMode       = "login";
 
 /* ── Helpers ── */
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* ── Event name availability ────────────────────────────────────────────
+   Event names are unique per campus. Checking here (at submission time) is
+   far friendlier than failing at approval. Checks BOTH published events and
+   proposals already in the queue, so two students can't both claim a name.
+   Returns { taken, reason } — used live under the field and as a hard block
+   in submitProposal(). */
+let _nameCheckState = { name:"", campus:"", taken:false };
+
+async function isEventNameTaken(name, campus, excludeProposalId){
+  const trimmed = (name || "").trim();
+  if(!trimmed || !campus) return { taken:false };
+  const lower = trimmed.toLowerCase();
+
+  // 1. Already published at this campus?
+  const { data: evs } = await sb.from("events").select("name").eq("campus", campus);
+  if((evs || []).some(e => (e.name || "").trim().toLowerCase() === lower)){
+    return { taken:true, reason:"an event with this name has already been published" };
+  }
+
+  // 2. Sitting in the proposal queue at this campus (not rejected/cancelled)?
+  const { data: props } = await sb.from("event_proposals")
+    .select("id, event_name, status").eq("campus", campus);
+  const clash = (props || []).find(p =>
+    p.id !== excludeProposalId &&
+    !["declined","rejected","cancelled"].includes((p.status || "").toLowerCase()) &&
+    (p.event_name || "").trim().toLowerCase() === lower
+  );
+  if(clash) return { taken:true, reason:"another proposal with this name is already in the queue" };
+
+  return { taken:false };
+}
+
+async function checkEventNameAvailability(){
+  const input = document.getElementById("fEventName");
+  const msg   = document.getElementById("fEventNameMsg");
+  if(!input || !msg) return;
+  const name   = input.value.trim();
+  const campus = document.getElementById("fCampus")?.value || "";
+  const propId = document.getElementById("proposalId")?.value || null;
+
+  if(!name || !campus){ msg.style.display = "none"; _nameCheckState = { name:"", campus:"", taken:false }; return; }
+
+  msg.style.display = "block";
+  msg.style.color = "#6b7280";
+  msg.textContent = "Checking availability…";
+
+  const res = await isEventNameTaken(name, campus, propId);
+  _nameCheckState = { name, campus, taken: res.taken };
+
+  if(res.taken){
+    input.style.borderColor = "#dc2626";
+    msg.style.color = "#dc2626";
+    msg.innerHTML = `✕ &ldquo;${name.replace(/[<>&]/g,"")}&rdquo; is already taken at ${campus} — ${res.reason}. `
+      + `Please choose a different name (e.g. add the year, or a distinguishing word).`;
+  } else {
+    input.style.borderColor = "#16a34a";
+    msg.style.color = "#16a34a";
+    msg.textContent = "✓ This name is available.";
+  }
+}
+
 function showToast(msg, type="success"){
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -5693,6 +5756,25 @@ async function submitProposal(){
   if(selectedAudience.length === 0) { showToast("Please select at least one target audience", "error"); reset(); return; }
   if(!eventType)            { showToast("Please select the scale of your event", "error"); reset(); return; }
   if(!isDepartment && !disclaimer) { showToast("You must accept the disclaimer to submit", "error"); reset(); return; }
+
+  // Hard block on duplicate event name (unique per campus). Re-checked here
+  // against the DB rather than trusting the live check, which may be stale or
+  // may never have run (e.g. name pasted then submitted instantly).
+  {
+    const dup = await isEventNameTaken(eventName, campus, id || null);
+    if(dup.taken){
+      showToast(`"${eventName}" is already taken at ${campus} — ${dup.reason}. Please choose a different name.`, "error");
+      const msgEl = document.getElementById("fEventNameMsg");
+      if(msgEl){
+        msgEl.style.display = "block";
+        msgEl.style.color = "#dc2626";
+        msgEl.innerHTML = `✕ Already taken at ${campus} — ${dup.reason}. Choose a different name.`;
+      }
+      document.getElementById("fEventName")?.focus();
+      reset();
+      return;
+    }
+  }
 
   // Handle image upload
   let imageUrl = document.getElementById("fImageUrl").value.trim();
