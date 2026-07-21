@@ -13127,8 +13127,16 @@ async function addAdmin(){
 
 /* ══ DELETE / CONFIRM ══ */
 function confirmDelete(type, id, name){
-  document.getElementById("confirmTitle").textContent = `Delete ${type}?`;
-  document.getElementById("confirmMsg").textContent   = `"${name}" will be permanently deleted. This cannot be undone.`;
+  if(type === "event"){
+    // Events are unpublished, not destroyed — say so, so nobody assumes the
+    // proposal and its conversation are being wiped.
+    document.getElementById("confirmTitle").textContent = "Remove event from the public site?";
+    document.getElementById("confirmMsg").textContent =
+      `"${name}" will no longer appear on the public site. Its proposal, student conversation, feedback and attendance are kept, and it can be published again later.`;
+  } else {
+    document.getElementById("confirmTitle").textContent = `Delete ${type}?`;
+    document.getElementById("confirmMsg").textContent   = `"${name}" will be permanently deleted. This cannot be undone.`;
+  }
   document.getElementById("confirmOkBtn").onclick = () => doDelete(type, id);
   document.getElementById("confirmDialog").classList.add("open");
 }
@@ -13166,9 +13174,30 @@ async function doDelete(type, id){
 
   let error;
   if(type === "event"){
-    // Also delete the linked proposal so it disappears from lead portal and club portal
-    await sb.from("event_proposals").delete().eq("published_event_id", id);
+    // NON-DESTRUCTIVE UNPUBLISH.
+    // Previously this deleted the linked proposal, which CASCADE-deleted the
+    // entire student conversation (proposal_messages), event_feedback and
+    // event_custom_questions along with it. Irreversible data loss from one
+    // click. Now we only unpublish: the event row is removed from the public
+    // site, and the proposal is returned to 'approved' with its link cleared,
+    // so the conversation, feedback and attendance all survive and it can be
+    // re-published later.
+    const { data: linkedProps } = await sb.from("event_proposals")
+      .select("id").eq("published_event_id", id);
+
+    if(linkedProps && linkedProps.length){
+      const { error: unlinkErr } = await sb.from("event_proposals")
+        .update({ published_event_id: null })
+        .eq("published_event_id", id);
+      if(unlinkErr){
+        showToast("Could not unlink the proposal: " + unlinkErr.message, "error");
+        return;
+      }
+    }
     ({ error } = await sb.from("events").delete().eq("id", id));
+    if(!error && linkedProps && linkedProps.length){
+      showToast("Event removed from the public site. Its proposal, messages and attendance were kept.");
+    }
   } else if(type === "club")      ({ error } = await sb.from("clubs").delete().eq("id", id));
   else if(type === "resource")   ({ error } = await sb.from("resources").delete().eq("id", id));
   else if(type === "emergency")  ({ error } = await sb.from("emergency_contacts").delete().eq("id", id));
