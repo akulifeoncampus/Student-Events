@@ -4909,12 +4909,15 @@ async function downloadAttendanceExcel(proposalId){
 
     // ── Sheet 2: All Check-ins ────────────────────────────────
     const typeLabel = t => t === "external_guest" ? "External Guest" : t.charAt(0).toUpperCase() + t.slice(1);
-    const headers = ["#", "Type", "Entity", "Level", "Programme", "Checked In At", ...cqCols.map(c => c.label)];
+    const headers = ["#", "Type", "Name", "Student ID", "Gender", "Entity", "Level", "Programme", "Checked In At", ...cqCols.map(c => c.label)];
     const rows = data.map((r, i) => {
       const cr = parseCR(r.custom_responses);
       return [
         i + 1,
         typeLabel(r.attendee_type),
+        r.student_name    || "—",
+        r.student_id      || "—",
+        r.gender          || "—",
         r.entity          || "—",
         r.education_level || "—",
         r.program         || "—",
@@ -4927,7 +4930,7 @@ async function downloadAttendanceExcel(proposalId){
     });
 
     const detailSheet = window.XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    detailSheet["!cols"] = [{ wch: 5 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, ...cqCols.map(() => ({ wch: 28 }))];
+    detailSheet["!cols"] = [{ wch: 5 }, { wch: 18 }, { wch: 26 }, { wch: 14 }, { wch: 14 }, { wch: 36 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, ...cqCols.map(() => ({ wch: 28 }))];
     window.XLSX.utils.book_append_sheet(wb, detailSheet, "All Check-ins");
 
     // Download
