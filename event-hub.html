@@ -2295,30 +2295,82 @@ function msgActionsHtml(m, isOwn, table){
 
 async function editMessage(table, id){
   const el = document.querySelector(`.msg-body[data-mid="${id}"]`);
-  const current = el ? (el.dataset.raw ?? el.textContent) : "";
-  const next = prompt("Edit your message:", current);
-  if(next === null) return;
-  const trimmed = next.trim();
-  if(!trimmed){ showToast("Message can't be empty — use Delete instead.", "error"); return; }
-  if(trimmed === current) return;
-  const field = (table === "chat_messages") ? "message_text" : "message";
-  const patch = { edited_at: new Date().toISOString() };
-  patch[field] = trimmed;
-  const { error } = await sb.from(table).update(patch).eq("id", id);
-  if(error){ showToast("Edit failed: " + error.message, "error"); return; }
-  document.querySelectorAll(`.msg-body[data-mid="${id}"]`).forEach(node => {
-    node.dataset.raw = trimmed;
-    node.textContent = trimmed;
-    const sib = node.nextElementSibling;
-    if(!(sib && sib.classList && sib.classList.contains("msg-edited"))){
+  if(!el || el.dataset.editing === "1" || el.dataset.deleted === "1") return;
+
+  const raw          = el.dataset.raw ?? el.textContent;
+  const originalHtml = el.innerHTML;
+  const editedTag    = (el.nextElementSibling && el.nextElementSibling.classList &&
+                        el.nextElementSibling.classList.contains("msg-edited"))
+                       ? el.nextElementSibling : null;
+  const actions      = document.querySelector(`[data-mid-actions="${id}"]`);
+
+  el.dataset.editing = "1";
+  el.style.display   = "block";
+  if(editedTag) editedTag.style.display = "none";
+  if(actions)   actions.style.display   = "none";
+
+  // Build the inline editor in place of the message body
+  el.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex;flex-direction:column;gap:6px;min-width:200px;max-width:100%;";
+  const ta = document.createElement("textarea");
+  ta.value = raw;
+  ta.rows  = Math.min(6, Math.max(1, raw.split(String.fromCharCode(10)).length));
+  ta.style.cssText = "width:100%;box-sizing:border-box;font-family:inherit;font-size:13px;line-height:1.4;color:#111827;background:#fff;padding:7px 9px;border:1px solid #c7d2fe;border-radius:8px;resize:vertical;";
+  const btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:8px;justify-content:flex-end;";
+  const cancel = document.createElement("button");
+  cancel.type = "button"; cancel.textContent = "Cancel";
+  cancel.style.cssText = "font-size:11px;font-weight:600;padding:4px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#6b7280;cursor:pointer;";
+  const save = document.createElement("button");
+  save.type = "button"; save.textContent = "Save";
+  save.style.cssText = "font-size:11px;font-weight:600;padding:4px 12px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer;";
+  btnRow.append(cancel, save);
+  wrap.append(ta, btnRow);
+  el.appendChild(wrap);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+
+  const restore = html => {
+    el.dataset.editing = "";
+    el.style.display   = "";
+    el.innerHTML       = html;
+    if(editedTag) editedTag.style.display = "";
+    if(actions)   actions.style.display   = "";
+  };
+
+  const doSave = async () => {
+    const trimmed = ta.value.trim();
+    if(!trimmed){ showToast("Message can't be empty — use Delete instead.", "error"); ta.focus(); return; }
+    if(trimmed === raw){ restore(originalHtml); return; }
+    save.disabled = true; save.textContent = "Saving…";
+    const field = (table === "chat_messages") ? "message_text" : "message";
+    const patch = { edited_at: new Date().toISOString() };
+    patch[field] = trimmed;
+    const { error } = await sb.from(table).update(patch).eq("id", id);
+    if(error){ showToast("Edit failed: " + error.message, "error"); save.disabled = false; save.textContent = "Save"; return; }
+    el.dataset.editing = "";
+    el.style.display   = "";
+    el.dataset.raw     = trimmed;
+    el.textContent     = trimmed;
+    if(editedTag){ editedTag.style.display = ""; }
+    else {
       const tag = document.createElement("span");
       tag.className = "msg-edited";
       tag.style.cssText = "font-size:9px;opacity:.7;font-style:italic;";
       tag.textContent = " (edited)";
-      node.after(tag);
+      el.after(tag);
     }
+    if(actions) actions.style.display = "";
+    showToast("Message edited");
+  };
+
+  cancel.addEventListener("click", () => restore(originalHtml));
+  save.addEventListener("click", doSave);
+  ta.addEventListener("keydown", e => {
+    if(e.key === "Escape"){ e.preventDefault(); restore(originalHtml); }
+    else if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); doSave(); }
   });
-  showToast("Message edited");
 }
 
 async function deleteMessage(table, id){
