@@ -4815,10 +4815,46 @@ async function downloadAttendanceExcel(proposalId){
     if(!data.length){ showToast("No check-ins to download yet.", "info"); return; }
 
     // Department custom questions for this event, if any — appended as
-    // extra columns on the detail sheet, in the order they were added.
-    const { data: customQs } = await sb.from("event_custom_questions")
+    // extra columns on the detail sheet.
+    //
+    // IMPORTANT: the questions lookup is used ONLY for nice column labels
+    // and ordering. It is NOT the source of truth for which columns exist,
+    // because that second query can come back empty (RLS scoping, or a
+    // stale deploy) while the real answers still sit inside each row's
+    // custom_responses. The definitive column list is therefore built from
+    // the answers actually stored on the fetched attendance rows, so no
+    // student answer is ever silently dropped from the export.
+    const { data: customQs, error: cqErr } = await sb.from("event_custom_questions")
       .select("*").eq("proposal_id", proposalId).eq("form_type", "attendance").order("sort_order");
-    const cqList = customQs || [];
+    if(cqErr) console.warn("Custom-questions lookup failed; column labels will fall back to stored keys:", cqErr.message);
+    const cqMeta = customQs || [];
+
+    // custom_responses is jsonb, but tolerate a stringified fallback.
+    const parseCR = cr => {
+      if(!cr) return null;
+      if(typeof cr === "string"){ try { return JSON.parse(cr); } catch(e){ return null; } }
+      return (typeof cr === "object") ? cr : null;
+    };
+
+    // Every distinct answer key present across all rows (question id -> value)
+    const answerKeys = [];
+    data.forEach(r => {
+      const cr = parseCR(r.custom_responses);
+      if(cr) Object.keys(cr).forEach(k => { if(!answerKeys.includes(k)) answerKeys.push(k); });
+    });
+
+    // Known questions first (in sort_order), then any leftover keys that
+    // have answers but no matching question row (e.g. deleted question).
+    const metaById = {};
+    cqMeta.forEach(q => { metaById[String(q.id)] = q; });
+    const orderedKeys = [
+      ...cqMeta.map(q => String(q.id)).filter(k => answerKeys.includes(k)),
+      ...answerKeys.filter(k => !metaById[k]),
+    ];
+    const cqCols = orderedKeys.map(k => ({
+      key:   k,
+      label: (metaById[k] && metaById[k].question_text) || `Custom answer (${k})`,
+    }));
 
     const wb = window.XLSX.utils.book_new();
 
@@ -4873,19 +4909,25 @@ async function downloadAttendanceExcel(proposalId){
 
     // ── Sheet 2: All Check-ins ────────────────────────────────
     const typeLabel = t => t === "external_guest" ? "External Guest" : t.charAt(0).toUpperCase() + t.slice(1);
-    const headers = ["#", "Type", "Entity", "Level", "Programme", "Checked In At", ...cqList.map(q => q.question_text)];
-    const rows = data.map((r, i) => [
-      i + 1,
-      typeLabel(r.attendee_type),
-      r.entity          || "—",
-      r.education_level || "—",
-      r.program         || "—",
-      new Date(r.scanned_at).toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }),
-      ...cqList.map(q => (r.custom_responses && r.custom_responses[q.id]) || "—"),
-    ]);
+    const headers = ["#", "Type", "Entity", "Level", "Programme", "Checked In At", ...cqCols.map(c => c.label)];
+    const rows = data.map((r, i) => {
+      const cr = parseCR(r.custom_responses);
+      return [
+        i + 1,
+        typeLabel(r.attendee_type),
+        r.entity          || "—",
+        r.education_level || "—",
+        r.program         || "—",
+        new Date(r.scanned_at).toLocaleString("en-GB", { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" }),
+        ...cqCols.map(c => {
+          const v = cr ? cr[c.key] : undefined;
+          return (v === undefined || v === null || v === "") ? "—" : v;
+        }),
+      ];
+    });
 
     const detailSheet = window.XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    detailSheet["!cols"] = [{ wch: 5 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, ...cqList.map(() => ({ wch: 28 }))];
+    detailSheet["!cols"] = [{ wch: 5 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 30 }, { wch: 24 }, ...cqCols.map(() => ({ wch: 28 }))];
     window.XLSX.utils.book_append_sheet(wb, detailSheet, "All Check-ins");
 
     // Download
