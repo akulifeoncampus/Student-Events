@@ -14557,8 +14557,9 @@ async function loadPipelineMessages(proposalId){
     const label   = isClub ? `🏷️ ${esc(m.sender_email.split("@")[0])}` : isMe ? "👤 You" : `👤 ${esc(m.sender_email.split("@")[0])}`;
     const time    = new Date(m.created_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
     return `<div style="display:flex;flex-direction:column;align-items:${align};gap:2px;">
-      <div style="background:${bg};color:${color};padding:7px 11px;border-radius:${radius};font-size:12px;line-height:1.5;max-width:85%;">${esc(m.message)}</div>
+      <div style="background:${bg};color:${color};padding:7px 11px;border-radius:${radius};font-size:12px;line-height:1.5;max-width:85%;">${msgBodyHtml(m,"message")}</div>
       <div style="font-size:10px;color:var(--muted);">${label} · ${time}</div>
+      ${msgActionsHtml(m, isMe, "proposal_messages")}
     </div>`;
   }).join("");
 
@@ -15914,6 +15915,86 @@ function esc(str){
     .replaceAll(">","&gt;").replaceAll('"',"&quot;");
 }
 
+/* ── Message edit / soft-delete (15-min window, edited + tombstone) ──────
+   Shared by both messaging systems: proposal_messages (inline threads)
+   and chat_messages (two-pane). Render helpers wrap the message body so a
+   single pair of handlers can patch any bubble in place by its data-mid,
+   regardless of which thread rendered it. The 15-minute window is also
+   enforced server-side by a trigger — this client guard just hides the
+   controls once the window has passed. ───────────────────────────────── */
+const MSG_EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+function msgOwnRecent(m, isOwn){
+  return isOwn && !m.deleted_at &&
+    (Date.now() - new Date(m.created_at).getTime()) < MSG_EDIT_WINDOW_MS;
+}
+
+// Body of a message: tombstone if deleted, else escaped text (+ "edited").
+// innerHtml lets callers pass pre-rendered HTML (e.g. linkified text).
+function msgBodyHtml(m, field, innerHtml){
+  if(m.deleted_at){
+    return `<span class="msg-body" data-mid="${m.id}" data-deleted="1" style="font-style:italic;opacity:.7;">🚫 This message was deleted</span>`;
+  }
+  const raw    = m[field] || "";
+  const inner  = (innerHtml !== undefined) ? innerHtml : esc(raw);
+  const edited = m.edited_at ? `<span class="msg-edited" style="font-size:9px;opacity:.7;font-style:italic;"> (edited)</span>` : "";
+  return `<span class="msg-body" data-mid="${m.id}" data-raw="${esc(raw)}">${inner}</span>${edited}`;
+}
+
+// Edit + Delete controls, only for the owner within the window.
+function msgActionsHtml(m, isOwn, table){
+  if(!msgOwnRecent(m, isOwn)) return "";
+  return `<span data-mid-actions="${m.id}" style="display:inline-flex;gap:12px;margin-top:1px;">`
+       + `<a href="javascript:void(0)" onclick="editMessage('${table}','${m.id}')" style="font-size:10px;color:#2563eb;text-decoration:none;">Edit</a>`
+       + `<a href="javascript:void(0)" onclick="deleteMessage('${table}','${m.id}')" style="font-size:10px;color:#dc2626;text-decoration:none;">Delete</a>`
+       + `</span>`;
+}
+
+async function editMessage(table, id){
+  const el = document.querySelector(`.msg-body[data-mid="${id}"]`);
+  const current = el ? (el.dataset.raw ?? el.textContent) : "";
+  const next = prompt("Edit your message:", current);
+  if(next === null) return;                       // cancelled
+  const trimmed = next.trim();
+  if(!trimmed){ showToast("Message can't be empty — use Delete instead.", "error"); return; }
+  if(trimmed === current) return;                 // no change
+  const field = (table === "chat_messages") ? "message_text" : "message";
+  const patch = { edited_at: new Date().toISOString() };
+  patch[field] = trimmed;
+  const { error } = await sb.from(table).update(patch).eq("id", id);
+  if(error){ showToast("Edit failed: " + error.message, "error"); return; }
+  document.querySelectorAll(`.msg-body[data-mid="${id}"]`).forEach(node => {
+    node.dataset.raw = trimmed;
+    node.textContent = trimmed;
+    const sib = node.nextElementSibling;
+    if(!(sib && sib.classList && sib.classList.contains("msg-edited"))){
+      const tag = document.createElement("span");
+      tag.className = "msg-edited";
+      tag.style.cssText = "font-size:9px;opacity:.7;font-style:italic;";
+      tag.textContent = " (edited)";
+      node.after(tag);
+    }
+  });
+  showToast("Message edited");
+}
+
+async function deleteMessage(table, id){
+  if(!confirm("Delete this message? Others will see \u201cThis message was deleted\u201d.")) return;
+  const { error } = await sb.from(table).update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Delete failed: " + error.message, "error"); return; }
+  document.querySelectorAll(`.msg-body[data-mid="${id}"]`).forEach(node => {
+    node.setAttribute("data-deleted","1");
+    node.removeAttribute("data-raw");
+    node.style.fontStyle = "italic";
+    node.style.opacity = ".7";
+    node.textContent = "🚫 This message was deleted";
+    const sib = node.nextElementSibling;
+    if(sib && sib.classList && sib.classList.contains("msg-edited")) sib.remove();
+  });
+  document.querySelectorAll(`[data-mid-actions="${id}"]`).forEach(e => e.remove());
+  showToast("Message deleted");
+}
+
 /* ══ PROPOSAL MESSAGE THREAD ══ */
 async function loadMessageThread(proposalId){
   const list = document.getElementById("messageThreadList");
@@ -15935,11 +16016,13 @@ async function loadMessageThread(proposalId){
 
   list.innerHTML = msgs.map(m => {
     const isAdmin = m.sender_type === "admin";
+    const isMe    = m.sender_email === currentUser?.email;
     const time    = new Date(m.created_at).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
     return `
       <div class="msg-wrapper ${isAdmin ? "admin" : "club"}">
-        <div class="msg-bubble ${isAdmin ? "admin" : "club"}">${esc(m.message)}</div>
+        <div class="msg-bubble ${isAdmin ? "admin" : "club"}">${msgBodyHtml(m,"message")}</div>
         <div class="msg-meta">${esc(m.sender_email)} · ${time}</div>
+        ${msgActionsHtml(m, isMe, "proposal_messages")}
       </div>`;
   }).join("");
 
@@ -16528,8 +16611,9 @@ function renderAdminThread(){
         <div class="chat-sender-avatar" aria-hidden="true">${initials}</div>
         <span class="chat-sender-name">${esc(m.sender_name)}</span>
       </div>` : `<div style="font-size:10px;color:rgba(255,255,255,.65);margin-bottom:2px;text-align:right;font-family:'Poppins',sans-serif;" aria-label="Sent by ${esc(m.sender_name)}">${esc(m.sender_name)}</div>`}
-      <div class="chat-bubble">${renderMessageText(m.message_text)}</div>
+      <div class="chat-bubble">${msgBodyHtml(m, "message_text", renderMessageText(m.message_text))}</div>
       <div class="chat-time" aria-label="Sent at ${timeStr}">${timeStr}</div>
+      ${msgActionsHtml(m, m.sender_email === currentUser?.email, "chat_messages")}
     </div>`;
   });
   container.innerHTML = html;
