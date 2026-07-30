@@ -2261,6 +2261,82 @@ let authMode       = "login";
 
 /* ── Helpers ── */
 function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── Message edit / soft-delete (15-min window, edited + tombstone) ──────
+   Shared by both messaging systems: proposal_messages (inline threads)
+   and chat_messages (two-pane). Render helpers wrap the message body so a
+   single pair of handlers can patch any bubble in place by its data-mid.
+   The 15-minute window is also enforced server-side by a trigger — this
+   client guard just hides the controls once the window has passed. ────── */
+const MSG_EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+function msgOwnRecent(m, isOwn){
+  return isOwn && !m.deleted_at &&
+    (Date.now() - new Date(m.created_at).getTime()) < MSG_EDIT_WINDOW_MS;
+}
+
+function msgBodyHtml(m, field, innerHtml){
+  if(m.deleted_at){
+    return `<span class="msg-body" data-mid="${m.id}" data-deleted="1" style="font-style:italic;opacity:.7;">🚫 This message was deleted</span>`;
+  }
+  const raw    = m[field] || "";
+  const inner  = (innerHtml !== undefined) ? innerHtml : esc(raw);
+  const edited = m.edited_at ? `<span class="msg-edited" style="font-size:9px;opacity:.7;font-style:italic;"> (edited)</span>` : "";
+  return `<span class="msg-body" data-mid="${m.id}" data-raw="${esc(raw)}">${inner}</span>${edited}`;
+}
+
+function msgActionsHtml(m, isOwn, table){
+  if(!msgOwnRecent(m, isOwn)) return "";
+  return `<span data-mid-actions="${m.id}" style="display:inline-flex;gap:12px;margin-top:1px;">`
+       + `<a href="javascript:void(0)" onclick="editMessage('${table}','${m.id}')" style="font-size:10px;color:#2563eb;text-decoration:none;">Edit</a>`
+       + `<a href="javascript:void(0)" onclick="deleteMessage('${table}','${m.id}')" style="font-size:10px;color:#dc2626;text-decoration:none;">Delete</a>`
+       + `</span>`;
+}
+
+async function editMessage(table, id){
+  const el = document.querySelector(`.msg-body[data-mid="${id}"]`);
+  const current = el ? (el.dataset.raw ?? el.textContent) : "";
+  const next = prompt("Edit your message:", current);
+  if(next === null) return;
+  const trimmed = next.trim();
+  if(!trimmed){ showToast("Message can't be empty — use Delete instead.", "error"); return; }
+  if(trimmed === current) return;
+  const field = (table === "chat_messages") ? "message_text" : "message";
+  const patch = { edited_at: new Date().toISOString() };
+  patch[field] = trimmed;
+  const { error } = await sb.from(table).update(patch).eq("id", id);
+  if(error){ showToast("Edit failed: " + error.message, "error"); return; }
+  document.querySelectorAll(`.msg-body[data-mid="${id}"]`).forEach(node => {
+    node.dataset.raw = trimmed;
+    node.textContent = trimmed;
+    const sib = node.nextElementSibling;
+    if(!(sib && sib.classList && sib.classList.contains("msg-edited"))){
+      const tag = document.createElement("span");
+      tag.className = "msg-edited";
+      tag.style.cssText = "font-size:9px;opacity:.7;font-style:italic;";
+      tag.textContent = " (edited)";
+      node.after(tag);
+    }
+  });
+  showToast("Message edited");
+}
+
+async function deleteMessage(table, id){
+  if(!confirm("Delete this message? Others will see \u201cThis message was deleted\u201d.")) return;
+  const { error } = await sb.from(table).update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  if(error){ showToast("Delete failed: " + error.message, "error"); return; }
+  document.querySelectorAll(`.msg-body[data-mid="${id}"]`).forEach(node => {
+    node.setAttribute("data-deleted","1");
+    node.removeAttribute("data-raw");
+    node.style.fontStyle = "italic";
+    node.style.opacity = ".7";
+    node.textContent = "🚫 This message was deleted";
+    const sib = node.nextElementSibling;
+    if(sib && sib.classList && sib.classList.contains("msg-edited")) sib.remove();
+  });
+  document.querySelectorAll(`[data-mid-actions="${id}"]`).forEach(e => e.remove());
+  showToast("Message deleted");
+}
 /* ── Event name availability ────────────────────────────────────────────
    Event names are unique per campus. Checking here (at submission time) is
    far friendlier than failing at approval. Checks BOTH published events and
@@ -3162,8 +3238,9 @@ function renderChatMessages(){
         <div class="chat-sender-avatar">${initials}</div>
         <span class="chat-sender-name">${esc(m.sender_name)}</span>
       </div>` : ""}
-      <div class="chat-bubble">${esc(m.message_text)}</div>
+      <div class="chat-bubble">${msgBodyHtml(m, "message_text")}</div>
       <div class="chat-time">${timeStr}</div>
+      ${msgActionsHtml(m, m.sender_email === currentClub?.email, "chat_messages")}
     </div>`;
   });
   container.innerHTML = html;
@@ -3587,8 +3664,9 @@ function renderHubGroupMessages(){
     }
     html += `<div class="chat-msg ${isOwn ? "from-club" : "from-admin"}" role="listitem">
       ${!isOwn ? `<div class="chat-sender-row"><div class="chat-sender-avatar" aria-hidden="true">${initials}</div><span class="chat-sender-name">${esc(m.sender_name)}</span></div>` : ""}
-      <div class="chat-bubble">${esc(m.message_text)}</div>
+      <div class="chat-bubble">${msgBodyHtml(m, "message_text")}</div>
       <div class="chat-time" aria-label="Sent at ${timeStr}">${timeStr}</div>
+      ${msgActionsHtml(m, isOwn, "chat_messages")}
     </div>`;
   });
   container.innerHTML = html;
@@ -5074,8 +5152,9 @@ async function loadCardMessages(proposalId){
     const radius  = isAdmin ? "4px 10px 10px 10px" : "10px 4px 10px 10px";
     const label   = isAdmin ? "🏫 Admin" : "🏷️ You";
     return `<div style="display:flex;flex-direction:column;align-items:${align};gap:2px;">
-      <div style="background:${bg};color:${color};padding:7px 11px;border-radius:${radius};font-size:12px;line-height:1.5;max-width:85%;">${esc(m.message)}</div>
+      <div style="background:${bg};color:${color};padding:7px 11px;border-radius:${radius};font-size:12px;line-height:1.5;max-width:85%;">${msgBodyHtml(m,"message")}</div>
       <div style="font-size:10px;color:#9ca3af;">${label} · ${time}</div>
+      ${msgActionsHtml(m, m.sender_email === currentClub?.email, "proposal_messages")}
     </div>`;
   }).join("");
 
@@ -5256,8 +5335,9 @@ async function loadHubMessages(proposalId){
     const radius  = isAdmin ? "4px 12px 12px 12px" : "12px 4px 12px 12px";
     const label   = isAdmin ? "🏫 Admin" : "🏷️ You";
     return `<div style="display:flex;flex-direction:column;align-items:${align};gap:2px;">
-      <div style="background:${bg};color:${color};padding:9px 13px;border-radius:${radius};font-size:13px;line-height:1.5;max-width:85%;">${esc(m.message)}</div>
+      <div style="background:${bg};color:${color};padding:9px 13px;border-radius:${radius};font-size:13px;line-height:1.5;max-width:85%;">${msgBodyHtml(m,"message")}</div>
       <div style="font-size:10px;color:#9ca3af;">${label} · ${time}</div>
+      ${msgActionsHtml(m, m.sender_email === currentClub?.email, "proposal_messages")}
     </div>`;
   }).join("");
   list.scrollTop = list.scrollHeight;
