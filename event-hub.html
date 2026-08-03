@@ -4047,6 +4047,8 @@ function proposalCardHTML(p){
           <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px;">
             ${statusBadge(p.status)}
             ${execBadge}
+            ${showAttendance ? `<button type="button" onclick="copyAttendLink('${p.id}', this)" aria-label="Copy check-in link"
+              style="font-size:11px;font-weight:600;padding:3px 10px;border:1px solid #c7d2fe;border-radius:999px;background:#eff6ff;color:#2563eb;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">🔗 Copy check-in link</button>` : ""}
           </div>
         </div>
         <div class="proposal-actions">${actions}</div>
@@ -4131,6 +4133,20 @@ function proposalCardHTML(p){
           <!-- QR Code -->
           <div style="text-align:center;margin-bottom:12px;">
             <div id="qr-${p.id}" style="display:inline-block;padding:12px;background:white;border:2px solid #e5e7eb;border-radius:12px;" aria-label="QR code for event check-in"></div>
+          </div>
+
+          <!-- Shareable check-in link (fallback when the QR won't scan) -->
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:11px;color:#6b7280;margin-bottom:6px;">Can't scan? Share this link instead:</div>
+            <div style="display:flex;gap:8px;max-width:340px;margin:0 auto;">
+              <input type="text" readonly value="https://lifeoncampus.net/attend.html?e=${p.id}"
+                id="attlink-${p.id}" onclick="this.select()" aria-label="Check-in link"
+                style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:'Poppins',sans-serif;font-size:11px;color:#374151;background:#f9fafb;">
+              <button type="button" onclick="copyAttendLink('${p.id}', this)" aria-label="Copy check-in link"
+                style="padding:8px 14px;background:#2563eb;color:white;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">
+                Copy
+              </button>
+            </div>
           </div>
 
           <!-- Full screen button -->
@@ -4583,6 +4599,39 @@ async function loadFeedbackList(proposalId){
       ${!r.highlights && !r.improvements ? `<div style="font-size:12px;color:var(--muted);font-style:italic;">No written comments — rating only.</div>` : ""}
     </div>`;
   }).join("");
+}
+
+function copyAttendLink(proposalId, btn){
+  const url = `https://lifeoncampus.net/attend.html?e=${proposalId}`;
+  const flash = () => {
+    if(btn){
+      const old = btn.textContent;
+      btn.textContent = "Copied ✓";
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 1500);
+    }
+    if(typeof showToast === "function") showToast("Check-in link copied");
+  };
+  const manual = () => {
+    const inp = document.getElementById(`attlink-${proposalId}`);
+    if(inp){ inp.focus(); inp.select(); }
+    if(typeof showToast === "function") showToast("Press Ctrl/Cmd+C to copy the selected link", "error");
+  };
+  const legacyCopy = () => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = url; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      ok ? flash() : manual();
+    } catch(e){ manual(); }
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(flash).catch(legacyCopy);
+  } else {
+    legacyCopy();
+  }
 }
 
 function showFullScreenQR(proposalId, eventName, kind = "attendance"){
