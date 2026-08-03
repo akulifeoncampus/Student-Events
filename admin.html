@@ -5930,6 +5930,31 @@
         </div>
       </div>
 
+      <!-- Reschedule: change the live event's date & time after approval -->
+      <div id="rescheduleSection" style="display:none;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#c2410c;margin-bottom:4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#c2410c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="4" y1="11" x2="20" y2="11"/></svg>
+          Reschedule event
+        </div>
+        <div style="font-size:12px;color:#9a3412;margin-bottom:10px;">Updates the live event on the public site and notifies the organiser. No status change.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field" style="margin-bottom:0;">
+            <label style="font-size:10px;">New Date</label>
+            <input id="reschedDate" type="date"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label style="font-size:10px;">New Time</label>
+            <input id="reschedTime" type="time"
+              style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;box-sizing:border-box;" />
+          </div>
+        </div>
+        <button type="button" onclick="saveEventReschedule()"
+          style="margin-top:12px;padding:9px 18px;background:#c2410c;color:white;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+          💾 Save new date &amp; time
+        </button>
+      </div>
+
       <!-- Proposal details -->
       <div id="reviewProposalDetails" style="margin-bottom:20px;"></div>
 
@@ -14430,6 +14455,14 @@ async function openReviewModal(id){
   document.getElementById("reviewEventVenue").value    = p.proposed_venue || "";
   document.getElementById("reviewEventDate").value     = p.proposed_date  || "";
   document.getElementById("reviewEventTime").value     = p.proposed_time  || "";
+
+  // Reschedule section — only for live/active events, never held or terminal ones.
+  document.getElementById("reviewProposalId").dataset.published = p.published_event_id || "";
+  document.getElementById("reschedDate").value = p.proposed_date || "";
+  document.getElementById("reschedTime").value = p.proposed_time || "";
+  const canReschedule = ["approved","assigned","postponed"].includes(p.status)
+    && !["completed","report_submitted"].includes(p.execution_status || "");
+  document.getElementById("rescheduleSection").style.display = canReschedule ? "block" : "none";
   refreshReviewNameWarning(p.event_name, p.campus);
 
   // Status actions — only admin and super admin can change status
@@ -14581,6 +14614,75 @@ async function saveConfirmedAudience(proposalId, publishedEventId){
     await sb.from("events").update({ audience: audience || null }).eq("id", publishedEventId);
   }
   showToast("👥 Audience updated!");
+}
+
+// Reschedule an approved/assigned/postponed event's date & time. Overwrites
+// proposed_date/proposed_time on the proposal AND pushes the same values to the
+// linked public events row so the card on index.html moves on next load.
+// Notifies the organiser and drops an inline message in the thread.
+async function saveEventReschedule(){
+  const idEl = document.getElementById("reviewProposalId");
+  const id   = idEl.value;
+  const publishedEventId = idEl.dataset.published || "";
+  const newDate = document.getElementById("reschedDate").value;
+  const newTime = document.getElementById("reschedTime").value;
+  if(!id) return;
+  if(!newDate){ showToast("Pick a date first.", "error"); document.getElementById("reschedDate").focus(); return; }
+
+  const p = allAdminProposals.find(x => x.id === id);
+  if(newDate === (p?.proposed_date || "") && (newTime || "") === (p?.proposed_time || "")){
+    showToast("Date & time are unchanged.");
+    return;
+  }
+
+  // 1) Proposal is the source of truth for every admin view
+  const { error } = await sb.from("event_proposals")
+    .update({
+      proposed_date:  newDate,
+      proposed_time:  newTime || null,
+      last_edited_by: currentUser.email,
+      updated_at:     new Date().toISOString(),
+    })
+    .eq("id", id);
+  if(error){ showToast("Failed to save: " + error.message, "error"); return; }
+
+  // 2) Push to the live public event so the card reflects the new date/time
+  if(publishedEventId){
+    const { error: evErr } = await sb.from("events")
+      .update({ event_date: newDate, start_time: newTime || null })
+      .eq("id", publishedEventId);
+    if(evErr){
+      showToast("Saved on the proposal, but the public event didn't update: " + evErr.message, "error");
+    }
+  }
+
+  // 3) Notify the organiser + inline thread message (same pattern as venue)
+  if(p?.club_email){
+    const prettyDate = new Date(newDate).toLocaleDateString("en-GB",{ weekday:"short", day:"numeric", month:"short", year:"numeric" });
+    const prettyTime = newTime ? ` at ${newTime}` : "";
+    await sb.from("notifications").insert({
+      recipient:   p.club_email,
+      type:        "event_rescheduled",
+      title:       "📅 Event Date Changed",
+      message:     `"${p.event_name}" has been rescheduled to ${prettyDate}${prettyTime}.`,
+      proposal_id: id,
+      is_read:     false,
+    });
+    await sb.from("proposal_messages").insert({
+      proposal_id:  id,
+      sender_email: currentUser.email,
+      sender_type:  "admin",
+      message:      `📅 Event rescheduled to ${prettyDate}${prettyTime}.`,
+    });
+  }
+
+  // 4) Keep local cache + open modal in sync, then re-render the table
+  if(p){ p.proposed_date = newDate; p.proposed_time = newTime || null; }
+  document.getElementById("reviewEventDate").value = newDate;
+  document.getElementById("reviewEventTime").value = newTime || "";
+
+  showToast("📅 Date updated & organiser notified.");
+  applyProposalView();
 }
 
 /* ── Pipeline Message Thread ── */
