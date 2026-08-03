@@ -4995,13 +4995,13 @@
             <table id="proposals-table">
               <thead>
                 <tr>
-                  <th>Event Name</th>
-                  <th>Club</th>
-                  <th>Campus</th>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('event_name')" style="cursor:pointer;user-select:none;white-space:nowrap;">Event Name <span class="prop-sort-ind" data-ind="event_name"></span></th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('club_name')" style="cursor:pointer;user-select:none;white-space:nowrap;">Club <span class="prop-sort-ind" data-ind="club_name"></span></th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('campus')" style="cursor:pointer;user-select:none;white-space:nowrap;">Campus <span class="prop-sort-ind" data-ind="campus"></span></th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('proposed_date')" style="cursor:pointer;user-select:none;white-space:nowrap;">Date <span class="prop-sort-ind" data-ind="proposed_date"></span></th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('category')" style="cursor:pointer;user-select:none;white-space:nowrap;">Category <span class="prop-sort-ind" data-ind="category"></span></th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('status')" style="cursor:pointer;user-select:none;white-space:nowrap;">Status <span class="prop-sort-ind" data-ind="status"></span></th>
+                  <th class="prop-sort-th" onclick="sortProposalsBy('submitted_at')" style="cursor:pointer;user-select:none;white-space:nowrap;">Submitted <span class="prop-sort-ind" data-ind="submitted_at"></span></th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -14301,21 +14301,82 @@ async function loadProposals(){
   badge.textContent = pending;
   badge.style.display = pending > 0 ? "inline-block" : "none";
 
-  renderProposalsTable(allAdminProposals);
+  applyProposalView();
 }
 
-function filterProposalTable(){
-  const status = document.getElementById("proposalStatusFilter").value;
-  const campus = document.getElementById("proposalCampusFilter").value;
-  const q      = document.getElementById("proposalSearch").value.toLowerCase();
+// Sort state for the Event Proposals table. Defaults to newest submissions
+// first — matching the original behaviour before column sorting existed.
+let proposalSort = { key: "submitted_at", dir: "desc" };
+
+// Toggle/set the active sort column. First click on a new column sorts
+// ascending; clicking the active column flips direction.
+function sortProposalsBy(key){
+  if(proposalSort.key === key){
+    proposalSort.dir = proposalSort.dir === "asc" ? "desc" : "asc";
+  } else {
+    proposalSort.key = key;
+    proposalSort.dir = "asc";
+  }
+  applyProposalView();
+}
+
+function sortProposalList(list){
+  const { key, dir } = proposalSort;
+  const mult = dir === "asc" ? 1 : -1;
+  const valueOf = p => {
+    if(key === "proposed_date" || key === "submitted_at"){
+      return p[key] ? new Date(p[key]).getTime() : 0;   // date columns compare numerically
+    }
+    return (p[key] ?? "").toString().toLowerCase();       // text columns compare case-insensitively
+  };
+  // Stable sort with blanks always pushed to the bottom regardless of direction
+  return [...list].sort((a, b) => {
+    const av = valueOf(a), bv = valueOf(b);
+    const aEmpty = av === "" || av === 0;
+    const bEmpty = bv === "" || bv === 0;
+    if(aEmpty && !bEmpty) return 1;
+    if(bEmpty && !aEmpty) return -1;
+    if(av < bv) return -1 * mult;
+    if(av > bv) return  1 * mult;
+    return 0;
+  });
+}
+
+function updateProposalSortIndicators(){
+  document.querySelectorAll("#proposals-table .prop-sort-ind").forEach(el => {
+    const key = el.getAttribute("data-ind");
+    if(key === proposalSort.key){
+      el.textContent   = proposalSort.dir === "asc" ? " ▲" : " ▼";
+      el.style.opacity = "1";
+    } else {
+      el.textContent   = " ↕";
+      el.style.opacity = ".3";
+    }
+  });
+}
+
+// Single pipeline: read filters from the toolbar, filter, sort, render.
+// Called on initial load, on every filter/search change, and on header
+// clicks — so sort and filters always compose and survive a refresh.
+function applyProposalView(){
+  const statusEl = document.getElementById("proposalStatusFilter");
+  const campusEl = document.getElementById("proposalCampusFilter");
+  const searchEl = document.getElementById("proposalSearch");
+  const status = statusEl ? statusEl.value : "";
+  const campus = campusEl ? campusEl.value : "";
+  const q      = searchEl ? searchEl.value.toLowerCase() : "";
 
   const filtered = allAdminProposals
     .filter(p => !status || p.status === status)
     .filter(p => !campus || p.campus === campus)
     .filter(p => !q     || `${p.event_name} ${p.club_name} ${p.club_email} ${p.campus} ${p.category}`.toLowerCase().includes(q));
 
-  renderProposalsTable(filtered);
+  renderProposalsTable(sortProposalList(filtered));
+  updateProposalSortIndicators();
 }
+
+// Kept for the existing onchange/oninput handlers in the toolbar.
+function filterProposalTable(){ applyProposalView(); }
 
 function renderProposalsTable(list){
   const tbody = document.getElementById("proposals-tbody");
