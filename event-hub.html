@@ -5608,9 +5608,13 @@ async function openProposalModal(id = null){
   if(!id){
     const today = new Date(); today.setHours(0,0,0,0);
 
-    // ACCs (name contains "acc") and AKU Sports Society are exempt
+    // ACCs (name contains "acc") and AKU Sports Society are exempt.
+    // Departmental accounts are also exempt: event-hub is a listing space for
+    // them (no OSE support / closure cycle), so they may submit freely even
+    // while earlier events are still open.
     const clubName = (currentClub?.club_name || "").toLowerCase();
-    const isExempt = clubName.includes("acc") || clubName === "aku sports society";
+    const isDepartment = currentClub?.account_type === "department";
+    const isExempt = isDepartment || clubName.includes("acc") || clubName === "aku sports society";
 
     if(!isExempt){
       const pendingReport = allProposals.find(p => {
