@@ -7826,14 +7826,24 @@ async function loadExecutiveDashboard(){
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), f.dateFrom, f.dateTo),
       // Upcoming = today onwards, capped by the upper bound if a range is set
       execApplyEventDateFilter(sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), todayStr, f.dateTo),
-      sb.from("event_proposals").select("event_type, category, club_name, published_event_id").not("published_event_id", "is", null)
+      sb.from("event_proposals").select("event_type, category, club_name, published_event_id, execution_status").not("published_event_id", "is", null)
     ]);
 
     const allClubs       = clubsRes.data       || [];
     const allOnboarded   = onboardedRes.data   || [];
-    const eventsInRange  = eventsRes.data      || [];
-    const upcomingEvents = upcomingRes.data    || [];
     const proposals      = proposalsRes.data   || [];
+
+    // ── Exclude cancelled events everywhere on this dashboard ──
+    // Same rule the Campus Admin dashboard uses (classifyEventBucket): cancelled events
+    // are tracked separately, not folded into Total Events / Upcoming / chart totals /
+    // attendance metrics. Applied here at the source so every number derived from
+    // eventsInRange, upcomingEvents, or priorEvents stays consistent.
+    const statusByEventId = {};
+    proposals.forEach(p => { if(p.published_event_id) statusByEventId[p.published_event_id] = p.execution_status; });
+    const notCancelled = (e) => statusByEventId[e.id] !== "cancelled";
+
+    const eventsInRange  = (eventsRes.data   || []).filter(notCancelled);
+    const upcomingEvents = (upcomingRes.data || []).filter(notCancelled);
 
     // ── Wave 2: attendance for events in range ──
     const attendanceInRange = await execFetchAttendance(eventsInRange.map(e => e.id));
@@ -7846,7 +7856,7 @@ async function loadExecutiveDashboard(){
         const priorEventsRes = await execApplyEventDateFilter(
           sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), prior.from, prior.to
         );
-        priorEvents = priorEventsRes.data || [];
+        priorEvents = (priorEventsRes.data || []).filter(notCancelled);
         priorAttendance = await execFetchAttendance(priorEvents.map(e => e.id));
       }
     }
