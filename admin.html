@@ -10907,6 +10907,11 @@ function lockCampusSelect(selectId){
 /* ══ CLUBS ══ */
 let allClubs = [];
 
+// Names of approved departmental accounts currently loaded into the Organiser
+// dropdown (Super Admin only — see loadClubs()). Used by saveEvent() to tag
+// organiser_type: "department" accurately when a super admin picks one.
+let deptOrganiserNames = new Set();
+
 async function loadClubs(){
   const { data, error } = await sb.from("clubs").select("*").order("name");
   if(error){ showToast("Failed to load clubs", "error"); return; }
@@ -10916,7 +10921,23 @@ async function loadClubs(){
   // Also load ACCs for organiser dropdown
   const { data: accs } = await sb.from("acc_bodies").select("name,campus").order("name");
 
-  // Populate organiser dropdown — clubs + ACCs from accessible campuses
+  // Departmental accounts for the organiser dropdown — Super Admin only.
+  // Mirrors the existing department-visibility restriction already used for
+  // proposals (loadProposals) and account approvals (loadClubApprovals):
+  // department accounts are only ever surfaced to Super Admins.
+  let accessibleDepts = [];
+  deptOrganiserNames = new Set();
+  if(currentRole === "super_admin"){
+    const { data: depts } = await sb.from("club_accounts")
+      .select("club_name, campus")
+      .eq("status", "approved")
+      .eq("account_type", "department")
+      .order("club_name");
+    accessibleDepts = filterByCampus(depts || []);
+    accessibleDepts.forEach(d => { if(d.club_name) deptOrganiserNames.add(d.club_name); });
+  }
+
+  // Populate organiser dropdown — clubs + ACCs (+ departments for Super Admin) from accessible campuses
   const accessible = filterByCampus(allClubs);
   const accessibleACCs = (accs||[]).filter(a => !a.campus || canAccessCampus(a.campus));
   const sel = document.getElementById("eventOrganiser");
@@ -10927,6 +10948,9 @@ async function loadClubs(){
     + `</optgroup>`
     + (accessibleACCs.length ? `<optgroup label="🎨 Arts & Culture Committees">`
     + accessibleACCs.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join("")
+    + `</optgroup>` : "")
+    + (accessibleDepts.length ? `<optgroup label="🏛️ Student Affairs Departments">`
+    + accessibleDepts.map(d => `<option value="${esc(d.club_name)}">${esc(d.club_name)}</option>`).join("")
     + `</optgroup>` : "");
   if(current) sel.value = current;
 }
@@ -11301,10 +11325,11 @@ async function saveEvent(){
   }
 
   const assignLead = document.getElementById("eventAssignLead")?.value || "";
+  const selectedOrganiser = document.getElementById("eventOrganiser").value;
 
   const payload = {
     name,
-    organiser:   document.getElementById("eventOrganiser").value,
+    organiser:   selectedOrganiser,
     campus,
     category:    document.getElementById("eventCategory").value,
     event_type:  document.getElementById("eventType").value || null,
@@ -11317,6 +11342,24 @@ async function saveEvent(){
     assigned_lead: assignLead || null,
     updated_at:  new Date().toISOString(),
   };
+
+  // Tag organiser_type so this event is correctly bucketed as Student-Led vs
+  // Departmental on the Executive Dashboard's Account Scope filter. Only Super
+  // Admins can see/select departmental organisers (deptOrganiserNames is only
+  // populated for that role in loadClubs()), so only compute it for them —
+  // this avoids a non-super-admin edit silently resetting a department event
+  // back to "club" just because they can't see the department roster.
+  if(currentRole === "super_admin"){
+    const originalEvent = id ? allEvents.find(x => x.id === id) : null;
+    if(originalEvent && originalEvent.organiser === selectedOrganiser && originalEvent.organiser_type){
+      // Organiser field wasn't changed from what was already saved — keep its
+      // existing tag even if the department account was since renamed/removed
+      // from the dropdown (so it no longer matches deptOrganiserNames).
+      payload.organiser_type = originalEvent.organiser_type;
+    } else {
+      payload.organiser_type = deptOrganiserNames.has(selectedOrganiser) ? "department" : "club";
+    }
+  }
 
   let error, insertedId;
   if(id){
