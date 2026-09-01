@@ -6002,14 +6002,14 @@
         👁️ You can view this proposal. Only Admins and Super Admins can change its status or assign it.
       </div>
 
-      <!-- Assign to Event Lead -->
+      <!-- Assign / Reassign to Event Lead -->
       <div id="assignSection" style="display:none;margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Assign to Event Lead</div>
+        <div id="assignSectionHeading" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Assign to Event Lead</div>
         <div style="display:flex;gap:10px;">
           <select id="assignLeadSelect" style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;">
             <option value="">Select event lead…</option>
           </select>
-          <button class="btn btn-primary" onclick="assignProposal()">Assign</button>
+          <button id="assignSectionBtn" class="btn btn-primary" onclick="assignProposal()">Assign</button>
         </div>
       </div>
 
@@ -14522,18 +14522,29 @@ async function openReviewModal(id){
   document.getElementById("eventLeadViewNote").style.display   = canChangeStatus ? "none"  : "block";
   document.getElementById("reviewNote").value = "";
 
-  // Assign section — only admins and super admins can assign, only when approved
-  const canAssign = hasPermission("assign_events");
+  // Assign section — only admins and super admins can assign/reassign.
+  // Visible when approved (first assignment) and, separately, any time status
+  // is already "assigned" — that covers the whole prep/held pipeline, since
+  // execution_status moves through that without ever changing p.status.
+  // Reassignment closes once the event is done (completed/closed) — same
+  // guard already used for the reschedule section, reused here for consistency.
+  const canAssign  = hasPermission("assign_events");
+  const isReassign = p.status === "assigned"
+    && !["completed","report_submitted"].includes(p.execution_status || "");
   document.getElementById("assignSection").style.display =
-    (canAssign && p.status === "approved") ? "block" : "none";
+    (canAssign && (p.status === "approved" || isReassign)) ? "block" : "none";
 
-  // Populate event leads dropdown — fetch fresh every time
+  // Populate event leads dropdown — fetch fresh every time, scoped to this
+  // proposal's campus (or leads/admins whose permissions cover "All" campuses).
   if(canAssign){
     const { data: leadsData } = await sb.from("admins")
-      .select("email,role")
+      .select("email,role,permissions")
       .in("role",["event_lead","admin","super_admin"])
       .order("role").order("email");
-    const leads = leadsData || [];
+    const leads = (leadsData || []).filter(l => {
+      const lc = Array.isArray(l.permissions?.campus) ? l.permissions.campus : ["All"];
+      return lc.includes("All") || lc.includes(p.campus);
+    });
     const grouped = { event_lead:[], admin:[], super_admin:[] };
     leads.forEach(l => (grouped[l.role]||[]).push(l));
     const opts = (role, label) => grouped[role].length
@@ -14545,6 +14556,13 @@ async function openReviewModal(id){
       + opts("event_lead","🎯 Event Leads")
       + opts("admin","⚙️ Admins")
       + opts("super_admin","👑 Super Admins");
+
+    // Relabel for reassignment so it reads as a handover, not a fresh assign.
+    const heading = document.getElementById("assignSectionHeading");
+    const btn     = document.getElementById("assignSectionBtn");
+    if(heading) heading.textContent = isReassign
+      ? `Reassign (currently: ${p.assigned_to || "—"})` : "Assign to Event Lead";
+    if(btn) btn.textContent = isReassign ? "Reassign" : "Assign";
   }
 
   // Build details HTML — include all new form fields
@@ -15247,23 +15265,53 @@ async function assignProposal(){
   const p     = allAdminProposals.find(x => x.id === id);
   if(!lead){ showToast("Please select an event lead", "error"); return; }
 
+  const previousLead = p?.assigned_to || null;
+  if(previousLead === lead){ showToast("Already assigned to this person.", "error"); return; }
+  const isReassign = !!previousLead;
+
+  // Handover audit line — appended to the existing lead_notes field so who-moved-what
+  // is visible on the pipeline card without adding a column or a table. Everything
+  // else on this row (execution_status, confirmed venue/audience, messages, the rest
+  // of lead_notes) is left exactly as the previous lead had it — this only changes
+  // ownership, never progress.
+  const stamp = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  const auditLine = isReassign
+    ? `🔄 Reassigned from ${previousLead} to ${lead} by ${currentUser.email} on ${stamp}`
+    : null;
+  const newLeadNotes = auditLine
+    ? (p?.lead_notes ? p.lead_notes + "\n" + auditLine : auditLine)
+    : (p?.lead_notes || null);
+
   const { error } = await sb.from("event_proposals").update({
     status:      "assigned",
     assigned_to: lead,
     assigned_at: new Date().toISOString(),
     updated_at:  new Date().toISOString(),
+    lead_notes:  newLeadNotes,
   }).eq("id", id);
   if(error){ showToast("Failed: " + error.message, "error"); return; }
 
-  // Notify the lead
+  // Notify the new lead
   await sb.from("notifications").insert({
     recipient:   lead,
     type:        "proposal_assigned",
-    title:       "📌 Event Assigned to You",
-    message:     `"${p?.event_name}" from ${p?.club_name} has been assigned to you for coordination.`,
+    title:       isReassign ? "📌 Event Reassigned to You" : "📌 Event Assigned to You",
+    message:     `"${p?.event_name}" from ${p?.club_name} has been ${isReassign ? "reassigned" : "assigned"} to you for coordination.`,
     proposal_id: id,
     is_read:     false,
   });
+
+  // Notify the outgoing lead they've been taken off it
+  if(isReassign){
+    await sb.from("notifications").insert({
+      recipient:   previousLead,
+      type:        "proposal_reassigned",
+      title:       "🔄 Event Reassigned",
+      message:     `"${p?.event_name}" has been reassigned to ${lead}. It no longer needs your attention.`,
+      proposal_id: id,
+      is_read:     false,
+    });
+  }
 
   // Also notify the club
   if(p){
@@ -15271,13 +15319,15 @@ async function assignProposal(){
       recipient:   p.club_email,
       type:        "proposal_assigned",
       title:       "📌 Event Lead Assigned",
-      message:     `An Event Lead has been assigned to coordinate "${p.event_name}". They will be in touch with you soon.`,
+      message:     isReassign
+        ? `A new Event Lead has been assigned to coordinate "${p.event_name}". They will be in touch with you soon.`
+        : `An Event Lead has been assigned to coordinate "${p.event_name}". They will be in touch with you soon.`,
       proposal_id: id,
       is_read:     false,
     });
   }
 
-  showToast("📌 Event assigned successfully!");
+  showToast(isReassign ? "🔄 Event reassigned successfully!" : "📌 Event assigned successfully!");
   // Restore status section for next time modal opens
   const statusSec = document.getElementById("statusActionSection");
   if(statusSec) statusSec.style.display = "block";
