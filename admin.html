@@ -5961,7 +5961,7 @@
       <!-- Status action — only admins and super admins can change status -->
       <div id="statusActionSection">
         <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;">Update Status</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
           <button class="status-action-btn" style="border-left-color:#3b6d11;" onclick="updateProposalStatus('approved')">
             <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="#3b6d11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10 -10" /></svg>
             Approve
@@ -5987,6 +5987,14 @@
             Cancel
           </button>
         </div>
+
+        <!-- Optional note to the club — sent with Decline / Postpone / Cancel / Needs Info,
+             ignored for Approve / Under Review. Always visible, never required: click a
+             status button above to submit immediately, with or without a note. -->
+        <div id="reviewNoteField" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+          <label id="reviewNoteLabel" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Optional note to club (used for Decline / Postpone / Cancel / Needs Info)</label>
+          <textarea id="reviewNote" rows="2" placeholder="e.g. reason for declining, what info is needed, new date…" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;resize:vertical;"></textarea>
+        </div>
       </div>
 
       <!-- Event Lead view-only notice -->
@@ -6003,16 +6011,6 @@
           </select>
           <button class="btn btn-primary" onclick="assignProposal()">Assign</button>
         </div>
-      </div>
-
-      <!-- Note / reason field -->
-      <div id="reviewNoteField" style="display:none;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:16px;">
-        <label id="reviewNoteLabel" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">Note / Reason</label>
-        <textarea id="reviewNote" rows="3" placeholder="Write your message to the club…" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;resize:vertical;"></textarea>
-        <button class="btn btn-primary" id="sendNoteBtn" onclick="sendProposalMessage()" style="margin-top:10px;width:100%;justify-content:center;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14l11 -11" /> <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" /></svg>
-          Send message to club
-        </button>
       </div>
 
       <!-- Resource Booking Section — only shown post-approval -->
@@ -14522,7 +14520,6 @@ async function openReviewModal(id){
   const canChangeStatus = currentRole === "super_admin" || currentRole === "admin";
   document.getElementById("statusActionSection").style.display = canChangeStatus ? "block" : "none";
   document.getElementById("eventLeadViewNote").style.display   = canChangeStatus ? "none"  : "block";
-  document.getElementById("reviewNoteField").style.display     = "none";
   document.getElementById("reviewNote").value = "";
 
   // Assign section — only admins and super admins can assign, only when approved
@@ -15020,20 +15017,9 @@ async function _updateProposalStatusImpl(status){
   const id   = document.getElementById("reviewProposalId").value;
   const p    = allAdminProposals.find(x => x.id === id);
   const note = document.getElementById("reviewNote").value.trim();
-
-  // Show note field for relevant statuses
-  const needsNote = ["declined","needs_info","postponed","cancelled"].includes(status);
-  const noteField = document.getElementById("reviewNoteField");
-  const noteLabel = document.getElementById("reviewNoteLabel");
-
-  if(needsNote && noteField.style.display === "none"){
-    noteField.style.display = "block";
-    const labels = { declined:"Reason for declining", needs_info:"What information is needed?", postponed:"Reason for postponement / new date?", cancelled:"Reason for cancellation" };
-    noteLabel.textContent = labels[status] || "Note";
-    document.getElementById("reviewNote").placeholder = labels[status] || "Write your message…";
-    document.getElementById("reviewNote").focus();
-    return; // wait for them to fill note and click again
-  }
+  // Note is optional and always visible above — status buttons submit immediately,
+  // with or without a note. Used for declined / needs_info / postponed / cancelled;
+  // stored as admin_note and included in the club's notification either way.
 
   // Show assign section when approving
   if(status === "approved"){
@@ -15222,7 +15208,6 @@ async function _updateProposalStatusImpl(status){
 
   const labels = { approved:"✅ Approved!", under_review:"🔍 Now In Review", needs_info:"💬 Needs Info — club notified", declined:"❌ Not Approved", postponed:"⏸️ Rescheduled", cancelled:"🚫 Cancelled" };
   showToast(labels[status] || "Updated!");
-  noteField.style.display = "none";
   document.getElementById("reviewNote").value = "";
 
   // If approved — keep modal open, show assign section
@@ -16331,42 +16316,6 @@ async function sendQuickReply(){
 
   document.getElementById("quickReplyText").value = "";
   showToast("Message sent!");
-  loadMessageThread(proposalId);
-}
-
-async function sendProposalMessage(){
-  const proposalId = document.getElementById("reviewProposalId").value;
-  const text       = document.getElementById("reviewNote").value.trim();
-  if(!text){ showToast("Write a message first", "error"); return; }
-
-  const { error } = await sb.from("proposal_messages").insert({
-    proposal_id:  proposalId,
-    sender_email: currentUser.email,
-    sender_type:  "admin",
-    message:      text,
-  });
-  if(error){ showToast("Failed: " + error.message, "error"); return; }
-
-  const p = allAdminProposals.find(x => x.id === proposalId);
-  if(p){
-    const notifRecipients = [p.club_email];
-    if(p.assigned_to && p.assigned_to !== currentUser.email) notifRecipients.push(p.assigned_to);
-
-    await sb.from("notifications").insert(
-      notifRecipients.map(recipient => ({
-        recipient,
-        type:        "proposal_message",
-        title:       "💬 Message on Proposal",
-        message:     `Re: "${p.event_name}" — ${text.substring(0,100)}${text.length > 100 ? "…" : ""}`,
-        proposal_id: proposalId,
-        is_read:     false,
-      }))
-    );
-  }
-
-  showToast("📨 Message sent!");
-  document.getElementById("reviewNote").value = "";
-  document.getElementById("reviewNoteField").style.display = "none";
   loadMessageThread(proposalId);
 }
 
