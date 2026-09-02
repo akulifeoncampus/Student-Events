@@ -7448,7 +7448,7 @@ function attParseFile(ev){
 function attNorm(s){ return String(s ?? "").trim(); }
 
 function attValidateRows(raw){
-  const valid = [], errors = [];
+  const valid = [], rowErrors = [], warnings = [];
   const existingIds = new Set(attEventRows().filter(a => a.student_id).map(a => String(a.student_id)));
   const seenInFile = new Set();
   let skippedDupes = 0;
@@ -7463,7 +7463,9 @@ function attValidateRows(raw){
     if(!any) return; // blank line
 
     let type = g("attendee_type").toLowerCase() || "student";
-    if(!ATT_TYPES.includes(type)){ errors.push(`Row ${line}: invalid attendee_type "${g("attendee_type")}"`); return; }
+    // Unrecognised type — can't tell how to treat this row at all, so it's a
+    // genuine skip. Everything else below is "let it in, flag it" instead.
+    if(!ATT_TYPES.includes(type)){ rowErrors.push(`Row ${line}: invalid attendee_type "${g("attendee_type")}" — skipped`); return; }
 
     const name = g("student_name"), sid = g("student_id");
     const entity = g("entity"), level = g("education_level"), program = g("program");
@@ -7471,14 +7473,21 @@ function attValidateRows(raw){
     if(gender){ gender = gender.charAt(0).toUpperCase()+gender.slice(1).toLowerCase(); }
 
     if(type === "student"){
-      if(!name){ errors.push(`Row ${line}: student_name required`); return; }
-      if(!sid){ errors.push(`Row ${line}: student_id required`); return; }
-      if(entity  && !attPrograms.entity.has(entity))   { errors.push(`Row ${line}: entity "${entity}" not valid for ${attCampus}`); return; }
-      if(level   && !attPrograms.level.has(level))     { errors.push(`Row ${line}: education_level "${level}" not valid for ${attCampus}`); return; }
-      if(program && !attPrograms.program.has(program)) { errors.push(`Row ${line}: program "${program}" not valid for ${attCampus}`); return; }
-      if(gender  && !ATT_GENDERS.includes(gender))     { errors.push(`Row ${line}: gender must be Male or Female`); return; }
-      if(existingIds.has(sid) || seenInFile.has(sid)){ skippedDupes++; return; }
-      seenInFile.add(sid);
+      // Need enough to identify SOMEONE attended — but not both. A name-only
+      // row (no ID, common from paper sign-in sheets) or an ID-only row are
+      // both fine; a row with neither is meaningless and gets skipped.
+      if(!name && !sid){ rowErrors.push(`Row ${line}: needs a name or a student_id — skipped`); return; }
+      // Entity/level/program/gender that don't match the approved list for this
+      // campus no longer block the file — they're uploaded exactly as typed,
+      // just flagged so an admin can clean them up later if they want to.
+      if(entity  && !attPrograms.entity.has(entity))   warnings.push(`Row ${line}: entity "${entity}" not on the ${attCampus} list — uploaded as typed`);
+      if(level   && !attPrograms.level.has(level))     warnings.push(`Row ${line}: education_level "${level}" not on the ${attCampus} list — uploaded as typed`);
+      if(program && !attPrograms.program.has(program)) warnings.push(`Row ${line}: program "${program}" not on the ${attCampus} list — uploaded as typed`);
+      if(gender  && !ATT_GENDERS.includes(gender))     warnings.push(`Row ${line}: gender "${g("gender")}" isn't Male/Female — uploaded as typed`);
+      // Dedup only applies when we actually have an ID to dedup on — a blank
+      // ID must never match another blank ID as a "duplicate".
+      if(sid && (existingIds.has(sid) || seenInFile.has(sid))){ skippedDupes++; return; }
+      if(sid) seenInFile.add(sid);
     }
 
     valid.push({
@@ -7492,22 +7501,25 @@ function attValidateRows(raw){
     });
   });
 
-  attParsed = { rows: valid, errors, skippedDupes };
+  attParsed = { rows: valid, rowErrors, warnings, skippedDupes };
   attRenderUploadPreview();
 }
 
 function attRenderUploadPreview(){
   const box = document.getElementById("attUploadResult");
-  const { rows, errors, skippedDupes } = attParsed;
+  const { rows, rowErrors, warnings, skippedDupes } = attParsed;
   let html = "";
-  if(errors.length){
-    html += `<div class="att-err-row" style="margin-bottom:8px;"><strong>${errors.length} error(s) — fix and re-upload:</strong><br>${errors.slice(0,15).map(attEsc).join("<br>")}${errors.length>15?`<br>…and ${errors.length-15} more`:""}</div>`;
+  if(rowErrors.length){
+    html += `<div class="att-err-row" style="margin-bottom:8px;"><strong>${rowErrors.length} row(s) skipped:</strong><br>${rowErrors.slice(0,15).map(attEsc).join("<br>")}${rowErrors.length>15?`<br>…and ${rowErrors.length-15} more`:""}</div>`;
+  }
+  if(warnings.length){
+    html += `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;margin-bottom:8px;color:#92400e;font-size:13px;line-height:1.6;"><strong>⚠️ ${warnings.length} row(s) not on the approved list — uploaded as typed, worth a review later:</strong><br>${warnings.slice(0,15).map(attEsc).join("<br>")}${warnings.length>15?`<br>…and ${warnings.length-15} more`:""}</div>`;
   }
   html += `<div style="margin-bottom:8px;">${rows.length} row(s) ready to add${skippedDupes?`, ${skippedDupes} duplicate(s) will be skipped`:""}.</div>`;
-  if(rows.length && !errors.length){
+  if(rows.length){
     html += `<button class="btn btn-primary" onclick="attConfirmUpload()">Add ${rows.length} attendee(s)</button>`;
-  } else if(errors.length){
-    html += `<div style="color:var(--color-muted);font-size:var(--text-sm);">Upload blocked until errors are fixed.</div>`;
+  } else {
+    html += `<div style="color:var(--color-muted);font-size:var(--text-sm);">No valid rows to add.</div>`;
   }
   box.innerHTML = html;
 }
