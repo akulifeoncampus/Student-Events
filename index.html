@@ -1548,8 +1548,13 @@
           </div>
 
           <div class="field">
-            <label for="dateFilter">Date</label>
-            <input id="dateFilter" type="date" />
+            <label for="dateFromFilter">Date from</label>
+            <input id="dateFromFilter" type="date" />
+          </div>
+
+          <div class="field">
+            <label for="dateToFilter">Date to</label>
+            <input id="dateToFilter" type="date" />
           </div>
 
           <div class="field">
@@ -1716,7 +1721,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // DOM refs
   const q           = document.getElementById("q");
-  const dateFilter  = document.getElementById("dateFilter");
+  const dateFromFilter = document.getElementById("dateFromFilter");
+  const dateToFilter   = document.getElementById("dateToFilter");
   const clubFilter  = document.getElementById("clubFilter");
   const catFilter   = document.getElementById("catFilter");
   const campusFilter= document.getElementById("campusFilter");
@@ -1757,7 +1763,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const cv  = clubFilter.value;
     const tv  = catFilter.value;
     const cpv = campusFilter.value;
-    const dv  = dateFilter.value ? new Date(dateFilter.value + "T00:00:00") : null;
+    const dfv = dateFromFilter.value ? new Date(dateFromFilter.value + "T00:00:00") : null;
+    const dtv = dateToFilter.value   ? new Date(dateToFilter.value   + "T00:00:00") : null;
 
     let list = allEvents.filter(e => mode === "upcoming" ? e.date >= today : e.date < today);
 
@@ -1765,7 +1772,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .filter(e => !cv  || e.organiser === cv)
       .filter(e => !tv  || e.category  === tv)
       .filter(e => !cpv || e.campus    === cpv)
-      .filter(e => !dv  || sameDay(e.date, dv))
+      .filter(e => !dfv || (e.date && e.date >= dfv))
+      .filter(e => !dtv || (e.date && e.date <= dtv))
       .filter(e => !qv  || `${e.name} ${e.organiser} ${e.category} ${e.venue} ${e.time} ${e.campus}`.toLowerCase().includes(qv));
 
     list.sort((a,b) => mode === "upcoming" ? a.date - b.date : b.date - a.date);
@@ -2394,14 +2402,26 @@ document.addEventListener("DOMContentLoaded", () => {
     else render();
   }
   q.addEventListener("input", onFilterChange);
-  dateFilter.addEventListener("change", onFilterChange);
+  // Keep each bound from producing an impossible range (from > to) by
+  // constraining the other input's min/max as soon as one is picked.
+  dateFromFilter.addEventListener("change", () => {
+    dateToFilter.min = dateFromFilter.value || "";
+    onFilterChange();
+  });
+  dateToFilter.addEventListener("change", () => {
+    dateFromFilter.max = dateToFilter.value || "";
+    onFilterChange();
+  });
   clubFilter.addEventListener("change", onFilterChange);
   catFilter.addEventListener("change", onFilterChange);
   campusFilter.addEventListener("change", onFilterChange);
 
   clearBtn.addEventListener("click", () => {
     q.value = "";
-    dateFilter.value  = "";
+    dateFromFilter.value = "";
+    dateToFilter.value   = "";
+    dateFromFilter.max   = "";
+    dateToFilter.min     = "";
     clubFilter.value  = "";
     catFilter.value   = "";
     campusFilter.value= "";
