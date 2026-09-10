@@ -7815,9 +7815,14 @@ async function execFetchAttendance(eventIds){
   const out = [];
   for(let i = 0; i < proposalIds.length; i += CHUNK){
     const slice = proposalIds.slice(i, i + CHUNK);
+    // No student_id filter here — the Attendance tab (attLoadData) counts every row
+    // regardless of student_id, including faculty/staff/guest rows that are allowed to
+    // upload without one. Excluding them here was what caused this dashboard's totals
+    // (e.g. Gender Split) to undercount against the Attendance tab. Student-only metrics
+    // (Unique Students Reached, Repeat Rate) still guard on `a.student_id` further down,
+    // so this change only widens the raw check-in totals, not the per-student stats.
     const { data, error } = await fetchAllPages(() => sb.from("event_attendance")
       .select("student_id, student_name, event_id, event_name, campus, entity, program, gender, education_level")
-      .not("student_id", "is", null)
       .in("event_id", slice));
     if(error){
       // Don't crash the whole dashboard if a single chunk fails — log and continue with what we have.
@@ -7846,6 +7851,17 @@ function execShowCardsLoading(loading){
 async function loadExecutiveDashboard(){
   // Don't run if executive view isn't active (e.g. user is a campus admin)
   if(!EXECUTIVE_DASHBOARD_ROLES.includes(currentRole)) return;
+
+  // Guard against overlapping reloads. A filter-chip click and the realtime
+  // auto-refresh (scheduleExecRealtimeRefresh) can both call this function
+  // independently; if one is still awaiting data when the other finishes,
+  // both would try to redraw the same chart canvases and Chart.js throws
+  // ("Canvas is already in use"), which is what made charts go blank when
+  // toggling the campus filter. Each call claims the next generation number;
+  // only the call that's still the latest by the time it's ready to draw is
+  // allowed to touch the DOM — an outdated call quietly stops instead.
+  window._execDashGen = (window._execDashGen || 0) + 1;
+  const myGen = window._execDashGen;
 
   const f         = window.dashboardFilters;
   const todayStr  = new Date().toISOString().split("T")[0];
@@ -7881,20 +7897,31 @@ async function loadExecutiveDashboard(){
     const upcomingEvents = (upcomingRes.data || []).filter(notCancelled);
 
     // ── Wave 2: attendance for events in range ──
-    const attendanceInRange = await execFetchAttendance(eventsInRange.map(e => e.id));
+    // Fetch attendance for EVERY event in range, cancelled ones included — the
+    // Attendance tab counts check-ins regardless of whether the event was later
+    // marked cancelled, and these two views should agree on totals. Event-level
+    // cards/charts (Total Events, Upcoming, type/category breakdowns) still use
+    // the cancelled-excluded `eventsInRange` above; only the attendance-derived
+    // numbers below (fAttendance, and everything built from it) widen to match.
+    const attendanceInRange = await execFetchAttendance((eventsRes.data || []).map(e => e.id));
 
     // ── Wave 3 (optional): prior period for deltas ──
-    let priorEvents = [], priorAttendance = [];
+    let priorEvents = [], priorAttendance = [], priorEventsRaw = [];
     if(hasRange){
       const prior = execPreviousPeriodDates(f.dateFrom, f.dateTo);
       if(prior){
         const priorEventsRes = await execApplyEventDateFilter(
           sb.from("events").select("id, campus, event_date, category, event_type, organiser, organiser_type"), prior.from, prior.to
         );
-        priorEvents = (priorEventsRes.data || []).filter(notCancelled);
-        priorAttendance = await execFetchAttendance(priorEvents.map(e => e.id));
+        priorEventsRaw = priorEventsRes.data || [];
+        priorEvents = priorEventsRaw.filter(notCancelled);
+        priorAttendance = await execFetchAttendance(priorEventsRaw.map(e => e.id));
       }
     }
+
+    // All data is in. If a newer reload has started while we were fetching, let
+    // it win — don't draw with data that's already outdated.
+    if(myGen !== window._execDashGen) return;
 
     // ── Apply campus filter (client-side, so we can still slice by-campus tiles when "all") ──
     const campus    = f.campus;
@@ -7941,7 +7968,11 @@ async function loadExecutiveDashboard(){
     });
 
     // ── Compute attendance metrics for current period ──
-    const fEventIdSet  = new Set(fEvents.map(e => e.id));
+    // Matched against a broader event set than fEvents on purpose: fEvents excludes
+    // cancelled events (correct for Total Events/Upcoming/category cards), but
+    // attendance totals should match the Attendance tab, which doesn't exclude them.
+    const fAttEvents    = (eventsRes.data || []).filter(inCampus).filter(inScope);
+    const fEventIdSet  = new Set(fAttEvents.map(e => e.id));
     const fAttendance  = attendanceInRange.filter(a => fEventIdSet.has(a.event_id));
     const studentCount = {};
     fAttendance.forEach(a => {
@@ -7956,7 +7987,11 @@ async function loadExecutiveDashboard(){
     let fPriorAtt = [];
     if(hasRange){
       priorTotalEvents = fPriorEv.length;
-      const priorEventIdSet  = new Set(fPriorEv.map(e => e.id));
+      // Same broadening as the current period: match attendance against all prior-period
+      // events (campus/scope filtered), not just the cancelled-excluded fPriorEv, so the
+      // delta comparison is apples-to-apples with the current period's fAttendance.
+      const fPriorAttEvents  = priorEventsRaw.filter(inCampus).filter(inScope);
+      const priorEventIdSet  = new Set(fPriorAttEvents.map(e => e.id));
       fPriorAtt               = priorAttendance.filter(a => priorEventIdSet.has(a.event_id));
       const priorStudentCount = {};
       fPriorAtt.forEach(a => {
@@ -8024,7 +8059,8 @@ async function loadExecutiveDashboard(){
     renderEventsByCategoryChart(fEvents, proposals);
 
     // ── Phase 4 renders — attendance-driven engagement & gender charts ──
-    // fAttendance is already filtered to events in campus (computed above for repeat-rate).
+    // fAttendance is already filtered to campus/scope (computed above for repeat-rate) —
+    // note it includes attendance from cancelled events, matching the Attendance tab.
     renderTopEntitiesChart(fAttendance);
     renderTopProgramsChart(fAttendance);
     renderEngagementScatterChart(fAttendance);
@@ -8080,6 +8116,9 @@ async function loadExecutiveDashboard(){
     }
 
   } catch(err){
+    // If a newer reload has already started, this failure belongs to a stale
+    // call — don't let it stomp on the newer one's (possibly successful) state.
+    if(myGen !== window._execDashGen) return;
     console.error("[Executive Dashboard] load failed:", err);
     execShowCardsLoading(false);
     // Show "—" so user knows something failed, without breaking the layout
