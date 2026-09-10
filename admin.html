@@ -6220,6 +6220,31 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   }
 });
 
+// Supabase/PostgREST silently caps any single response at 1000 rows (the
+// project's "max rows" setting) — no error, it just returns 1000 and stops.
+// A plain .select() on a growing table (event_attendance in particular) will
+// quietly under-report once real data passes that mark. Any query that might
+// return more than 1000 rows must page through with .range() instead of
+// trusting one call to return everything.
+//
+// Usage: pass a function that returns a FRESH, already-filtered query builder
+// each time it's called (so .range() can be appended to a new instance per
+// page) — e.g. fetchAllPages(() => sb.from("t").select("*").in("id", slice)).
+// Pages until a page comes back shorter than PAGE, meaning nothing's left.
+async function fetchAllPages(buildQuery){
+  const PAGE = 1000;
+  const all = [];
+  let from = 0;
+  while(true){
+    const { data, error } = await buildQuery().range(from, from + PAGE - 1);
+    if(error) return { data: all, error };
+    all.push(...(data || []));
+    if(!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  return { data: all, error: null };
+}
+
 let currentUser        = null;
 let currentRole        = null;
 let currentAdminCampus = "";
@@ -7265,9 +7290,9 @@ async function attLoadData(){
   const CHUNK = 200;
   for(let i=0;i<ids.length;i+=CHUNK){
     const slice = ids.slice(i,i+CHUNK);
-    const { data, error } = await sb.from("event_attendance")
+    const { data, error } = await fetchAllPages(() => sb.from("event_attendance")
       .select("id, event_id, student_id, student_name, attendee_type, entity, education_level, program, gender, source, upload_batch, uploaded_by, scanned_at")
-      .in("event_id", slice);
+      .in("event_id", slice));
     if(!error && data) attAttendance.push(...data);
   }
   attApplyAndRender();
@@ -7790,10 +7815,10 @@ async function execFetchAttendance(eventIds){
   const out = [];
   for(let i = 0; i < proposalIds.length; i += CHUNK){
     const slice = proposalIds.slice(i, i + CHUNK);
-    const { data, error } = await sb.from("event_attendance")
+    const { data, error } = await fetchAllPages(() => sb.from("event_attendance")
       .select("student_id, student_name, event_id, event_name, campus, entity, program, gender, education_level")
       .not("student_id", "is", null)
-      .in("event_id", slice);
+      .in("event_id", slice));
     if(error){
       // Don't crash the whole dashboard if a single chunk fails — log and continue with what we have.
       console.warn("[Exec Attendance] chunk failed, continuing with partial data:", error);
@@ -12323,7 +12348,7 @@ async function computeOutputScores(){
     // Attendance, resolved via proposal ids
     let attendanceRows = [];
     if(proposalIds.length){
-      const { data } = await sb.from("event_attendance").select("event_id").in("event_id", proposalIds);
+      const { data } = await fetchAllPages(() => sb.from("event_attendance").select("event_id").in("event_id", proposalIds));
       attendanceRows = data || [];
     }
     // Feedback, resolved via proposal ids
