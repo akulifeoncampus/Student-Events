@@ -8046,8 +8046,8 @@ async function loadExecutiveDashboard(){
 
     // Comparative charts (only when viewing all campuses)
     if(isAllCampuses){
-      renderEventsByCampusChart(fEvents);
-      renderEventsByMonthByCampusCharts(fEvents, f.dateFrom, f.dateTo);
+      execSafeRender("Events by Campus",          () => renderEventsByCampusChart(fEvents));
+      execSafeRender("Events by Month by Campus", () => renderEventsByMonthByCampusCharts(fEvents, f.dateFrom, f.dateTo));
     } else {
       // Destroy any lingering instances so they don't hold on to stale data
       destroyExecChart("byCampus");
@@ -8055,19 +8055,19 @@ async function loadExecutiveDashboard(){
     }
 
     // Charts that respect the campus filter
-    renderEventsByMonthChart(fEvents, f.dateFrom, f.dateTo);
-    renderEventsByCategoryChart(fEvents, proposals);
+    execSafeRender("Events by Month",    () => renderEventsByMonthChart(fEvents, f.dateFrom, f.dateTo));
+    execSafeRender("Events by Category", () => renderEventsByCategoryChart(fEvents, proposals));
 
     // ── Phase 4 renders — attendance-driven engagement & gender charts ──
     // fAttendance is already filtered to campus/scope (computed above for repeat-rate) —
     // note it includes attendance from cancelled events, matching the Attendance tab.
-    renderTopEntitiesChart(fAttendance);
-    renderTopProgramsChart(fAttendance);
-    renderEngagementScatterChart(fAttendance);
-    renderEngagementScoreChart(fAttendance);
-    renderGenderChart(fAttendance);
-    renderGenderByCategoryChart(fAttendance, fEvents, proposals);
-    renderAvgAttendanceByCategoryChart(fEvents, fAttendance, proposals);
+    execSafeRender("Top Entities",               () => renderTopEntitiesChart(fAttendance));
+    execSafeRender("Top Programs",               () => renderTopProgramsChart(fAttendance));
+    execSafeRender("Engagement Scatter",         () => renderEngagementScatterChart(fAttendance));
+    execSafeRender("Engagement Score",           () => renderEngagementScoreChart(fAttendance));
+    execSafeRender("Gender Split",               () => renderGenderChart(fAttendance));
+    execSafeRender("Gender by Category",         () => renderGenderByCategoryChart(fAttendance, fEvents, proposals));
+    execSafeRender("Avg Attendance by Category", () => renderAvgAttendanceByCategoryChart(fEvents, fAttendance, proposals));
 
     // ── Phase 4: Category × Campus (heatmap + clustered bar) ──
     // Only meaningful when comparing across campuses, so hide when a specific campus is picked.
@@ -8082,8 +8082,8 @@ async function loadExecutiveDashboard(){
       // Use scope-filtered fEvents/fAttendance (equal to the unfiltered arrays when
       // scope="combined", which is why this still compares all 4 campuses by default —
       // but now also respects Student-Led / Departmental when one is selected).
-      renderCategoryCampusHeatmap(fAttendance, fEvents, proposals);
-      renderCategoryCampusClusteredBar(fAttendance, fEvents, proposals);
+      execSafeRender("Category x Campus Heatmap",   () => renderCategoryCampusHeatmap(fAttendance, fEvents, proposals));
+      execSafeRender("Category x Campus Clustered", () => renderCategoryCampusClusteredBar(fAttendance, fEvents, proposals));
     } else {
       destroyExecChart("clustered");
     }
@@ -8244,6 +8244,16 @@ function destroyExecChart(key){
     try { window._execCharts[key].destroy(); } catch(e){}
     delete window._execCharts[key];
   }
+}
+
+// Run one chart's render function in isolation — if it throws (e.g. a Chart.js
+// "Canvas is already in use" error from an overlapping reload), only that one
+// chart is affected; every other chart in the same loadExecutiveDashboard()
+// pass still renders normally instead of the whole sequence aborting. Logs
+// with the chart's own label so a failure is easy to spot in the console.
+function execSafeRender(label, fn){
+  try { fn(); }
+  catch(err){ console.error(`[Executive Dashboard] "${label}" chart failed to render:`, err); }
 }
 
 // Return an array of "YYYY-MM" keys covering the visible month window.
