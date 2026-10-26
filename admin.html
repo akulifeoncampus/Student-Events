@@ -13195,11 +13195,11 @@ function generateTempPassword(){
   const upper = "ABCDEFGHJKMNPQRSTUVWXYZ";
   const lower = "abcdefghjkmnpqrstuvwxyz";
   const nums  = "23456789";
-  const all   = upper + lower + nums;
-  let pass = upper[Math.floor(Math.random() * upper.length)];
-  pass    += lower[Math.floor(Math.random() * lower.length)];
-  pass    += nums [Math.floor(Math.random() * nums.length)];
-  for(let i = 0; i < 7; i++) pass += all[Math.floor(Math.random() * all.length)];
+  const syms  = "!@#$%&*?";
+  const all   = upper + lower + nums + syms;
+  const pick  = s => s[Math.floor(Math.random() * s.length)];
+  let pass = pick(upper) + pick(lower) + pick(nums) + pick(syms);
+  for(let i = 0; i < 8; i++) pass += pick(all);
   return pass.split("").sort(() => Math.random() - .5).join("");
 }
 
@@ -15626,6 +15626,9 @@ async function submitResetClubPassword(){
   if(!targetEmail)       { showToast("No target account — please close and reopen the modal", "error"); return; }
   if(!newPw)             { showToast("Please enter a new password", "error"); return; }
   if(newPw.length < 8)   { showToast("Password must be at least 8 characters", "error"); return; }
+  if(!/[a-z]/.test(newPw) || !/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw) || !/[^A-Za-z0-9]/.test(newPw)){
+    showToast("Password needs a lowercase, uppercase, number and symbol", "error"); return;
+  }
   if(newPw !== confirmPw){ showToast("Passwords do not match", "error"); return; }
 
   const btn = document.querySelector("#resetClubPasswordModal .btn-primary");
@@ -16029,6 +16032,9 @@ async function submitResetPassword(){
   if(!targetEmail)       { showToast("No target user — please close and reopen the modal", "error"); return; }
   if(!newPw)             { showToast("Please enter a new password", "error"); return; }
   if(newPw.length < 8)   { showToast("Password must be at least 8 characters", "error"); return; }
+  if(!/[a-z]/.test(newPw) || !/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw) || !/[^A-Za-z0-9]/.test(newPw)){
+    showToast("Password needs a lowercase, uppercase, number and symbol", "error"); return;
+  }
   if(newPw !== confirmPw){ showToast("Passwords do not match", "error"); return; }
 
   const btn = document.querySelector("#resetPasswordModal .btn-primary");
@@ -16180,6 +16186,14 @@ async function handleChangePassword(){
   }
   if(!/[0-9]/.test(newPw)){
     errEl.textContent = "❌ Must contain at least one number.";
+    return;
+  }
+  if(!/[a-z]/.test(newPw)){
+    errEl.textContent = "❌ Must contain at least one lowercase letter.";
+    return;
+  }
+  if(!/[^A-Za-z0-9]/.test(newPw)){
+    errEl.textContent = "❌ Must contain at least one symbol (e.g. ! @ # $ %).";
     return;
   }
   if(newPw !== confPw){
