@@ -1878,17 +1878,7 @@
   <div class="modal" style="max-width:460px;text-align:center;">
     <div style="font-size:48px;margin-bottom:12px;">📋</div>
     <div class="modal-title" style="margin-bottom:8px;">One quick step first</div>
-    <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px;" id="pendingReportMsg"></p>
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
-        <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-        <div style="font-size:13px;color:#1e3a8a;line-height:1.5;">Ask your Coordinator to mark the event as <strong>Closed</strong></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:10px;">
-        <div style="width:22px;height:22px;border-radius:50%;background:#2563eb;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
-        <div style="font-size:13px;color:#1e3a8a;line-height:1.5;">Come back here to submit your next proposal</div>
-      </div>
-    </div>
+    <div style="font-size:14px;color:var(--text,#1e293b);line-height:1.7;margin-bottom:20px;text-align:left;white-space:pre-line;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;max-height:55vh;overflow-y:auto;" id="pendingReportMsg"></div>
     <div style="display:flex;gap:10px;justify-content:center;">
       <button class="btn btn-secondary" onclick="closeModal('pendingReportModal')">Got it</button>
     </div>
@@ -5596,40 +5586,80 @@ function selectScale(scale){
   }
 }
 
-function showPendingReportWarning(proposal){
-  const eventDate = formatDate(proposal.proposed_date);
-  document.getElementById("pendingReportMsg").textContent =
-    `"${proposal.event_name}" (${eventDate}) still needs to be closed before you can submit a new proposal.`;
+function showPendingReportWarning(message){
+  document.getElementById("pendingReportMsg").textContent = message;
   document.getElementById("pendingReportModal").classList.add("open");
 }
 
+// Mirrors the database rule (trigger enforce_proposal_submission_rules).
+// Returns a message string if the club must wait, otherwise null.
+// The database is the real enforcement; this just gives the same answer earlier.
+async function getSubmissionBlockMessage(){
+  const clubName = (currentClub?.club_name || "");
+  const lname = clubName.toLowerCase();
+  const isExempt = ["department","individual"].includes(currentClub?.account_type)
+    || lname.includes("acc") || lname === "aku sports society";
+  if(isExempt) return null;
+
+  const { data, error } = await sb.from("event_proposals")
+    .select("event_name,status,execution_status,proposed_date")
+    .ilike("club_email", currentClub.email);
+  if(error || !data) return null; // never block on a lookup failure; database still enforces
+
+  const REVIEW = ["submitted","under_review","needs_info"];
+  const open = data.filter(p =>
+    !["declined","cancelled","postponed"].includes(p.status)
+    && (REVIEW.includes(p.status)
+        || !["report_submitted","cancelled","postponed"].includes(p.execution_status || "pending")));
+  if(!open.length) return null;
+
+  const labelOf = p => {
+    if(p.status === "submitted") return "Received";
+    if(p.status === "under_review") return "In Review";
+    if(p.status === "needs_info") return "Needs Info";
+    if(p.execution_status === "completed") return "Event Held";
+    if(p.execution_status === "in_progress") return "Preparation Underway";
+    if(p.status === "assigned") return "Coordinator Assigned";
+    if(p.status === "approved") return "Approved";
+    return p.status;
+  };
+  const byDate = (x,y) => String(x.proposed_date || "").localeCompare(String(y.proposed_date || ""));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+
+  const reviewing = open.filter(p => REVIEW.includes(p.status)).sort(byDate);
+  const overdue   = open.filter(p => !REVIEW.includes(p.status) && p.proposed_date && p.proposed_date < todayStr).sort(byDate);
+  const head = "Dear " + clubName + ",\nThank you for your enthusiasm to enrich campus life. ";
+
+  if(overdue.length){
+    return head + "Before you can submit a new proposal, these events that have already taken place need to be closed:\n"
+      + overdue.map(p => "\u2022 " + p.event_name + " (" + labelOf(p) + ")").join("\n")
+      + "\n\nWhat to do:\n1. Ask your event Coordinator to mark each event as Closed.\n2. Come back here and submit your next proposal.";
+  }
+  if(reviewing.length === 1){
+    return head + "Your proposal is still waiting for review by the Office of Student Experience: "
+      + reviewing[0].event_name + " (" + labelOf(reviewing[0]) + "). Please wait for a decision before submitting another.";
+  }
+  if(reviewing.length > 1){
+    return head + "Your proposals are still waiting for review by the Office of Student Experience:\n"
+      + reviewing.map(p => "\u2022 " + p.event_name + " (" + labelOf(p) + ")").join("\n")
+      + "\nPlease wait for a decision before submitting another.";
+  }
+  if(open.length >= 2){
+    const mo = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const dstr = d => { if(!d) return ""; const x = String(d).split("-"); return ", " + parseInt(x[2],10) + " " + mo[parseInt(x[1],10)-1]; };
+    return head + "You currently have " + open.length + " open proposals, and you can submit a new one once one of them is closed:\n"
+      + open.slice().sort(byDate).map(p => "\u2022 " + p.event_name + " (" + labelOf(p) + dstr(p.proposed_date) + ")").join("\n")
+      + "\n\nAsk your event Coordinator to mark an event as Closed after it is done, then come back here and submit your next proposal.";
+  }
+  return null;
+}
+
 async function openProposalModal(id = null){
-  // ── Gate: block if club has overdue events without report ──
+  // Gate: new proposals only (editing an existing one is never blocked)
   if(!id){
-    const today = new Date(); today.setHours(0,0,0,0);
-
-    // ACCs (name contains "acc") and AKU Sports Society are exempt.
-    // Departmental accounts are also exempt: event-hub is a listing space for
-    // them (no OSE support / closure cycle), so they may submit freely even
-    // while earlier events are still open.
-    const clubName = (currentClub?.club_name || "").toLowerCase();
-    const isDepartment = currentClub?.account_type === "department";
-    const isExempt = isDepartment || clubName.includes("acc") || clubName === "aku sports society";
-
-    if(!isExempt){
-      const pendingReport = allProposals.find(p => {
-        if(!p.proposed_date) return false;
-        const eventDate = new Date(p.proposed_date); eventDate.setHours(0,0,0,0);
-        if(eventDate > today) return false; // future event — fine
-
-        // Closed / terminal states — allow new proposals
-        const isClosed = p.execution_status === "report_submitted"
-          || ["declined","cancelled","postponed"].includes(p.status);
-
-        return !isClosed; // date passed + not closed = block
-      });
-      if(pendingReport){ showPendingReportWarning(pendingReport); return; }
-    }
+    const blockMsg = await getSubmissionBlockMessage();
+    if(blockMsg){ showPendingReportWarning(blockMsg); return; }
   }
 
   // Reset all fields
@@ -6056,7 +6086,16 @@ async function submitProposal(){
     ({ error } = await sb.from("event_proposals").insert(payload));
   }
 
-  if(error){ showToast("Failed to submit: " + error.message, "error"); reset(); return; }
+  if(error){
+    // Rule message from the database (starts with "Dear ..."): show it in the same popup
+    if(!id && error.message && error.message.indexOf("Dear ") === 0){
+      reset();
+      closeModal("proposalModal");
+      showPendingReportWarning(error.message);
+      return;
+    }
+    showToast("Failed to submit: " + error.message, "error"); reset(); return;
+  }
 
   showToast(id ? "Proposal updated! ✨" : "Proposal submitted! 🎉 Office of Student Experience will review it soon.");
   reset();
